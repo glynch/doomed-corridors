@@ -81,9 +81,20 @@ preserving palette and lump provenance plus classic patch offsets. The
 presentation adapter displays these inert actors as alpha-masked cylindrical
 billboards with WAD-derived anchors and pixel scale.
 
-The next slice establishes the first weapon, hitscan, enemy, damage, health, and
-ammo behavior using this actor boundary. Doors, lifts, other sector specials,
-and complete actor behavior remain later vertical slices.
+The headless combat-model slice is also complete. A project-declared, versioned
+combat document defines the player's initial health and ammunition, the pistol's
+range and discrete damage values, and the zombieman's health and collision
+cylinder. A deterministic session consumes that provider data, traces pitched
+hitscan rays against living actors and map openings, applies wall occlusion and
+nearest-target selection, consumes ammunition, and emits immutable damage and
+death state plus presentation-neutral events. Its tests require no graphics or
+audio device.
+
+The next slice presents that model in the running game: primary-fire input,
+WAD-backed pistol and zombieman state frames, visible damage and death, and
+firing, pain, and death sounds. Enemy acquisition, chase, attacks, player death,
+health, ammunition pickups, doors, lifts, and other sector specials remain later
+vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

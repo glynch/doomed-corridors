@@ -35,6 +35,11 @@
       "path": "game/actors.json"
     },
     {
+      "id": "combat",
+      "type": "doomed-corridors-combat-rules",
+      "path": "game/combat.json"
+    },
+    {
       "id": "freedoom",
       "type": "doom-wad",
       "path": "assets/freedoom2.wad",

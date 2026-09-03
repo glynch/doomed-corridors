@@ -11,6 +11,10 @@ import io.github.glynch.doomedcorridors.actor.DoomActorDiagnostic;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
+import io.github.glynch.doomedcorridors.combat.DoomCombatDiagnostic;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecodeResult;
@@ -42,7 +46,8 @@ record DoomStartup(
         DoomMapMaterials materials,
         DoomStaticGeometry geometry,
         DoomActorResolution actors,
-        DoomActorSprites sprites) {
+        DoomActorSprites sprites,
+        DoomCombatRules combatRules) {
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
 
     /** Loads the complete project-selected static-map pipeline. */
@@ -58,6 +63,7 @@ record DoomStartup(
                 project.runtime().startup().asset(),
                 project.runtime().startup().target());
         DoomActorCatalog actorCatalog = loadActorCatalog(project);
+        DoomCombatRules combatRules = loadCombatRules(project, actorCatalog);
         GameProject.AssetSource asset = startupAsset(project);
         WadArchive archive = loadArchive(project, asset);
         DoomMap map = decodeMap(project, archive);
@@ -65,7 +71,7 @@ record DoomStartup(
         DoomStaticGeometry geometry = buildGeometry(map, materials);
         DoomActorResolution actors = resolveActors(archive, map, actorCatalog);
         DoomActorSprites sprites = importSprites(archive, actors);
-        return new DoomStartup(project, map, materials, geometry, actors, sprites);
+        return new DoomStartup(project, map, materials, geometry, actors, sprites, combatRules);
     }
 
     /** Loads the actor catalog declared by this Game Provider's project. */
@@ -83,6 +89,27 @@ record DoomStartup(
                 .orElseThrow(() -> new IllegalStateException("Cannot load actor catalog"));
         System.out.printf("Loaded %,d provider actor definitions%n", catalog.definitions().size());
         return catalog;
+    }
+
+    /** Loads the combat rules declared by this Game Provider's project. */
+    private static DoomCombatRules loadCombatRules(
+            GameProject project, DoomActorCatalog actorCatalog) {
+        GameProject.AssetSource source = project.assets().stream()
+                .filter(asset -> asset.id().equals("combat"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Combat rules asset is not defined"));
+        if (!source.type().equals("doomed-corridors-combat-rules")) {
+            throw new IllegalStateException("Combat rules asset has the wrong type");
+        }
+        DoomCombatRulesLoadResult result =
+                new DoomCombatRulesLoader().load(source.path(), actorCatalog);
+        result.diagnostics().forEach(DoomStartup::printCombatDiagnostic);
+        DoomCombatRules rules = result.rules()
+                .orElseThrow(() -> new IllegalStateException("Cannot load combat rules"));
+        System.out.printf(
+                "Loaded combat rules for %s and %,d combatant definition%n",
+                rules.primaryWeaponId(), rules.combatantDefinitionCount());
+        return rules;
     }
 
     /** Resolves the manifest-selected source asset. */
@@ -213,6 +240,17 @@ record DoomStartup(
 
     /** Prints one actor diagnostic consistently for both hosts. */
     private static void printActorDiagnostic(DoomActorDiagnostic diagnostic) {
+        System.out.printf(
+                "%s %s at %s%s: %s%n",
+                diagnostic.severity(),
+                diagnostic.code(),
+                diagnostic.source(),
+                diagnostic.location().isEmpty() ? "" : "#" + diagnostic.location(),
+                diagnostic.message());
+    }
+
+    /** Prints one provider combat-rules diagnostic consistently for both hosts. */
+    private static void printCombatDiagnostic(DoomCombatDiagnostic diagnostic) {
         System.out.printf(
                 "%s %s at %s%s: %s%n",
                 diagnostic.severity(),

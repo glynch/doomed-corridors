@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-1.json",
+  "title": "Doomed Corridors combat rules version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "player", "weapons", "combatants"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": 1 },
+    "player": { "$ref": "#/$defs/player" },
+    "weapons": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/weapon" }
+    },
+    "combatants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/combatant" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "player": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startingHealth", "startingBullets", "startingWeapon"],
+      "properties": {
+        "startingHealth": { "type": "integer", "minimum": 1 },
+        "startingBullets": { "type": "integer", "minimum": 0 },
+        "startingWeapon": { "$ref": "#/$defs/id" }
+      }
+    },
+    "weapon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ammoPerShot", "range", "damageMinimum", "damageMaximum", "damageStep"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "ammoPerShot": { "type": "integer", "minimum": 1 },
+        "range": { "type": "integer", "minimum": 1 },
+        "damageMinimum": { "type": "integer", "minimum": 1 },
+        "damageMaximum": { "type": "integer", "minimum": 1 },
+        "damageStep": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "combatant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "health", "radius", "height"],
+      "properties": {
+        "actor": { "$ref": "#/$defs/id" },
+        "health": { "type": "integer", "minimum": 1 },
+        "radius": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

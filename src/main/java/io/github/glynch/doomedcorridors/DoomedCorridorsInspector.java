@@ -4,6 +4,8 @@
  */
 package io.github.glynch.doomedcorridors;
 
+import io.github.glynch.doomedcorridors.combat.DoomCombatSession;
+import io.github.glynch.doomedcorridors.combat.DoomCombatState;
 import io.github.glynch.doomedcorridors.material.DoomMaterialContactSheet;
 import io.github.glynch.doomedcorridors.material.DoomSpriteContactSheet;
 import java.io.IOException;
@@ -24,6 +26,15 @@ public final class DoomedCorridorsInspector {
     public static void main(String[] arguments) {
         Path projectDirectory = Path.of(arguments.length == 0 ? "." : arguments[0]);
         DoomStartup startup = DoomStartup.load(projectDirectory);
+        DoomCombatState combat = DoomCombatSession.create(
+                        startup.map(), startup.combatRules(), startup.actors().actors(), 0L)
+                .state();
+        System.out.printf(
+                "Initialized headless combat: %s, %,d health, %,d bullets, and %,d combatants%n",
+                combat.primaryWeaponId(),
+                combat.playerHealth(),
+                combat.bullets(),
+                combat.combatants().size());
         Path contactSheet = startup.project()
                 .root()
                 .resolve("target/smoke/"

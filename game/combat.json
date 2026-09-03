@@ -1,0 +1,27 @@
+{
+  "$schema": "../schema/combat-1.schema.json",
+  "schemaVersion": 1,
+  "player": {
+    "startingHealth": 100,
+    "startingBullets": 50,
+    "startingWeapon": "pistol"
+  },
+  "weapons": [
+    {
+      "id": "pistol",
+      "ammoPerShot": 1,
+      "range": 2048,
+      "damageMinimum": 5,
+      "damageMaximum": 15,
+      "damageStep": 5
+    }
+  ],
+  "combatants": [
+    {
+      "actor": "zombieman",
+      "health": 20,
+      "radius": 20,
+      "height": 56
+    }
+  ]
+}

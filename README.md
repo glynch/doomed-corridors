@@ -12,8 +12,11 @@ pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
 Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest identifies the source
 asset, provider-owned [`game/actors.json`](game/actors.json) catalog, and startup
-map in [`project.json`](project.json). The catalog assigns Doom II meanings and
-initial sprite frames to the numeric thing types stored in classic maps.
+map in [`project.json`](project.json). The actor catalog assigns Doom II meanings
+and initial sprite frames to the numeric thing types stored in classic maps.
+Provider-owned [`game/combat.json`](game/combat.json) defines initial player
+resources, the pistol's hitscan and damage rules, and the zombieman's health and
+collision bounds.
 
 ## Building and running
 
@@ -58,7 +61,9 @@ Run the same loading and geometry pipeline without starting windowing with:
 ```
 
 The headless inspector also writes visual material and sprite sheets to
-`target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`.
+`target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`. Its
+console summary includes the combat rules and number of initialized MAP01
+combatants.
 
 ## Development
 

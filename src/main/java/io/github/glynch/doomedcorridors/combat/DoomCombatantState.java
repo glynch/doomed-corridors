@@ -1,0 +1,115 @@
+/*
+ * Copyright 2026 Graham Lynch
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package io.github.glynch.doomedcorridors.combat;
+
+import io.github.glynch.doomedcorridors.actor.DoomActor;
+import java.util.Objects;
+
+/** Immutable observable health, position, and collision bounds of one combatant. */
+public final class DoomCombatantState {
+    private final int thingIndex;
+    private final String actorId;
+    private final float x;
+    private final float floorHeight;
+    private final float z;
+    private final float radius;
+    private final float height;
+    private final int health;
+    private final int maximumHealth;
+
+    /** Creates one validated combatant snapshot. */
+    DoomCombatantState(DoomActor actor, float radius, float height, int maximumHealth) {
+        DoomActor validActor = Objects.requireNonNull(actor, "actor");
+        if (!Float.isFinite(radius)
+                || !Float.isFinite(height)
+                || radius <= 0.0F
+                || height <= 0.0F) {
+            throw new IllegalArgumentException("combatant dimensions must be finite and positive");
+        }
+        if (maximumHealth <= 0) {
+            throw new IllegalArgumentException("maximumHealth must be positive");
+        }
+        thingIndex = validActor.thingIndex();
+        actorId = validActor.definition().id();
+        x = validActor.x();
+        floorHeight = validActor.floorHeight();
+        z = validActor.z();
+        this.radius = radius;
+        this.height = height;
+        health = maximumHealth;
+        this.maximumHealth = maximumHealth;
+    }
+
+    /** Copies one snapshot while replacing only current health. */
+    private DoomCombatantState(DoomCombatantState source, int health) {
+        if (health < 0 || health > source.maximumHealth) {
+            throw new IllegalArgumentException("combatant health is outside its valid range");
+        }
+        thingIndex = source.thingIndex;
+        actorId = source.actorId;
+        x = source.x;
+        floorHeight = source.floorHeight;
+        z = source.z;
+        radius = source.radius;
+        height = source.height;
+        this.health = health;
+        maximumHealth = source.maximumHealth;
+    }
+
+    /** Returns the source-map thing index identifying this combatant. */
+    public int thingIndex() {
+        return thingIndex;
+    }
+
+    /** Returns the stable provider actor identifier. */
+    public String actorId() {
+        return actorId;
+    }
+
+    /** Returns the world-coordinate center on the X axis. */
+    public float x() {
+        return x;
+    }
+
+    /** Returns the supporting floor height in world coordinates. */
+    public float floorHeight() {
+        return floorHeight;
+    }
+
+    /** Returns the world-coordinate center on the Z axis. */
+    public float z() {
+        return z;
+    }
+
+    /** Returns the horizontal collision radius in world units. */
+    public float radius() {
+        return radius;
+    }
+
+    /** Returns the vertical collision height in world units. */
+    public float height() {
+        return height;
+    }
+
+    /** Returns current health in the inclusive range from zero through maximum health. */
+    public int health() {
+        return health;
+    }
+
+    /** Returns the combatant's initial and maximum health. */
+    public int maximumHealth() {
+        return maximumHealth;
+    }
+
+    /** Returns whether this combatant still participates in targeting. */
+    public DoomCombatantStatus status() {
+        return health == 0 ? DoomCombatantStatus.DEAD : DoomCombatantStatus.ALIVE;
+    }
+
+    /** Returns a new snapshot with adjusted health. */
+    DoomCombatantState withHealth(int newHealth) {
+        return new DoomCombatantState(this, newHealth);
+    }
+}
