@@ -1,0 +1,48 @@
+{
+  "$schema": "schema/project-1.schema.json",
+  "schemaVersion": 1,
+  "identity": {
+    "id": "io.github.glynch.doomed-corridors",
+    "name": "Doomed Corridors",
+    "version": "0.1.0-SNAPSHOT",
+    "created": "2026-09-03",
+    "description": "An unofficial Doom-compatible first-person game built with JScene3D."
+  },
+  "authors": [
+    {
+      "name": "Graham Lynch",
+      "roles": ["creator", "developer"]
+    }
+  ],
+  "legal": {
+    "thirdPartyNotices": "src/main/resources/assets/ATTRIBUTION.md"
+  },
+  "engine": {
+    "requires": ">=0.1.0-SNAPSHOT <0.2.0",
+    "authoredWith": "0.1.0-SNAPSHOT"
+  },
+  "runtime": {
+    "gameProvider": "io.github.glynch.doomed-corridors",
+    "startup": {
+      "asset": "freedoom",
+      "target": "MAP01"
+    }
+  },
+  "assets": [
+    {
+      "id": "freedoom",
+      "type": "doom-wad",
+      "path": "assets/freedoom2.wad",
+      "sha256": "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b"
+    }
+  ],
+  "catalog": {
+    "genres": ["first-person shooter"],
+    "tags": ["doom-compatible", "freedoom", "single-player"],
+    "players": {
+      "minimum": 1,
+      "maximum": 1
+    },
+    "contentWarnings": ["fantasy violence"]
+  }
+}

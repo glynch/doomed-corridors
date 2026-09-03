@@ -1,0 +1,16 @@
+target/
+**/target/
+**/target_test-classes/
+node_modules/
+
+/assets/*.wad
+
+.classpath
+.project
+.settings/
+.idea/
+.vscode/
+*.iml
+*.code-workspace
+
+.DS_Store

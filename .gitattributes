@@ -1,0 +1,2 @@
+/assets/COPYING.txt -text whitespace=cr-at-eol,-blank-at-eof
+/assets/CREDITS*.txt -text whitespace=cr-at-eol,-blank-at-eof
