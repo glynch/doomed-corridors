@@ -36,16 +36,20 @@ truth.
 
 ## Progress
 
-The headless source-inspection slice is complete. Freedoom 0.13.0 is pinned by
-release URL and SHA-256, and the ignored local `freedoom2.wad` is verified before
-use. The WAD reader validates the container and directory without interpreting
-game rules, preserves lump order and duplicate names, enumerates all 32 map
-markers, and confirms that `MAP01` exists. Synthetic corruption tests and a
-real-WAD integration test run without graphics or audio.
+The headless source and map-decoding slices are complete. Freedoom 0.13.0 is
+pinned by release URL and SHA-256, and the ignored local `freedoom2.wad` is
+verified before use. The WAD reader validates the container and directory,
+preserves lump order and duplicate names, enumerates all 32 map markers, and
+confirms that `MAP01` exists. The classic-map decoder then validates and decodes
+the ordered `THINGS` through `BLOCKMAP` lump sequence into an immutable,
+renderer-independent model. It checks record boundaries, cross-references, BSP
+children, collision blocks, and visibility-table size, with explicit diagnostics
+for corrupt, UDMF, and Hexen-format input. Synthetic corruption tests and a
+pinned real-WAD integration test run without graphics or audio.
 
-The next slice decodes the ordered `MAP01` map lumps into an immutable Doom map
-model. Rendering, collision, actor behavior, and sector semantics remain outside
-that decoder and will follow as separate vertical slices.
+The next slice imports the palette and MAP01 material images, then constructs
+static sector geometry from the decoded map. Collision, actor behavior, and
+sector specials remain separate later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

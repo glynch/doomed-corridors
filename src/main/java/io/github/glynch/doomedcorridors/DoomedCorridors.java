@@ -1,5 +1,8 @@
 package io.github.glynch.doomedcorridors;
 
+import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.doomedcorridors.wad.DoomMapDecodeResult;
+import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.WadArchive;
 import io.github.glynch.doomedcorridors.wad.WadDiagnostic;
 import io.github.glynch.doomedcorridors.wad.WadLoadResult;
@@ -78,5 +81,25 @@ public final class DoomedCorridors {
         System.out.printf(
                 "Inspected %s with %,d lumps and %,d maps; found startup map %s%n",
                 archive.kind(), archive.lumps().size(), archive.mapNames().size(), startup.target());
+        DoomMapDecodeResult mapResult = new DoomMapDecoder().decode(archive, startup.target());
+        for (WadDiagnostic diagnostic : mapResult.diagnostics()) {
+            System.out.printf(
+                    "%s %s at %s%s: %s%n",
+                    diagnostic.severity(),
+                    diagnostic.code(),
+                    diagnostic.source(),
+                    diagnostic.location().isEmpty() ? "" : "#" + diagnostic.location(),
+                    diagnostic.message());
+        }
+        DoomMap map = mapResult.map()
+                .orElseThrow(() -> new IllegalStateException("Cannot decode startup map: " + startup.target()));
+        System.out.printf(
+                "Decoded %s: %,d things, %,d linedefs, %,d sidedefs, %,d vertices, and %,d sectors%n",
+                map.name(),
+                map.things().size(),
+                map.linedefs().size(),
+                map.sidedefs().size(),
+                map.vertices().size(),
+                map.sectors().size());
     }
 }
