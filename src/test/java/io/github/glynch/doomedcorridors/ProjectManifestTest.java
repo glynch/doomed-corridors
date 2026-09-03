@@ -25,7 +25,7 @@ final class ProjectManifestTest {
         assertThat(project.runtime().startup()).isEqualTo(new GameProject.StartupTarget("freedoom", "MAP01"));
         assertThat(project.assets())
                 .extracting(GameProject.AssetSource::id)
-                .containsExactly("actors", "combat", "freedoom");
+                .containsExactly("actors", "combat", "combat-presentation", "freedoom");
         assertThat(project.assets().getFirst()).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo("doomed-corridors-actor-catalog");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/actors.json"));
@@ -37,6 +37,11 @@ final class ProjectManifestTest {
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(2)).satisfies(asset -> {
+            assertThat(asset.type()).isEqualTo("doomed-corridors-combat-presentation");
+            assertThat(asset.path()).isEqualTo(project.root().resolve("game/combat-presentation.json"));
+            assertThat(asset.sha256()).isEmpty();
+        });
+        assertThat(project.assets().get(3)).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo("doom-wad");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256())
@@ -48,7 +53,7 @@ final class ProjectManifestTest {
                 assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
                     assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
                     assertThat(diagnostic.code()).isEqualTo("project.path.missing");
-                    assertThat(diagnostic.location()).isEqualTo("/assets/2/path");
+                    assertThat(diagnostic.location()).isEqualTo("/assets/3/path");
                 });
         }
     }

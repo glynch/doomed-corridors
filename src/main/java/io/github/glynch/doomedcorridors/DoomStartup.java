@@ -17,6 +17,12 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatAssets;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoadResult;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoader;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationRules;
+import io.github.glynch.doomedcorridors.wad.DoomCombatAssetImportResult;
+import io.github.glynch.doomedcorridors.wad.DoomCombatAssetImporter;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecodeResult;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.DoomMaterialImportResult;
@@ -47,7 +53,7 @@ record DoomStartup(
         DoomStaticGeometry geometry,
         DoomActorResolution actors,
         DoomActorSprites sprites,
-        DoomCombatRules combatRules) {
+        DoomCombatStartup combat) {
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
 
     /** Loads the complete project-selected static-map pipeline. */
@@ -64,6 +70,7 @@ record DoomStartup(
                 project.runtime().startup().target());
         DoomActorCatalog actorCatalog = loadActorCatalog(project);
         DoomCombatRules combatRules = loadCombatRules(project, actorCatalog);
+        DoomCombatPresentationRules combatPresentation = loadCombatPresentation(project, combatRules);
         GameProject.AssetSource asset = startupAsset(project);
         WadArchive archive = loadArchive(project, asset);
         DoomMap map = decodeMap(project, archive);
@@ -71,7 +78,31 @@ record DoomStartup(
         DoomStaticGeometry geometry = buildGeometry(map, materials);
         DoomActorResolution actors = resolveActors(archive, map, actorCatalog);
         DoomActorSprites sprites = importSprites(archive, actors);
-        return new DoomStartup(project, map, materials, geometry, actors, sprites, combatRules);
+        DoomCombatAssets combatAssets = importCombatAssets(archive, combatPresentation);
+        return new DoomStartup(
+                project, map, materials, geometry, actors, sprites,
+                new DoomCombatStartup(combatRules, combatAssets));
+    }
+
+    /** Loads the independently versioned combat-to-WAD presentation bindings. */
+    private static DoomCombatPresentationRules loadCombatPresentation(
+            GameProject project, DoomCombatRules combatRules) {
+        GameProject.AssetSource source = project.assets().stream()
+                .filter(asset -> asset.id().equals("combat-presentation"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Combat presentation asset is not defined"));
+        if (!source.type().equals("doomed-corridors-combat-presentation")) {
+            throw new IllegalStateException("Combat presentation asset has the wrong type");
+        }
+        DoomCombatPresentationLoadResult result =
+                new DoomCombatPresentationLoader().load(source.path(), combatRules);
+        result.diagnostics().forEach(DoomStartup::printCombatDiagnostic);
+        DoomCombatPresentationRules rules = result.rules()
+                .orElseThrow(() -> new IllegalStateException("Cannot load combat presentation"));
+        System.out.printf(
+                "Loaded combat presentation with %,d images and %,d sounds%n",
+                rules.imageLumps().size(), rules.soundLumps().size());
+        return rules;
     }
 
     /** Loads the actor catalog declared by this Game Provider's project. */
@@ -209,6 +240,19 @@ record DoomStartup(
         return sprites;
     }
 
+    /** Imports every exact image and DMX sound required by combat presentation. */
+    private static DoomCombatAssets importCombatAssets(
+            WadArchive archive, DoomCombatPresentationRules rules) {
+        DoomCombatAssetImportResult result = new DoomCombatAssetImporter().importAssets(archive, rules);
+        result.diagnostics().forEach(DoomStartup::printWadDiagnostic);
+        DoomCombatAssets assets = result.assets()
+                .orElseThrow(() -> new IllegalStateException("Cannot import combat presentation assets"));
+        System.out.printf(
+                "Imported combat presentation: %,d images and %,d sounds%n",
+                assets.images().size(), assets.sounds().size());
+        return assets;
+    }
+
     /** Prints one project diagnostic consistently for both hosts. */
     private static void printProjectDiagnostic(ProjectDiagnostic diagnostic) {
         System.out.printf(
@@ -260,3 +304,6 @@ record DoomStartup(
                 diagnostic.message());
     }
 }
+
+/** Combat simulation rules paired with presentation assets for both application hosts. */
+record DoomCombatStartup(DoomCombatRules rules, DoomCombatAssets assets) {}

@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Owns the JScene3D scene resources adapted from one headless Doom map. */
 public final class DoomMapPresentation implements AutoCloseable {
@@ -42,26 +43,26 @@ public final class DoomMapPresentation implements AutoCloseable {
 
     private final Scene scene;
     private final PerspectiveCamera camera;
-    private final List<BufferGeometry> geometries;
-    private final List<Billboard> billboards;
-    private final List<BasicMaterial> materials;
-    private final List<Texture> textures;
+    private final OwnedResources resources;
+    private final Map<Integer, ActorVisual> actorVisuals;
+    private final Map<String, BasicMaterial> spriteMaterials;
+    private final Optional<DoomCombatAssets> combatAssets;
     private boolean closed;
 
     /** Retains a fully constructed presentation and its owned resources. */
     private DoomMapPresentation(
             Scene scene,
             PerspectiveCamera camera,
-            List<BufferGeometry> geometries,
-            List<Billboard> billboards,
-            List<BasicMaterial> materials,
-            List<Texture> textures) {
+            OwnedResources resources,
+            Map<Integer, ActorVisual> actorVisuals,
+            Map<String, BasicMaterial> spriteMaterials,
+            Optional<DoomCombatAssets> combatAssets) {
         this.scene = scene;
         this.camera = camera;
-        this.geometries = geometries;
-        this.billboards = billboards;
-        this.materials = materials;
-        this.textures = textures;
+        this.resources = resources;
+        this.actorVisuals = actorVisuals;
+        this.spriteMaterials = spriteMaterials;
+        this.combatAssets = combatAssets;
     }
 
     /**
@@ -80,6 +81,40 @@ public final class DoomMapPresentation implements AutoCloseable {
             List<DoomActor> actors,
             DoomActorSprites sourceSprites,
             float aspectRatio) {
+        return createInternal(
+                geometry, sourceMaterials, actors, sourceSprites, Optional.empty(), aspectRatio);
+    }
+
+    /**
+     * Adapts a map plus decoded combat frames into an owned, event-updatable scene.
+     *
+     * @param geometry renderer-independent static map geometry
+     * @param sourceMaterials imported wall textures and flats
+     * @param actors visible renderer-independent map actors
+     * @param sourceSprites imported actor spawn sprites
+     * @param sourceCombatAssets imported pain and death frames
+     * @param aspectRatio positive viewport width divided by height
+     * @return a presentation owning all created JScene3D resources
+     */
+    public static DoomMapPresentation create(
+            DoomStaticGeometry geometry,
+            DoomMapMaterials sourceMaterials,
+            List<DoomActor> actors,
+            DoomActorSprites sourceSprites,
+            DoomCombatAssets sourceCombatAssets,
+            float aspectRatio) {
+        return createInternal(geometry, sourceMaterials, actors, sourceSprites,
+                Optional.of(Objects.requireNonNull(sourceCombatAssets, "sourceCombatAssets")), aspectRatio);
+    }
+
+    /** Builds the shared map presentation for optional combat-frame support. */
+    private static DoomMapPresentation createInternal(
+            DoomStaticGeometry geometry,
+            DoomMapMaterials sourceMaterials,
+            List<DoomActor> actors,
+            DoomActorSprites sourceSprites,
+            Optional<DoomCombatAssets> sourceCombatAssets,
+            float aspectRatio) {
         DoomStaticGeometry validGeometry = Objects.requireNonNull(geometry, "geometry");
         DoomMapMaterials validMaterials = Objects.requireNonNull(sourceMaterials, "sourceMaterials");
         List<DoomActor> validActors = List.copyOf(Objects.requireNonNull(actors, "actors"));
@@ -87,30 +122,33 @@ public final class DoomMapPresentation implements AutoCloseable {
         Scene scene = new Scene();
         scene.setBackground(Color.BLACK);
         PerspectiveCamera camera = createCamera(validGeometry.playerStart(), aspectRatio);
-        List<BufferGeometry> geometries = new ArrayList<>(validGeometry.surfaces().size());
-        List<Billboard> billboards = new ArrayList<>(validActors.size());
-        List<BasicMaterial> materials = new ArrayList<>();
-        List<Texture> textures = new ArrayList<>();
+        OwnedResources resources = new OwnedResources(validGeometry.surfaces().size(), validActors.size());
         Map<MaterialKey, BasicMaterial> materialCache = new LinkedHashMap<>();
         for (DoomSurface surface : validGeometry.surfaces()) {
             BufferGeometry bufferGeometry = createBufferGeometry(surface.mesh());
             BasicMaterial material = materialCache.computeIfAbsent(
-                    materialKey(surface), key -> createMaterial(key, validMaterials, materials, textures));
-            geometries.add(bufferGeometry);
+                    materialKey(surface), key -> createMaterial(
+                            key, validMaterials, resources.materials, resources.textures));
+            resources.geometries.add(bufferGeometry);
             scene.add(new Mesh(bufferGeometry, material));
         }
         Map<String, BasicMaterial> spriteMaterialCache = new LinkedHashMap<>();
+        Map<Integer, ActorVisual> actorVisuals = new LinkedHashMap<>();
         for (DoomActor actor : validActors) {
-            addActor(
+            ActorVisual visual = addActor(
                     scene,
                     actor,
                     validSprites,
                     spriteMaterialCache,
-                    billboards,
-                    materials,
-                    textures);
+                    resources.billboards,
+                    resources.materials,
+                    resources.textures);
+            if (visual != null) {
+                actorVisuals.put(actor.thingIndex(), visual);
+            }
         }
-        return new DoomMapPresentation(scene, camera, geometries, billboards, materials, textures);
+        return new DoomMapPresentation(
+                scene, camera, resources, Map.copyOf(actorVisuals), spriteMaterialCache, sourceCombatAssets);
     }
 
     /** Returns the adapted scene. */
@@ -137,6 +175,23 @@ public final class DoomMapPresentation implements AutoCloseable {
         applyCamera(camera, Objects.requireNonNull(player, "player"));
     }
 
+    /** Applies current pain/death frame overrides to indexed actor billboards. */
+    public void applyCombatState(DoomCombatPresentationState state) {
+        requireOpen();
+        DoomCombatPresentationState validState = Objects.requireNonNull(state, "state");
+        DoomCombatAssets assets = combatAssets.orElseThrow(
+                () -> new IllegalStateException("Combat assets were not supplied to this presentation"));
+        actorVisuals.forEach((thingIndex, visual) -> {
+            DoomActorSprite sprite = validState.actorFrame(thingIndex)
+                    .map(assets::image)
+                    .orElse(visual.idleSprite);
+            BasicMaterial material = spriteMaterials.computeIfAbsent(
+                    sprite.lumpName(), ignored -> createSpriteMaterial(
+                            sprite, resources.materials, resources.textures));
+            visual.apply(sprite, material);
+        });
+    }
+
     /** Closes all adapter-owned geometries, materials, and textures. */
     @Override
     public void close() {
@@ -144,15 +199,15 @@ public final class DoomMapPresentation implements AutoCloseable {
             return;
         }
         scene.clear();
-        billboards.forEach(Billboard::close);
-        geometries.forEach(BufferGeometry::close);
-        materials.forEach(BasicMaterial::close);
-        textures.forEach(Texture::close);
+        resources.billboards.forEach(Billboard::close);
+        resources.geometries.forEach(BufferGeometry::close);
+        resources.materials.forEach(BasicMaterial::close);
+        resources.textures.forEach(Texture::close);
         closed = true;
     }
 
     /** Adds one grounded cylindrical billboard when its imported frame is available. */
-    private static void addActor(
+    private static ActorVisual addActor(
             Scene scene,
             DoomActor actor,
             DoomActorSprites sprites,
@@ -163,20 +218,27 @@ public final class DoomMapPresentation implements AutoCloseable {
         String frame = actor.definition().spriteFrame().orElseThrow();
         DoomActorSprite sprite = sprites.sprite(frame).orElse(null);
         if (sprite == null) {
-            return;
+            return null;
         }
         BasicMaterial material = materialCache.computeIfAbsent(
-                frame, ignored -> createSpriteMaterial(sprite, ownedMaterials, ownedTextures));
+                sprite.lumpName(), ignored -> createSpriteMaterial(sprite, ownedMaterials, ownedTextures));
         Billboard billboard = new Billboard(material);
         billboard.setAlignment(BillboardAlignment.CYLINDRICAL);
+        billboard.setPosition(actor.x(), actor.floorHeight(), actor.z());
+        applyActorSprite(billboard, sprite, material);
+        billboards.add(billboard);
+        scene.add(billboard);
+        return new ActorVisual(billboard, sprite);
+    }
+
+    /** Applies patch-dependent material, anchor, and size to one actor billboard. */
+    private static void applyActorSprite(
+            Billboard billboard, DoomActorSprite sprite, BasicMaterial material) {
+        billboard.setMaterial(material);
         billboard.setAnchor(
                 sprite.leftOffset() / (float) sprite.image().width(),
                 (sprite.image().height() - sprite.topOffset()) / (float) sprite.image().height());
-        billboard.setPosition(actor.x(), actor.floorHeight(), actor.z());
-        billboard.setScale(
-                world(sprite.image().width()), world(sprite.image().height()), 1.0F);
-        billboards.add(billboard);
-        scene.add(billboard);
+        billboard.setScale(world(sprite.image().width()), world(sprite.image().height()), 1.0F);
     }
 
     /** Creates a camera looking along the classic Doom thing angle. */
@@ -310,4 +372,32 @@ public final class DoomMapPresentation implements AutoCloseable {
 
     /** Separates identical names in the flat and wall-texture namespaces. */
     private record MaterialKey(DoomMaterial.Kind kind, String name) {}
+
+    /** Mutable grouped ownership retained solely by the presentation lifecycle. */
+    private static final class OwnedResources {
+        private final List<BufferGeometry> geometries;
+        private final List<Billboard> billboards;
+        private final List<BasicMaterial> materials = new ArrayList<>();
+        private final List<Texture> textures = new ArrayList<>();
+
+        private OwnedResources(int surfaceCount, int actorCount) {
+            geometries = new ArrayList<>(surfaceCount);
+            billboards = new ArrayList<>(actorCount);
+        }
+    }
+
+    /** One actor billboard paired with its provider-selected idle sprite. */
+    private static final class ActorVisual {
+        private final Billboard billboard;
+        private final DoomActorSprite idleSprite;
+
+        private ActorVisual(Billboard billboard, DoomActorSprite idleSprite) {
+            this.billboard = billboard;
+            this.idleSprite = idleSprite;
+        }
+
+        private void apply(DoomActorSprite sprite, BasicMaterial material) {
+            applyActorSprite(billboard, sprite, material);
+        }
+    }
 }

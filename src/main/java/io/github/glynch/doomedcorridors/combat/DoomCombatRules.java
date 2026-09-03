@@ -60,6 +60,11 @@ public final class DoomCombatRules {
         return combatants.size();
     }
 
+    /** Returns whether the actor identity participates in configured combat. */
+    public boolean hasCombatant(String actorId) {
+        return combatants.containsKey(Objects.requireNonNull(actorId, "actorId"));
+    }
+
     /** Returns the initial weapon rules to the combat implementation. */
     WeaponDefinition primaryWeapon() {
         return primaryWeapon;

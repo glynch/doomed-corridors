@@ -27,7 +27,7 @@ public final class DoomedCorridorsInspector {
         Path projectDirectory = Path.of(arguments.length == 0 ? "." : arguments[0]);
         DoomStartup startup = DoomStartup.load(projectDirectory);
         DoomCombatState combat = DoomCombatSession.create(
-                        startup.map(), startup.combatRules(), startup.actors().actors(), 0L)
+                        startup.map(), startup.combat().rules(), startup.actors().actors(), 0L)
                 .state();
         System.out.printf(
                 "Initialized headless combat: %s, %,d health, %,d bullets, and %,d combatants%n",

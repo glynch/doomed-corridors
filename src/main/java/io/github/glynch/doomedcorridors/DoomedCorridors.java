@@ -5,8 +5,14 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.input.DoomPlayerInputAdapter;
+import io.github.glynch.doomedcorridors.combat.DoomCombatSession;
+import io.github.glynch.doomedcorridors.combat.DoomCombatUpdate;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatAudio;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatOverlay;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationState;
 import io.github.glynch.doomedcorridors.presentation.DoomMapPresentation;
 import io.github.glynch.doomedcorridors.world.DoomGameSession;
+import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.jscene3d.platform.CursorMode;
 import io.github.glynch.jscene3d.platform.Key;
 import io.github.glynch.jscene3d.platform.MouseButton;
@@ -33,7 +39,12 @@ public final class DoomedCorridors {
     public static void main(String[] arguments) {
         Path projectDirectory = Path.of(arguments.length == 0 ? "." : arguments[0]);
         DoomStartup startup = DoomStartup.load(projectDirectory);
-        DoomGameSession session = DoomGameSession.create(startup.map(), startup.geometry().playerStart());
+        DoomGameSession movement = DoomGameSession.create(startup.map(), startup.geometry().playerStart());
+        DoomCombatSession combat = DoomCombatSession.create(
+                startup.map(), startup.combat().rules(), startup.actors().actors(), 0L);
+        DoomCombatPresentationState combatPresentation = new DoomCombatPresentationState(
+                startup.combat().assets().rules(), combat.state());
+        DoomCombatOverlay overlay = new DoomCombatOverlay(startup.combat().assets(), combatPresentation);
         DoomPlayerInputAdapter input = new DoomPlayerInputAdapter();
         try (Window window = Window.create(WINDOW_WIDTH, WINDOW_HEIGHT, startup.project().identity().name());
                 Renderer renderer = Renderer.create(window);
@@ -42,27 +53,40 @@ public final class DoomedCorridors {
                         startup.materials(),
                         startup.actors().actors(),
                         startup.sprites(),
-                        window.framebufferAspectRatio())) {
+                        startup.combat().assets(),
+                        window.framebufferAspectRatio());
+                DoomCombatAudio audio = DoomCombatAudio.create(startup.combat().assets())) {
             window.show();
             long previousNanos = System.nanoTime();
             while (!window.shouldClose()) {
                 Window.pollEvents();
-                handlePointer(window);
+                boolean fireRequested = handlePointer(window);
                 resizeIfNeeded(window, presentation);
                 long nowNanos = System.nanoTime();
                 long elapsedNanos = Math.clamp(nowNanos - previousNanos, 0L, MAXIMUM_FRAME_NANOS);
                 previousNanos = nowNanos;
+                Duration elapsed = Duration.ofNanos(elapsedNanos);
                 boolean pointerLocked = window.cursorMode() == CursorMode.DISABLED;
-                presentation.applyPlayerState(session.advance(
-                        input.sample(window.input(), pointerLocked), Duration.ofNanos(elapsedNanos)));
+                DoomPlayerState player = movement.advance(
+                        input.sample(window.input(), pointerLocked), elapsed);
+                if (fireRequested) {
+                    DoomCombatUpdate update = combat.firePrimary(player);
+                    combatPresentation.apply(update);
+                    audio.apply(update);
+                }
+                combatPresentation.advance(elapsed);
+                presentation.applyCombatState(combatPresentation);
+                presentation.applyPlayerState(player);
+                audio.applyPlayerState(player);
                 renderer.render(presentation.scene(), presentation.camera());
+                renderer.render(overlay);
                 window.swapBuffers();
             }
         }
     }
 
-    /** Captures the pointer on click and makes Escape release it before closing the game. */
-    private static void handlePointer(Window window) {
+    /** Manages pointer capture and reports a captured left-click as primary fire. */
+    private static boolean handlePointer(Window window) {
         if (window.input().wasKeyPressed(Key.ESCAPE)) {
             if (window.cursorMode() == CursorMode.DISABLED) {
                 window.setCursorMode(CursorMode.NORMAL);
@@ -76,7 +100,10 @@ public final class DoomedCorridors {
             if (window.isRawMouseMotionSupported()) {
                 window.setRawMouseMotionEnabled(true);
             }
+            return false;
         }
+        return window.cursorMode() == CursorMode.DISABLED
+                && window.input().wasMouseButtonPressed(MouseButton.LEFT);
     }
 
     /** Keeps the perspective projection synchronized with drawable framebuffer changes. */

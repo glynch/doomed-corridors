@@ -1,0 +1,36 @@
+{
+  "$schema": "../schema/combat-presentation-1.schema.json",
+  "schemaVersion": 1,
+  "weapon": {
+    "id": "pistol",
+    "readyFrame": "PISGA0",
+    "fireFrames": ["PISGB0", "PISGC0", "PISGD0", "PISGE0"],
+    "frameMilliseconds": 70,
+    "fireSound": "DSPISTOL"
+  },
+  "combatants": [
+    {
+      "actor": "zombieman",
+      "painFrames": ["POSSG1"],
+      "deathFrames": ["POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0"],
+      "frameMilliseconds": 140,
+      "painSound": "DSPOPAIN",
+      "deathSounds": ["DSPODTH1", "DSPODTH2", "DSPODTH3"]
+    }
+  ],
+  "hud": {
+    "digits": [
+      "STTNUM0",
+      "STTNUM1",
+      "STTNUM2",
+      "STTNUM3",
+      "STTNUM4",
+      "STTNUM5",
+      "STTNUM6",
+      "STTNUM7",
+      "STTNUM8",
+      "STTNUM9"
+    ],
+    "percent": "STTPRCNT"
+  }
+}

@@ -40,6 +40,11 @@
       "path": "game/combat.json"
     },
     {
+      "id": "combat-presentation",
+      "type": "doomed-corridors-combat-presentation",
+      "path": "game/combat-presentation.json"
+    },
+    {
       "id": "freedoom",
       "type": "doom-wad",
       "path": "assets/freedoom2.wad",

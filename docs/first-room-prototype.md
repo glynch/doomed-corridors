@@ -90,11 +90,15 @@ nearest-target selection, consumes ammunition, and emits immutable damage and
 death state plus presentation-neutral events. Its tests require no graphics or
 audio device.
 
-The next slice presents that model in the running game: primary-fire input,
-WAD-backed pistol and zombieman state frames, visible damage and death, and
-firing, pain, and death sounds. Enemy acquisition, chase, attacks, player death,
-health, ammunition pickups, doors, lifts, and other sector specials remain later
-vertical slices.
+The combat-presentation slice is also complete. Its separately versioned project
+asset binds combat identities to exact WAD patches, sounds, animation timing, and
+HUD glyphs. The WAD adapter decodes pistol, pain, death, and numeric patches plus
+classic DMX effects without graphics or audio initialization. Captured-pointer
+clicks now fire the headless pistol, decrement the HUD ammunition count, animate
+the first-person weapon and target billboards, retain terminal death frames, and
+play spatial WAD firing, pain, and death effects through generic JScene3D PCM
+clips. Enemy acquisition, chase, attacks, player death, health and ammunition
+pickups, doors, lifts, and other sector specials remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable
