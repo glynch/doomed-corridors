@@ -47,9 +47,17 @@ children, collision blocks, and visibility-table size, with explicit diagnostics
 for corrupt, UDMF, and Hexen-format input. Synthetic corruption tests and a
 pinned real-WAD integration test run without graphics or audio.
 
-The next slice imports the palette and MAP01 material images, then constructs
-static sector geometry from the decoded map. Collision, actor behavior, and
-sector specials remain separate later vertical slices.
+The headless material slice is also complete. It resolves only MAP01's referenced
+resources, decodes the first `PLAYPAL` palette and flat namespace, reads
+`PNAMES` and `TEXTURE1`/`TEXTURE2`, composes transparent column-post patches, and
+retains the source lumps needed to reproduce each imported image. The pinned WAD
+test independently verifies 51 wall textures and 28 non-sky flats. The launcher
+writes a deterministic contact sheet under `target/smoke/` for manual inspection
+without initializing windowing or native rendering.
+
+The next slice constructs static floors, ceilings, and walls from the decoded
+map and imported materials, then displays them from a fixed camera. Collision,
+actor behavior, and sector specials remain separate later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable
@@ -61,6 +69,8 @@ maps until the complete Freedoom campaign is covered.
 io.github.glynch.doomedcorridors
 |-- app           native host, project loading, runtime wiring, lifecycle
 |-- wad           Doom WAD container access and source adapter
+|-- map           immutable decoded classic-map records
+|-- material      renderer-independent imported images and smoke outputs
 |-- combat        weapons, damage, health, pickups, and encounter rules
 |-- input         game actions and bindings
 |-- world         imported map runtime, collision, doors, lifts, and triggers
