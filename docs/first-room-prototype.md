@@ -95,12 +95,12 @@ The combat-presentation slice is also complete. Its separately versioned project
 asset binds combat identities to exact WAD patches, sounds, animation timing, and
 HUD glyphs. The WAD adapter decodes pistol, walk, attack, pain, death, and numeric
 patches plus classic DMX effects without graphics or audio initialization. The
-standalone host captures the pointer when play begins, so the first click fires.
-It presents moving and attacking enemies, spatial alert and attack sounds,
-player-local pain and death sounds, a red damage response, live health and
-ammunition, and terminal player and enemy death. Health and ammunition pickups,
-doors, lifts, navigation beyond last-visible-position pursuit, and other sector
-specials remain later vertical slices.
+standalone host captures the pointer on an initial click inside the game window;
+that click does not fire. It presents moving and attacking enemies, spatial alert
+and attack sounds, player-local pain and death sounds, a red damage response, live
+health and ammunition, and terminal player and enemy death. Health and ammunition
+pickups, doors, lifts, navigation beyond last-visible-position pursuit, and other
+sector specials remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

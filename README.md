@@ -54,11 +54,11 @@ WAD-defined player-one start. Normal-skill single-player enemies, pickups, and
 decorations are presented as camera-facing sprites. Zombiemen can be shot and
 killed; when they see the player, they pursue and return fire. Use W/S or Up/Down
 to move, A/D to strafe, Left/Right to turn, the mouse to look around, and the
-left mouse button to fire the pistol. The pointer is captured when play starts,
-so the first click fires. The WAD-backed HUD shows health and remaining bullets;
-damage flashes the view red and zero health ends player movement. Escape releases
-the pointer. Click to recapture it, then press Escape again or close the window
-to stop the game.
+left mouse button to fire the pistol. Click inside the window to capture the
+pointer; this initial click does not fire. The WAD-backed HUD shows health and
+remaining bullets; damage flashes the view red and zero health ends player
+movement. Escape releases the pointer. Press Escape again or close the window to
+stop the game.
 
 Run the same loading and geometry pipeline without starting windowing with:
 

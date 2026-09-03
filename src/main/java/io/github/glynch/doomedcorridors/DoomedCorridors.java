@@ -58,7 +58,6 @@ public final class DoomedCorridors {
                         window.framebufferAspectRatio());
                 DoomCombatAudio audio = DoomCombatAudio.create(startup.combat().assets())) {
             window.show();
-            capturePointer(window);
             long previousNanos = System.nanoTime();
             while (!window.shouldClose()) {
                 Window.pollEvents();
