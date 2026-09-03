@@ -7,8 +7,8 @@ package io.github.glynch.doomedcorridors.world;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import java.util.Objects;
 
-/** Internal circle-versus-linedef collision implementation used by the game-session seam. */
-final class DoomCollisionWorld {
+/** Circle-versus-linedef movement shared by player and actor simulation. */
+public final class DoomCollisionWorld {
     static final float PLAYER_EYE_HEIGHT = world(41.0F);
 
     private static final float PLAYER_RADIUS = world(16.0F);
@@ -20,24 +20,69 @@ final class DoomCollisionWorld {
 
     private final DoomMap map;
 
-    /** Retains validated decoded map records. */
-    DoomCollisionWorld(DoomMap map) {
+    /**
+     * Retains validated decoded map records.
+     *
+     * @param map decoded classic map used for movement queries
+     */
+    public DoomCollisionWorld(DoomMap map) {
         this.map = Objects.requireNonNull(map, "map");
     }
 
     /** Moves a player circle as far as possible and slides the remainder along the first wall. */
     Position move(float startX, float startZ, float deltaX, float deltaZ) {
+        return move(
+                startX,
+                startZ,
+                deltaX,
+                deltaZ,
+                new BodyDimensions(PLAYER_RADIUS, PLAYER_HEIGHT, MAXIMUM_STEP));
+    }
+
+    /**
+     * Moves one actor circle through the classic map while respecting its configured dimensions.
+     *
+     * @param startX initial world X coordinate
+     * @param startZ initial world Z coordinate
+     * @param deltaX requested world X displacement
+     * @param deltaZ requested world Z displacement
+     * @param radius positive actor collision radius
+     * @param height positive actor collision height
+     * @param maximumStep non-negative traversable floor-height increase
+     * @return accepted position and supporting floor
+     */
+    public Position moveActor(
+            float startX,
+            float startZ,
+            float deltaX,
+            float deltaZ,
+            float radius,
+            float height,
+            float maximumStep) {
+        BodyDimensions body = new BodyDimensions(radius, height, maximumStep);
+        return move(startX, startZ, deltaX, deltaZ, body);
+    }
+
+    /** Moves a configured circle as far as possible and slides its remainder along a wall. */
+    private Position move(
+            float startX,
+            float startZ,
+            float deltaX,
+            float deltaZ,
+            BodyDimensions body) {
         float floorHeight = floorHeight(startX, startZ);
-        BlockedBy directBlock = blockingLine(startX + deltaX, startZ + deltaZ, floorHeight);
+        BlockedBy directBlock =
+                blockingLine(startX + deltaX, startZ + deltaZ, floorHeight, body);
         if (directBlock == null) {
             return position(startX + deltaX, startZ + deltaZ);
         }
-        float safeFraction = safeFraction(startX, startZ, deltaX, deltaZ, floorHeight);
+        float safeFraction = safeFraction(startX, startZ, deltaX, deltaZ, floorHeight, body);
         float safeX = startX + deltaX * safeFraction;
         float safeZ = startZ + deltaZ * safeFraction;
         float remaining = 1.0F - safeFraction;
         Slide slide = projectOntoLine(deltaX * remaining, deltaZ * remaining, directBlock.linedef());
-        float slideFraction = safeFraction(safeX, safeZ, slide.deltaX(), slide.deltaZ(), floorHeight);
+        float slideFraction =
+                safeFraction(safeX, safeZ, slide.deltaX(), slide.deltaZ(), floorHeight, body);
         return position(safeX + slide.deltaX() * slideFraction, safeZ + slide.deltaZ() * slideFraction);
     }
 
@@ -49,18 +94,27 @@ final class DoomCollisionWorld {
 
     /** Finds the largest collision-free fraction of a proposed movement. */
     private float safeFraction(
-            float startX, float startZ, float deltaX, float deltaZ, float floorHeight) {
+            float startX,
+            float startZ,
+            float deltaX,
+            float deltaZ,
+            float floorHeight,
+            BodyDimensions body) {
         if (deltaX == 0.0F && deltaZ == 0.0F) {
             return 0.0F;
         }
-        if (blockingLine(startX + deltaX, startZ + deltaZ, floorHeight) == null) {
+        if (blockingLine(startX + deltaX, startZ + deltaZ, floorHeight, body) == null) {
             return 1.0F;
         }
         float safe = 0.0F;
         float blocked = 1.0F;
         for (int iteration = 0; iteration < SAFE_FRACTION_ITERATIONS; iteration++) {
             float candidate = (safe + blocked) * 0.5F;
-            if (blockingLine(startX + deltaX * candidate, startZ + deltaZ * candidate, floorHeight)
+            if (blockingLine(
+                            startX + deltaX * candidate,
+                            startZ + deltaZ * candidate,
+                            floorHeight,
+                            body)
                     == null) {
                 safe = candidate;
             } else {
@@ -71,10 +125,11 @@ final class DoomCollisionWorld {
     }
 
     /** Returns the first wall preventing a circle from occupying the candidate position. */
-    private BlockedBy blockingLine(float x, float z, float currentFloor) {
+    private BlockedBy blockingLine(
+            float x, float z, float currentFloor, BodyDimensions body) {
         for (int index = 0; index < map.linedefs().size(); index++) {
             DoomMap.Linedef linedef = map.linedefs().get(index);
-            if (blocksPlayer(linedef, currentFloor) && touches(linedef, x, z)) {
+            if (blocksBody(linedef, currentFloor, body) && touches(linedef, x, z, body.radius())) {
                 return new BlockedBy(index, linedef);
             }
         }
@@ -82,7 +137,8 @@ final class DoomCollisionWorld {
     }
 
     /** Determines whether a linedef is solid for a player standing on the current floor. */
-    private boolean blocksPlayer(DoomMap.Linedef linedef, float currentFloor) {
+    private boolean blocksBody(
+            DoomMap.Linedef linedef, float currentFloor, BodyDimensions body) {
         if (linedef.leftSidedef() < 0 || (linedef.flags() & BLOCKING_LINE) != 0) {
             return true;
         }
@@ -90,13 +146,13 @@ final class DoomCollisionWorld {
         DoomMap.Sector left = sectorForSide(linedef.leftSidedef());
         float openingBottom = world(Math.max(right.floorHeight(), left.floorHeight()));
         float openingTop = world(Math.min(right.ceilingHeight(), left.ceilingHeight()));
-        return openingTop - openingBottom < PLAYER_HEIGHT
-                || openingTop - currentFloor < PLAYER_HEIGHT
-                || openingBottom - currentFloor > MAXIMUM_STEP;
+        return openingTop - openingBottom < body.height()
+                || openingTop - currentFloor < body.height()
+                || openingBottom - currentFloor > body.maximumStep();
     }
 
     /** Returns whether the player circle overlaps one finite linedef segment. */
-    private boolean touches(DoomMap.Linedef linedef, float x, float z) {
+    private boolean touches(DoomMap.Linedef linedef, float x, float z, float radius) {
         DoomMap.Vertex start = map.vertices().get(linedef.startVertex());
         DoomMap.Vertex end = map.vertices().get(linedef.endVertex());
         float startX = world(start.x());
@@ -113,7 +169,7 @@ final class DoomCollisionWorld {
         float nearestZ = startZ + segmentZ * amount;
         float distanceX = x - nearestX;
         float distanceZ = z - nearestZ;
-        float collisionRadius = PLAYER_RADIUS - COLLISION_TOLERANCE;
+        float collisionRadius = radius - COLLISION_TOLERANCE;
         return distanceX * distanceX + distanceZ * distanceZ < collisionRadius * collisionRadius;
     }
 
@@ -173,7 +229,22 @@ final class DoomCollisionWorld {
     }
 
     /** Accepted position and its supporting floor. */
-    record Position(float x, float z, float floorHeight) {}
+    public record Position(float x, float z, float floorHeight) {}
+
+    /** Validated circle and vertical-clearance dimensions used by one movement operation. */
+    private record BodyDimensions(float radius, float height, float maximumStep) {
+        private BodyDimensions {
+            if (!Float.isFinite(radius)
+                    || !Float.isFinite(height)
+                    || !Float.isFinite(maximumStep)
+                    || radius <= COLLISION_TOLERANCE
+                    || height <= 0.0F
+                    || maximumStep < 0.0F) {
+                throw new IllegalArgumentException(
+                        "collision dimensions must be finite with positive radius and height");
+            }
+        }
+    }
 
     /** First linedef preventing a candidate position. */
     private record BlockedBy(int index, DoomMap.Linedef linedef) {}

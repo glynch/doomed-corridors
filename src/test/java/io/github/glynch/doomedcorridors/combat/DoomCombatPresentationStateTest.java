@@ -72,6 +72,37 @@ final class DoomCombatPresentationStateTest {
         assertThat(presentation.actorFrame(THING_INDEX)).contains("POSSL0");
     }
 
+    /** Animates pursuit and attack while exposing player pain and terminal death presentation. */
+    @Test
+    void presentsEnemyBehaviorAndPlayerDamage() {
+        DoomCombatantState alive = aliveCombatant();
+        DoomCombatPresentationState presentation = new DoomCombatPresentationState(
+                presentationRules(), state(alive, 100, 50));
+        DoomCombatantState pursuing = alive.withPose(
+                3.0F, 0.0F, 0.0F, DoomCombatantActivity.PURSUING);
+
+        presentation.apply(new DoomCombatUpdate(state(pursuing, 100, 50), List.of()));
+        assertThat(presentation.actorFrame(THING_INDEX)).contains("POSSA1");
+        presentation.advance(Duration.ofMillis(140));
+        assertThat(presentation.actorFrame(THING_INDEX)).contains("POSSB1");
+
+        DoomCombatantState attacking = pursuing.withActivity(DoomCombatantActivity.ATTACKING);
+        presentation.apply(new DoomCombatUpdate(
+                state(attacking, 91, 50),
+                List.of(
+                        new DoomCombatEvent(DoomCombatEvent.Type.COMBATANT_ATTACKED, THING_INDEX, 0),
+                        new DoomCombatEvent(DoomCombatEvent.Type.PLAYER_DAMAGED, DoomCombatEvent.PLAYER, 9))));
+        assertThat(presentation.actorFrame(THING_INDEX)).contains("POSSE1");
+        assertThat(presentation.health()).isEqualTo(91);
+        assertThat(presentation.damageFlashAlpha()).isEqualTo(0.45F);
+
+        presentation.apply(new DoomCombatUpdate(
+                state(attacking, 0, 50),
+                List.of(new DoomCombatEvent(
+                        DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0))));
+        assertThat(presentation.isPlayerDead()).isTrue();
+    }
+
     /** Builds one package-visible combat snapshot for the presentation boundary. */
     private static DoomCombatState state(
             DoomCombatantState combatant, int health, int bullets) {

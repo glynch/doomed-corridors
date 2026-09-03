@@ -16,9 +16,10 @@ map in [`project.json`](project.json). The actor catalog assigns Doom II meaning
 and initial sprite frames to the numeric thing types stored in classic maps.
 Provider-owned [`game/combat.json`](game/combat.json) defines initial player
 resources, the pistol's hitscan and damage rules, and the zombieman's health and
-collision bounds. [`game/combat-presentation.json`](game/combat-presentation.json)
-binds those identities to WAD-backed weapon, pain, death, sound, and HUD assets
-without embedding their lump names in the application.
+collision bounds, awareness, pursuit, attack timing, and damage.
+[`game/combat-presentation.json`](game/combat-presentation.json) binds those
+identities to WAD-backed weapon, movement, attack, pain, death, sound, and HUD
+assets without embedding their lump names in the application.
 
 ## Building and running
 
@@ -51,11 +52,13 @@ With the source WAD installed, the application loads the manifest-selected map,
 builds its static floors, ceilings, and walls, and opens the view at the
 WAD-defined player-one start. Normal-skill single-player enemies, pickups, and
 decorations are presented as camera-facing sprites. Zombiemen can be shot and
-killed, but do not move or attack yet. Use W/S or Up/Down to move, A/D to strafe,
-Left/Right to turn, and the mouse to look around. Click the rendered view to
-capture the pointer, then click to fire the pistol. The WAD-backed HUD shows
-health and remaining bullets. Escape releases a captured pointer; press it again
-or close the window to stop the game.
+killed; when they see the player, they pursue and return fire. Use W/S or Up/Down
+to move, A/D to strafe, Left/Right to turn, the mouse to look around, and the
+left mouse button to fire the pistol. The pointer is captured when play starts,
+so the first click fires. The WAD-backed HUD shows health and remaining bullets;
+damage flashes the view red and zero health ends player movement. Escape releases
+the pointer. Click to recapture it, then press Escape again or close the window
+to stop the game.
 
 Run the same loading and geometry pipeline without starting windowing with:
 
@@ -63,8 +66,8 @@ Run the same loading and geometry pipeline without starting windowing with:
 ./mvnw -Pinspect compile
 ```
 
-The headless inspector also validates the combat presentation's 22 patches and
-five DMX sounds, and writes visual material and sprite sheets to
+The headless inspector also validates the combat presentation's 28 patches and
+ten DMX sounds, and writes visual material and sprite sheets to
 `target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`. Its
 console summary includes the combat rules and number of initialized MAP01
 combatants.

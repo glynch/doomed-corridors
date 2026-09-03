@@ -12,6 +12,7 @@ import io.github.glynch.doomedcorridors.presentation.DoomCombatOverlay;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationState;
 import io.github.glynch.doomedcorridors.presentation.DoomMapPresentation;
 import io.github.glynch.doomedcorridors.world.DoomGameSession;
+import io.github.glynch.doomedcorridors.world.DoomPlayerCommand;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.jscene3d.platform.CursorMode;
 import io.github.glynch.jscene3d.platform.Key;
@@ -57,6 +58,7 @@ public final class DoomedCorridors {
                         window.framebufferAspectRatio());
                 DoomCombatAudio audio = DoomCombatAudio.create(startup.combat().assets())) {
             window.show();
+            capturePointer(window);
             long previousNanos = System.nanoTime();
             while (!window.shouldClose()) {
                 Window.pollEvents();
@@ -67,21 +69,41 @@ public final class DoomedCorridors {
                 previousNanos = nowNanos;
                 Duration elapsed = Duration.ofNanos(elapsedNanos);
                 boolean pointerLocked = window.cursorMode() == CursorMode.DISABLED;
-                DoomPlayerState player = movement.advance(
-                        input.sample(window.input(), pointerLocked), elapsed);
-                if (fireRequested) {
-                    DoomCombatUpdate update = combat.firePrimary(player);
-                    combatPresentation.apply(update);
-                    audio.apply(update);
+                DoomPlayerCommand command = combat.state().isPlayerDead()
+                        ? DoomPlayerCommand.idle()
+                        : input.sample(window.input(), pointerLocked);
+                DoomPlayerState player = movement.advance(command, elapsed);
+                audio.applyPlayerState(player);
+                applyCombatUpdate(
+                        combat.advance(player, elapsed), combatPresentation, audio);
+                if (fireRequested && !combat.state().isPlayerDead()) {
+                    applyCombatUpdate(
+                            combat.firePrimary(player), combatPresentation, audio);
                 }
                 combatPresentation.advance(elapsed);
                 presentation.applyCombatState(combatPresentation);
                 presentation.applyPlayerState(player);
-                audio.applyPlayerState(player);
                 renderer.render(presentation.scene(), presentation.camera());
                 renderer.render(overlay);
                 window.swapBuffers();
             }
+        }
+    }
+
+    /** Applies one headless result consistently to visual and audio presentation state. */
+    private static void applyCombatUpdate(
+            DoomCombatUpdate update,
+            DoomCombatPresentationState presentation,
+            DoomCombatAudio audio) {
+        presentation.apply(update);
+        audio.apply(update);
+    }
+
+    /** Captures relative pointer input and enables raw motion where the platform supports it. */
+    private static void capturePointer(Window window) {
+        window.setCursorMode(CursorMode.DISABLED);
+        if (window.isRawMouseMotionSupported()) {
+            window.setRawMouseMotionEnabled(true);
         }
     }
 
@@ -96,10 +118,7 @@ public final class DoomedCorridors {
         }
         if (window.cursorMode() == CursorMode.NORMAL
                 && window.input().wasMouseButtonPressed(MouseButton.LEFT)) {
-            window.setCursorMode(CursorMode.DISABLED);
-            if (window.isRawMouseMotionSupported()) {
-                window.setRawMouseMotionEnabled(true);
-            }
+            capturePointer(window);
             return false;
         }
         return window.cursorMode() == CursorMode.DISABLED

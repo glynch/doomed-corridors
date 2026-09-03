@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-presentation-2.json",
+  "title": "Doomed Corridors combat presentation version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "weapon", "player", "combatants", "hud"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": 2 },
+    "weapon": { "$ref": "#/$defs/weapon" },
+    "player": { "$ref": "#/$defs/player" },
+    "combatants": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/combatant" }
+    },
+    "hud": { "$ref": "#/$defs/hud" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "lump": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{1,8}$"
+    },
+    "lumps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/lump" }
+    },
+    "weapon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "readyFrame", "fireFrames", "frameMilliseconds", "fireSound"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "readyFrame": { "$ref": "#/$defs/lump" },
+        "fireFrames": { "$ref": "#/$defs/lumps" },
+        "frameMilliseconds": { "type": "integer", "minimum": 1 },
+        "fireSound": { "$ref": "#/$defs/lump" }
+      }
+    },
+    "player": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["painSound", "deathSound"],
+      "properties": {
+        "painSound": { "$ref": "#/$defs/lump" },
+        "deathSound": { "$ref": "#/$defs/lump" }
+      }
+    },
+    "combatant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "animations", "sounds"],
+      "properties": {
+        "actor": { "$ref": "#/$defs/id" },
+        "animations": { "$ref": "#/$defs/combatantAnimations" },
+        "sounds": { "$ref": "#/$defs/combatantSounds" }
+      }
+    },
+    "combatantAnimations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["walkFrames", "attackFrames", "painFrames", "deathFrames", "frameMilliseconds"],
+      "properties": {
+        "walkFrames": { "$ref": "#/$defs/lumps" },
+        "attackFrames": { "$ref": "#/$defs/lumps" },
+        "painFrames": { "$ref": "#/$defs/lumps" },
+        "deathFrames": { "$ref": "#/$defs/lumps" },
+        "frameMilliseconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "combatantSounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sightSounds", "attackSound", "painSound", "deathSounds"],
+      "properties": {
+        "sightSounds": { "$ref": "#/$defs/lumps" },
+        "attackSound": { "$ref": "#/$defs/lump" },
+        "painSound": { "$ref": "#/$defs/lump" },
+        "deathSounds": { "$ref": "#/$defs/lumps" }
+      }
+    },
+    "hud": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digits", "percent"],
+      "properties": {
+        "digits": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": { "$ref": "#/$defs/lump" }
+        },
+        "percent": { "$ref": "#/$defs/lump" }
+      }
+    }
+  }
+}

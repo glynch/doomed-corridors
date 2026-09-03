@@ -6,8 +6,10 @@ package io.github.glynch.doomedcorridors.combat;
 
 import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -15,24 +17,32 @@ import java.util.Random;
 
 /** Deterministic headless combat session for hitscan, health, ammunition, and death. */
 public final class DoomCombatSession {
+    private static final long FIXED_STEP_NANOS = 1_000_000_000L / 35L;
+    private static final float FIXED_STEP_SECONDS = 1.0F / 35.0F;
+    private static final float ENEMY_MAXIMUM_STEP = world(24.0F);
     private static final float INTERSECTION_TOLERANCE = 0.000_01F;
 
     private final DoomMap map;
     private final DoomCombatRules rules;
+    private final DoomCollisionWorld collision;
     private final Random random;
+    private final List<EnemyRuntime> enemyRuntimes;
     private List<DoomCombatantState> combatants;
     private int playerHealth;
     private int bullets;
+    private long accumulatedNanos;
 
     /** Initializes mutable session state from immutable map, rules, and actor inputs. */
     private DoomCombatSession(
             DoomMap map, DoomCombatRules rules, List<DoomActor> actors, long randomSeed) {
         this.map = map;
         this.rules = rules;
+        collision = new DoomCollisionWorld(map);
         random = new Random(randomSeed);
         playerHealth = rules.startingHealth();
         bullets = rules.startingBullets();
         combatants = createCombatants(actors, rules);
+        enemyRuntimes = createEnemyRuntimes(combatants.size());
     }
 
     /**
@@ -61,6 +71,28 @@ public final class DoomCombatSession {
                 bullets,
                 rules.primaryWeaponId(),
                 combatants);
+    }
+
+    /**
+     * Advances enemy awareness, pursuit, and attacks using deterministic 35 Hz updates.
+     *
+     * @param player current player pose used for perception and targeting
+     * @param elapsed non-negative render-frame time retained across partial simulation steps
+     * @return resulting combat state and ordered behavior events
+     */
+    public DoomCombatUpdate advance(DoomPlayerState player, Duration elapsed) {
+        DoomPlayerState validPlayer = Objects.requireNonNull(player, "player");
+        Duration validElapsed = Objects.requireNonNull(elapsed, "elapsed");
+        if (validElapsed.isNegative()) {
+            throw new IllegalArgumentException("elapsed must not be negative");
+        }
+        accumulatedNanos = Math.addExact(accumulatedNanos, validElapsed.toNanos());
+        List<DoomCombatEvent> events = new ArrayList<>();
+        while (accumulatedNanos >= FIXED_STEP_NANOS) {
+            advanceCombatants(validPlayer, events);
+            accumulatedNanos -= FIXED_STEP_NANOS;
+        }
+        return update(events);
     }
 
     /**
@@ -94,18 +126,8 @@ public final class DoomCombatSession {
         if (damage <= 0) {
             throw new IllegalArgumentException("damage must be positive");
         }
-        if (playerHealth == 0) {
-            return update(List.of());
-        }
-        int previousHealth = playerHealth;
-        long remainingHealth = (long) playerHealth - damage;
-        playerHealth = (int) Math.clamp(remainingHealth, 0L, rules.startingHealth());
-        int appliedDamage = previousHealth - playerHealth;
         List<DoomCombatEvent> events = new ArrayList<>();
-        events.add(event(DoomCombatEvent.Type.PLAYER_DAMAGED, DoomCombatEvent.PLAYER, appliedDamage));
-        if (playerHealth == 0) {
-            events.add(event(DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0));
-        }
+        damagePlayer(damage, events);
         return update(events);
     }
 
@@ -125,6 +147,135 @@ public final class DoomCombatSession {
             }
         }
         return List.copyOf(result);
+    }
+
+    /** Creates one mutable timing record for each indexed combatant. */
+    private static List<EnemyRuntime> createEnemyRuntimes(int count) {
+        List<EnemyRuntime> result = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            result.add(new EnemyRuntime());
+        }
+        return List.copyOf(result);
+    }
+
+    /** Advances each living combatant once and publishes one immutable state list. */
+    private void advanceCombatants(
+            DoomPlayerState player, List<DoomCombatEvent> events) {
+        if (playerHealth == 0) {
+            return;
+        }
+        List<DoomCombatantState> updated = new ArrayList<>(combatants);
+        for (int index = 0; index < updated.size() && playerHealth > 0; index++) {
+            DoomCombatantState combatant = updated.get(index);
+            if (combatant.status() == DoomCombatantStatus.ALIVE) {
+                updated.set(index, advanceCombatant(index, combatant, player, events));
+            }
+        }
+        combatants = List.copyOf(updated);
+    }
+
+    /** Advances perception and selects pursuit or attack behavior for one living combatant. */
+    private DoomCombatantState advanceCombatant(
+            int index,
+            DoomCombatantState combatant,
+            DoomPlayerState player,
+            List<DoomCombatEvent> events) {
+        DoomCombatRules.CombatantDefinition definition = rules.combatant(combatant.actorId());
+        DoomCombatRules.EnemyBehavior behavior = definition.behavior();
+        EnemyRuntime runtime = enemyRuntimes.get(index);
+        Perception perception = perception(combatant, player, behavior);
+        if (!runtime.alerted && !perception.visible()) {
+            return combatant;
+        }
+        if (!runtime.alerted) {
+            alert(combatant, behavior, runtime, events);
+        }
+        if (perception.visible()) {
+            runtime.remember(player.x(), player.z());
+        }
+        runtime.elapse(FIXED_STEP_NANOS);
+        if (perception.visible()
+                && perception.distance() <= world(behavior.attackRange())
+                && runtime.cooldownNanos == 0L) {
+            return attack(combatant, behavior, runtime, events);
+        }
+        if (perception.visible()
+                && perception.distance() <= world(behavior.preferredRange())) {
+            return combatant.withActivity(DoomCombatantActivity.ATTACKING);
+        }
+        return pursue(combatant, behavior, runtime);
+    }
+
+    /** Activates one enemy and starts its configured reaction delay. */
+    private static void alert(
+            DoomCombatantState combatant,
+            DoomCombatRules.EnemyBehavior behavior,
+            EnemyRuntime runtime,
+            List<DoomCombatEvent> events) {
+        runtime.alerted = true;
+        runtime.cooldownNanos = millisecondsToNanos(behavior.reactionMilliseconds());
+        events.add(event(DoomCombatEvent.Type.COMBATANT_ALERTED, combatant.thingIndex(), 0));
+    }
+
+    /** Performs a ready ranged attack or waits in the attacking activity. */
+    private DoomCombatantState attack(
+            DoomCombatantState combatant,
+            DoomCombatRules.EnemyBehavior behavior,
+            EnemyRuntime runtime,
+            List<DoomCombatEvent> events) {
+        events.add(event(DoomCombatEvent.Type.COMBATANT_ATTACKED, combatant.thingIndex(), 0));
+        damagePlayer(enemyDamage(behavior), events);
+        runtime.cooldownNanos = millisecondsToNanos(behavior.attackIntervalMilliseconds());
+        return combatant.withActivity(DoomCombatantActivity.ATTACKING);
+    }
+
+    /** Moves one alerted enemy toward its most recently visible player position. */
+    private DoomCombatantState pursue(
+            DoomCombatantState combatant,
+            DoomCombatRules.EnemyBehavior behavior,
+            EnemyRuntime runtime) {
+        float deltaX = runtime.targetX - combatant.x();
+        float deltaZ = runtime.targetZ - combatant.z();
+        float remaining = (float) Math.hypot(deltaX, deltaZ);
+        if (remaining <= INTERSECTION_TOLERANCE) {
+            return combatant.withActivity(DoomCombatantActivity.PURSUING);
+        }
+        float distance = Math.min(world(behavior.moveSpeed()) * FIXED_STEP_SECONDS, remaining);
+        float scale = distance / remaining;
+        DoomCollisionWorld.Position position = collision.moveActor(
+                combatant.x(),
+                combatant.z(),
+                deltaX * scale,
+                deltaZ * scale,
+                combatant.radius(),
+                combatant.height(),
+                ENEMY_MAXIMUM_STEP);
+        return combatant.withPose(
+                position.x(),
+                position.floorHeight(),
+                position.z(),
+                DoomCombatantActivity.PURSUING);
+    }
+
+    /** Computes visible range and map occlusion between one enemy and the player. */
+    private Perception perception(
+            DoomCombatantState combatant,
+            DoomPlayerState player,
+            DoomCombatRules.EnemyBehavior behavior) {
+        float deltaX = player.x() - combatant.x();
+        float deltaZ = player.z() - combatant.z();
+        float distance = (float) Math.hypot(deltaX, deltaZ);
+        if (distance > world(behavior.sightRange())) {
+            return new Perception(false, distance);
+        }
+        if (distance <= INTERSECTION_TOLERANCE) {
+            return new Perception(true, distance);
+        }
+        float eyeHeight = combatant.floorHeight() + combatant.height() * 0.75F;
+        Ray sight = Ray.between(
+                combatant.x(), eyeHeight, combatant.z(), player.x(), player.eyeHeight(), player.z());
+        float wallDistance = nearestWallDistance(sight, distance);
+        return new Perception(wallDistance + INTERSECTION_TOLERANCE >= distance, distance);
     }
 
     /** Selects the nearest living actor intersection not hidden behind map geometry. */
@@ -260,10 +411,35 @@ public final class DoomCombatSession {
         }
     }
 
+    /** Applies incoming player damage unless death is already terminal. */
+    private void damagePlayer(int damage, List<DoomCombatEvent> events) {
+        if (playerHealth == 0) {
+            return;
+        }
+        int previousHealth = playerHealth;
+        long remainingHealth = (long) playerHealth - damage;
+        playerHealth = (int) Math.clamp(remainingHealth, 0L, rules.startingHealth());
+        int appliedDamage = previousHealth - playerHealth;
+        events.add(event(
+                DoomCombatEvent.Type.PLAYER_DAMAGED,
+                DoomCombatEvent.PLAYER,
+                appliedDamage));
+        if (playerHealth == 0) {
+            events.add(event(DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0));
+        }
+    }
+
     /** Rolls one deterministic configured damage value. */
     private int weaponDamage(DoomCombatRules.WeaponDefinition weapon) {
         return weapon.damageMinimum()
                 + random.nextInt(weapon.damageValueCount()) * weapon.damageStep();
+    }
+
+    /** Rolls one deterministic configured enemy hitscan damage value. */
+    private int enemyDamage(DoomCombatRules.EnemyBehavior behavior) {
+        DoomCombatRules.DamageDefinition damage = behavior.damage();
+        return damage.minimum()
+                + random.nextInt(behavior.damageValueCount()) * damage.step();
     }
 
     /** Returns the sector referenced by one map sidedef. */
@@ -292,6 +468,11 @@ public final class DoomCombatSession {
         return doomUnits / DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
     }
 
+    /** Converts positive provider-authored milliseconds to exact nanoseconds. */
+    private static long millisecondsToNanos(int milliseconds) {
+        return Math.multiplyExact(milliseconds, 1_000_000L);
+    }
+
     /** Horizontal ray origin and direction plus vertical slope. */
     private record Ray(
             float x,
@@ -310,8 +491,50 @@ public final class DoomCombatSession {
                     -(float) Math.sin(player.yawRadians()),
                     (float) Math.tan(player.pitchRadians()));
         }
+
+        /** Creates a ray from one world point toward another. */
+        private static Ray between(
+                float startX,
+                float startHeight,
+                float startZ,
+                float endX,
+                float endHeight,
+                float endZ) {
+            float deltaX = endX - startX;
+            float deltaZ = endZ - startZ;
+            float distance = (float) Math.hypot(deltaX, deltaZ);
+            return new Ray(
+                    startX,
+                    startHeight,
+                    startZ,
+                    deltaX / distance,
+                    deltaZ / distance,
+                    (endHeight - startHeight) / distance);
+        }
     }
 
     /** Selected combatant list slot and first ray-intersection distance. */
     private record Target(int index, float distance) {}
+
+    /** Visible-range result used to choose one behavior branch. */
+    private record Perception(boolean visible, float distance) {}
+
+    /** Mutable internal enemy timing and last-known-target state. */
+    private static final class EnemyRuntime {
+        private boolean alerted;
+        private float targetX;
+        private float targetZ;
+        private long cooldownNanos;
+
+        /** Retains the latest position observed with clear line of sight. */
+        private void remember(float x, float z) {
+            targetX = x;
+            targetZ = z;
+        }
+
+        /** Reduces a finite countdown without passing zero. */
+        private void elapse(long elapsedNanos) {
+            cooldownNanos = Math.clamp(cooldownNanos - elapsedNanos, 0L, cooldownNanos);
+        }
+    }
 }

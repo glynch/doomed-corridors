@@ -40,9 +40,20 @@ public final class DoomCombatOverlay implements Overlay {
     public void paint(OverlayCanvas canvas, int width, int height) {
         Objects.requireNonNull(canvas, "canvas");
         float scale = scale(width, height);
-        drawWeapon(canvas, width, height, scale);
+        drawDamageFlash(canvas, width, height);
+        if (!state.isPlayerDead()) {
+            drawWeapon(canvas, width, height, scale);
+        }
         drawHealth(canvas, height, scale);
         drawAmmo(canvas, width, height, scale);
+    }
+
+    /** Draws a short translucent red response to incoming player damage. */
+    private void drawDamageFlash(OverlayCanvas canvas, int width, int height) {
+        float alpha = state.damageFlashAlpha();
+        if (alpha > 0.0F) {
+            canvas.rectangle(0.0F, 0.0F, width, height, Color.RED, alpha);
+        }
     }
 
     /** Draws the centered first-person weapon at the bottom edge. */

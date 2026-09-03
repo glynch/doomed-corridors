@@ -15,12 +15,15 @@ import java.util.Set;
 /** Immutable provider-authored bindings from combat identities to WAD presentation assets. */
 public final class DoomCombatPresentationRules {
     private final Weapon weapon;
+    private final Player player;
     private final Map<String, Combatant> combatants;
     private final Hud hud;
 
     /** Indexes one weapon, combatant bindings, and HUD patch names. */
-    DoomCombatPresentationRules(Weapon weapon, List<Combatant> combatants, Hud hud) {
+    DoomCombatPresentationRules(
+            Weapon weapon, Player player, List<Combatant> combatants, Hud hud) {
         this.weapon = Objects.requireNonNull(weapon, "weapon");
+        this.player = Objects.requireNonNull(player, "player");
         this.combatants = indexCombatants(combatants);
         this.hud = Objects.requireNonNull(hud, "hud");
     }
@@ -28,6 +31,11 @@ public final class DoomCombatPresentationRules {
     /** Returns the selected weapon presentation. */
     public Weapon weapon() {
         return weapon;
+    }
+
+    /** Returns player pain and death sound bindings. */
+    public Player player() {
+        return player;
     }
 
     /** Returns the HUD patch bindings. */
@@ -46,8 +54,11 @@ public final class DoomCombatPresentationRules {
         names.add(weapon.readyFrame());
         names.addAll(weapon.fireFrames());
         for (Combatant combatant : combatants.values()) {
-            names.addAll(combatant.painFrames());
-            names.addAll(combatant.deathFrames());
+            CombatantAnimations animations = combatant.animations();
+            names.addAll(animations.walkFrames());
+            names.addAll(animations.attackFrames());
+            names.addAll(animations.painFrames());
+            names.addAll(animations.deathFrames());
         }
         names.addAll(hud.digits());
         names.add(hud.percent());
@@ -58,9 +69,14 @@ public final class DoomCombatPresentationRules {
     public Set<String> soundLumps() {
         Set<String> names = new LinkedHashSet<>();
         names.add(weapon.fireSound());
+        names.add(player.painSound());
+        names.add(player.deathSound());
         for (Combatant combatant : combatants.values()) {
-            names.add(combatant.painSound());
-            names.addAll(combatant.deathSounds());
+            CombatantSounds sounds = combatant.sounds();
+            names.addAll(sounds.sightSounds());
+            names.add(sounds.attackSound());
+            names.add(sounds.painSound());
+            names.addAll(sounds.deathSounds());
         }
         return Set.copyOf(names);
     }
@@ -124,20 +140,52 @@ public final class DoomCombatPresentationRules {
         }
     }
 
+    /** Player-local sound effects for receiving damage and dying. */
+    public record Player(String painSound, String deathSound) {
+        /** Validates exact classic sound lump names. */
+        public Player {
+            requireLump(painSound, "painSound");
+            requireLump(deathSound, "deathSound");
+        }
+    }
+
     /** Presentation binding for one combatant actor identity. */
-    public record Combatant(
-            String actorId,
-            List<String> painFrames,
-            List<String> deathFrames,
-            Duration frameDuration,
-            String painSound,
-            List<String> deathSounds) {
-        /** Validates exact image/sound lump names and positive frame timing. */
+    public record Combatant(String actorId, CombatantAnimations animations, CombatantSounds sounds) {
+        /** Validates the actor identity and grouped presentation bindings. */
         public Combatant {
             Objects.requireNonNull(actorId, "actorId");
+            Objects.requireNonNull(animations, "animations");
+            Objects.requireNonNull(sounds, "sounds");
+        }
+    }
+
+    /** Frame sequences and common timing for one combatant actor identity. */
+    public record CombatantAnimations(
+            List<String> walkFrames,
+            List<String> attackFrames,
+            List<String> painFrames,
+            List<String> deathFrames,
+            Duration frameDuration) {
+        /** Validates non-empty exact frame names and positive common timing. */
+        public CombatantAnimations {
+            walkFrames = requireLumps(walkFrames, "walkFrames");
+            attackFrames = requireLumps(attackFrames, "attackFrames");
             painFrames = requireLumps(painFrames, "painFrames");
             deathFrames = requireLumps(deathFrames, "deathFrames");
             requirePositive(frameDuration, "frameDuration");
+        }
+    }
+
+    /** Alert, attack, pain, and death sounds for one combatant actor identity. */
+    public record CombatantSounds(
+            List<String> sightSounds,
+            String attackSound,
+            String painSound,
+            List<String> deathSounds) {
+        /** Validates exact sound lump names and non-empty variants. */
+        public CombatantSounds {
+            sightSounds = requireLumps(sightSounds, "sightSounds");
+            requireLump(attackSound, "attackSound");
             requireLump(painSound, "painSound");
             deathSounds = requireLumps(deathSounds, "deathSounds");
         }

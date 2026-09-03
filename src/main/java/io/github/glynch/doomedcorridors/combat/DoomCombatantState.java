@@ -18,6 +18,7 @@ public final class DoomCombatantState {
     private final float height;
     private final int health;
     private final int maximumHealth;
+    private final DoomCombatantActivity activity;
 
     /** Creates one validated combatant snapshot. */
     DoomCombatantState(DoomActor actor, float radius, float height, int maximumHealth) {
@@ -40,22 +41,36 @@ public final class DoomCombatantState {
         this.height = height;
         health = maximumHealth;
         this.maximumHealth = maximumHealth;
+        activity = DoomCombatantActivity.DORMANT;
     }
 
-    /** Copies one snapshot while replacing only current health. */
-    private DoomCombatantState(DoomCombatantState source, int health) {
+    /** Copies one snapshot while replacing its mutable simulation values. */
+    private DoomCombatantState(
+            DoomCombatantState source,
+            float x,
+            float floorHeight,
+            float z,
+            int health,
+            DoomCombatantActivity activity) {
         if (health < 0 || health > source.maximumHealth) {
             throw new IllegalArgumentException("combatant health is outside its valid range");
         }
+        requireFinite(x, "x");
+        requireFinite(floorHeight, "floorHeight");
+        requireFinite(z, "z");
         thingIndex = source.thingIndex;
         actorId = source.actorId;
-        x = source.x;
-        floorHeight = source.floorHeight;
-        z = source.z;
+        this.x = x;
+        this.floorHeight = floorHeight;
+        this.z = z;
         radius = source.radius;
         height = source.height;
         this.health = health;
         maximumHealth = source.maximumHealth;
+        this.activity = Objects.requireNonNull(activity, "activity");
+        if ((health == 0) != (activity == DoomCombatantActivity.DEAD)) {
+            throw new IllegalArgumentException("dead activity must match zero combatant health");
+        }
     }
 
     /** Returns the source-map thing index identifying this combatant. */
@@ -103,6 +118,11 @@ public final class DoomCombatantState {
         return maximumHealth;
     }
 
+    /** Returns the current high-level headless behavior. */
+    public DoomCombatantActivity activity() {
+        return activity;
+    }
+
     /** Returns whether this combatant still participates in targeting. */
     public DoomCombatantStatus status() {
         return health == 0 ? DoomCombatantStatus.DEAD : DoomCombatantStatus.ALIVE;
@@ -110,6 +130,33 @@ public final class DoomCombatantState {
 
     /** Returns a new snapshot with adjusted health. */
     DoomCombatantState withHealth(int newHealth) {
-        return new DoomCombatantState(this, newHealth);
+        DoomCombatantActivity newActivity =
+                newHealth == 0 ? DoomCombatantActivity.DEAD : activity;
+        return new DoomCombatantState(this, x, floorHeight, z, newHealth, newActivity);
+    }
+
+    /** Returns a new live snapshot with an adjusted position and activity. */
+    DoomCombatantState withPose(
+            float newX,
+            float newFloorHeight,
+            float newZ,
+            DoomCombatantActivity newActivity) {
+        if (health == 0) {
+            throw new IllegalStateException("dead combatants cannot move or change activity");
+        }
+        return new DoomCombatantState(
+                this, newX, newFloorHeight, newZ, health, newActivity);
+    }
+
+    /** Returns a new live snapshot with only its activity adjusted. */
+    DoomCombatantState withActivity(DoomCombatantActivity newActivity) {
+        return withPose(x, floorHeight, z, newActivity);
+    }
+
+    /** Requires one finite coordinate. */
+    private static void requireFinite(float value, String name) {
+        if (!Float.isFinite(value)) {
+            throw new IllegalArgumentException(name + " must be finite");
+        }
     }
 }

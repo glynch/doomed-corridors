@@ -28,11 +28,14 @@ final class DoomCombatPresentationLoaderTest {
         assertThat(rules.weapon().readyFrame()).isEqualTo("PISGA0");
         assertThat(rules.weapon().fireFrames())
                 .containsExactly("PISGB0", "PISGC0", "PISGD0", "PISGE0");
-        assertThat(rules.combatant("zombieman").deathFrames())
+        assertThat(rules.combatant("zombieman").animations().deathFrames())
                 .containsExactly("POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0");
+        assertThat(rules.combatant("zombieman").animations().walkFrames())
+                .containsExactly("POSSA1", "POSSB1", "POSSC1", "POSSD1");
+        assertThat(rules.player().deathSound()).isEqualTo("DSPLDETH");
         assertThat(rules.hud().digits()).hasSize(10);
-        assertThat(rules.imageLumps()).hasSize(22);
-        assertThat(rules.soundLumps()).hasSize(5);
+        assertThat(rules.imageLumps()).hasSize(28);
+        assertThat(rules.soundLumps()).hasSize(10);
     }
 
     /** Loads the companion combat rules used for cross-document validation. */

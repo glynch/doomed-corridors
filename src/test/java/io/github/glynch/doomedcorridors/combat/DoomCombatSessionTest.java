@@ -13,6 +13,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +42,81 @@ final class DoomCombatSessionTest {
             assertThat(combatant.radius()).isEqualTo(20.0F / 32.0F);
             assertThat(combatant.height()).isEqualTo(56.0F / 32.0F);
             assertThat(combatant.status()).isEqualTo(DoomCombatantStatus.ALIVE);
+            assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.DORMANT);
         });
+    }
+
+    /** Alerts a visible distant enemy and advances it through map collision toward the player. */
+    @Test
+    void alertsAndPursuesVisiblePlayer() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(zombieman(1, 7.0F)), 0L);
+
+        DoomCombatUpdate update =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(200));
+
+        assertThat(update.events())
+                .extracting(DoomCombatEvent::type)
+                .containsExactly(DoomCombatEvent.Type.COMBATANT_ALERTED);
+        assertThat(update.state().combatant(1)).hasValueSatisfying(combatant -> {
+            assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.PURSUING);
+            assertThat(combatant.x()).isLessThan(7.0F);
+            assertThat(combatant.floorHeight()).isZero();
+        });
+    }
+
+    /** Attacks after the configured reaction delay and applies deterministic player damage. */
+    @Test
+    void attacksAndDamagesVisiblePlayer() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(zombieman(1, 6.0F)), 0L);
+
+        DoomCombatUpdate update =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(400));
+
+        assertThat(update.state().playerHealth()).isBetween(85, 97);
+        assertThat(update.state().combatant(1)).hasValueSatisfying(combatant ->
+                assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.ATTACKING));
+        assertThat(update.events())
+                .extracting(DoomCombatEvent::type)
+                .containsExactly(
+                        DoomCombatEvent.Type.COMBATANT_ALERTED,
+                        DoomCombatEvent.Type.COMBATANT_ATTACKED,
+                        DoomCombatEvent.Type.PLAYER_DAMAGED);
+    }
+
+    /** Keeps a dormant enemy from seeing or attacking through a solid wall. */
+    @Test
+    void blocksEnemySightAtSolidWall() {
+        DoomCombatSession session = session(
+                dividedRoom(false), List.of(zombieman(1, 6.0F)), 0L);
+
+        DoomCombatUpdate update =
+                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
+
+        assertThat(update.events()).isEmpty();
+        assertThat(update.state().playerHealth()).isEqualTo(100);
+        assertThat(update.state().combatant(1)).hasValueSatisfying(combatant ->
+                assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.DORMANT));
+    }
+
+    /** Stops all enemy behavior after repeated attacks reach terminal player death. */
+    @Test
+    void stopsEnemyBehaviorAfterPlayerDeath() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(zombieman(1, 6.0F)), 0L);
+
+        DoomCombatUpdate fatalSequence =
+                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(40));
+        DoomCombatUpdate afterDeath =
+                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
+
+        assertThat(fatalSequence.state().isPlayerDead()).isTrue();
+        assertThat(fatalSequence.events())
+                .extracting(DoomCombatEvent::type)
+                .contains(DoomCombatEvent.Type.PLAYER_KILLED);
+        assertThat(afterDeath.events()).isEmpty();
+        assertThat(afterDeath.state().playerHealth()).isZero();
     }
 
     /** Damages the nearest living combatant intersected by the pistol ray. */
@@ -245,11 +320,13 @@ final class DoomCombatSessionTest {
             }
             lines.add(line(4, 5, 4, leftSide));
         }
+        List<DoomMap.Seg> segs = List.of(
+                seg(0, 1, 0), seg(1, 2, 1), seg(2, 3, 2), seg(3, 0, 3));
         return new DoomMap(
                 "MAP01",
                 List.of(),
                 new DoomMap.Geometry(vertices, lines, sides, List.of(sector())),
-                new DoomMap.Bsp(List.of(), List.of(), List.of()),
+                new DoomMap.Bsp(segs, List.of(new DoomMap.Subsector(4, 0)), List.of()),
                 List.of(),
                 new DoomMap.Blockmap(0, 0, 1, 1, List.of(List.of())));
     }
@@ -264,5 +341,9 @@ final class DoomCombatSessionTest {
 
     private static DoomMap.Sector sector() {
         return new DoomMap.Sector(0, 128, "FLOOR", "CEILING", 160, 0, 0);
+    }
+
+    private static DoomMap.Seg seg(int start, int end, int linedef) {
+        return new DoomMap.Seg(start, end, 0, linedef, 0, 0);
     }
 }

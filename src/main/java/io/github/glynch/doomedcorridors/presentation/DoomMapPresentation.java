@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors.presentation;
 import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprite;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
+import io.github.glynch.doomedcorridors.combat.DoomCombatantState;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
@@ -182,6 +183,7 @@ public final class DoomMapPresentation implements AutoCloseable {
         DoomCombatAssets assets = combatAssets.orElseThrow(
                 () -> new IllegalStateException("Combat assets were not supplied to this presentation"));
         actorVisuals.forEach((thingIndex, visual) -> {
+            validState.combatant(thingIndex).ifPresent(visual::move);
             DoomActorSprite sprite = validState.actorFrame(thingIndex)
                     .map(assets::image)
                     .orElse(visual.idleSprite);
@@ -396,6 +398,12 @@ public final class DoomMapPresentation implements AutoCloseable {
             this.idleSprite = idleSprite;
         }
 
+        /** Applies one current simulation placement. */
+        private void move(DoomCombatantState combatant) {
+            billboard.setPosition(combatant.x(), combatant.floorHeight(), combatant.z());
+        }
+
+        /** Applies the selected frame material and dimensions. */
         private void apply(DoomActorSprite sprite, BasicMaterial material) {
             applyActorSprite(billboard, sprite, material);
         }

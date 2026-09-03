@@ -164,14 +164,69 @@ public final class DoomCombatRules {
         }
     }
 
-    /** Validated collision and health rules for one actor definition. */
-    record CombatantDefinition(String actorId, int health, int radius, int height) {
+    /** Validated collision, health, and behavior rules for one actor definition. */
+    record CombatantDefinition(
+            String actorId,
+            int health,
+            int radius,
+            int height,
+            EnemyBehavior behavior) {
         /** Validates positive combatant dimensions and health. */
         CombatantDefinition {
             requireId(actorId, "combatant actor");
             if (health <= 0 || radius <= 0 || height <= 0) {
                 throw new IllegalArgumentException("combatant numeric values must be positive");
             }
+            Objects.requireNonNull(behavior, "behavior");
+        }
+    }
+
+    /** Validated awareness, movement, timing, and hitscan damage for one enemy. */
+    record EnemyBehavior(
+            int sightRange,
+            int attackRange,
+            int preferredRange,
+            int moveSpeed,
+            int reactionMilliseconds,
+            int attackIntervalMilliseconds,
+            DamageDefinition damage) {
+        /** Validates positive timing, distances, speed, and discrete damage values. */
+        EnemyBehavior {
+            if (sightRange <= 0
+                    || attackRange <= 0
+                    || preferredRange <= 0
+                    || moveSpeed <= 0
+                    || reactionMilliseconds <= 0
+                    || attackIntervalMilliseconds <= 0) {
+                throw new IllegalArgumentException("enemy behavior values must be positive");
+            }
+            if (preferredRange > attackRange || attackRange > sightRange) {
+                throw new IllegalArgumentException(
+                        "enemy ranges must satisfy preferredRange <= attackRange <= sightRange");
+            }
+            Objects.requireNonNull(damage, "damage");
+        }
+
+        /** Returns the number of equally likely discrete attack-damage values. */
+        int damageValueCount() {
+            return damage.valueCount();
+        }
+    }
+
+    /** Validated discrete damage sequence for one enemy attack. */
+    record DamageDefinition(int minimum, int maximum, int step) {
+        /** Validates a positive, evenly stepped inclusive range. */
+        DamageDefinition {
+            if (minimum <= 0 || step <= 0 || maximum < minimum
+                    || (maximum - minimum) % step != 0) {
+                throw new IllegalArgumentException(
+                        "enemy damage range must contain positive complete damage steps");
+            }
+        }
+
+        /** Returns the number of equally likely values in this range. */
+        int valueCount() {
+            return (maximum - minimum) / step + 1;
         }
     }
 }

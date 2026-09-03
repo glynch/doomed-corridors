@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat asset and timing bindings. */
 public final class DoomCombatPresentationLoader {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -56,22 +56,35 @@ public final class DoomCombatPresentationLoader {
                 rawWeapon.fireFrames(),
                 Duration.ofMillis(rawWeapon.frameMilliseconds()),
                 rawWeapon.fireSound());
+        RawPlayer rawPlayer = Objects.requireNonNull(raw.player(), "player is required");
+        DoomCombatPresentationRules.Player player = new DoomCombatPresentationRules.Player(
+                rawPlayer.painSound(), rawPlayer.deathSound());
         List<RawCombatant> rawCombatants = Objects.requireNonNull(raw.combatants(), "combatants are required");
         List<DoomCombatPresentationRules.Combatant> combatants = new ArrayList<>(rawCombatants.size());
         for (RawCombatant rawCombatant : rawCombatants) {
             RawCombatant value = Objects.requireNonNull(rawCombatant, "combatant must be an object");
+            RawAnimations animations = Objects.requireNonNull(
+                    value.animations(), "combatant animations are required");
+            RawSounds sounds = Objects.requireNonNull(
+                    value.sounds(), "combatant sounds are required");
             combatants.add(new DoomCombatPresentationRules.Combatant(
                     value.actor(),
-                    value.painFrames(),
-                    value.deathFrames(),
-                    Duration.ofMillis(value.frameMilliseconds()),
-                    value.painSound(),
-                    value.deathSounds()));
+                    new DoomCombatPresentationRules.CombatantAnimations(
+                            animations.walkFrames(),
+                            animations.attackFrames(),
+                            animations.painFrames(),
+                            animations.deathFrames(),
+                            Duration.ofMillis(animations.frameMilliseconds())),
+                    new DoomCombatPresentationRules.CombatantSounds(
+                            sounds.sightSounds(),
+                            sounds.attackSound(),
+                            sounds.painSound(),
+                            sounds.deathSounds())));
         }
         RawHud rawHud = Objects.requireNonNull(raw.hud(), "hud is required");
         DoomCombatPresentationRules.Hud hud =
                 new DoomCombatPresentationRules.Hud(rawHud.digits(), rawHud.percent());
-        return new DoomCombatPresentationRules(weapon, combatants, hud);
+        return new DoomCombatPresentationRules(weapon, player, combatants, hud);
     }
 
     /** Requires all bindings to name combat identities from the companion rules. */
@@ -101,6 +114,7 @@ public final class DoomCombatPresentationLoader {
             @JsonProperty("$schema") String schema,
             int schemaVersion,
             RawWeapon weapon,
+            RawPlayer player,
             List<RawCombatant> combatants,
             RawHud hud) {}
 
@@ -112,12 +126,24 @@ public final class DoomCombatPresentationLoader {
             int frameMilliseconds,
             String fireSound) {}
 
+    /** Direct JSON player binding retained only during conversion. */
+    private record RawPlayer(String painSound, String deathSound) {}
+
     /** Direct JSON combatant binding retained only during conversion. */
-    private record RawCombatant(
-            String actor,
+    private record RawCombatant(String actor, RawAnimations animations, RawSounds sounds) {}
+
+    /** Direct JSON combatant-animation binding retained only during conversion. */
+    private record RawAnimations(
+            List<String> walkFrames,
+            List<String> attackFrames,
             List<String> painFrames,
             List<String> deathFrames,
-            int frameMilliseconds,
+            int frameMilliseconds) {}
+
+    /** Direct JSON combatant-sound binding retained only during conversion. */
+    private record RawSounds(
+            List<String> sightSounds,
+            String attackSound,
             String painSound,
             List<String> deathSounds) {}
 

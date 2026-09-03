@@ -60,7 +60,9 @@ final class DoomCombatMapPresentationTest {
                 1.0F)) {
             Billboard billboard = (Billboard) presentation.scene().children().getFirst();
             BasicMaterial idleMaterial = billboard.material();
-            DoomCombatantState dead = alive.withHealth(0);
+            DoomCombatantState dead = alive.withPose(
+                            3.0F, 0.25F, -2.0F, DoomCombatantActivity.PURSUING)
+                    .withHealth(0);
             state.apply(new DoomCombatUpdate(
                     combatState(dead),
                     List.of(new DoomCombatEvent(
@@ -73,6 +75,9 @@ final class DoomCombatMapPresentationTest {
             assertThat(billboard.anchor().y()).isZero();
             assertThat(billboard.scale().x()).isEqualTo(8.0F / 32.0F);
             assertThat(billboard.scale().y()).isEqualTo(3.0F / 32.0F);
+            assertThat(billboard.position().x()).isEqualTo(3.0F);
+            assertThat(billboard.position().y()).isEqualTo(0.25F);
+            assertThat(billboard.position().z()).isEqualTo(-2.0F);
         }
     }
 

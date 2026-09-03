@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat rules and validates actor-catalog references. */
 public final class DoomCombatRulesLoader {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -74,8 +74,24 @@ public final class DoomCombatRulesLoader {
                 new ArrayList<>(rawCombatants.size());
         for (RawCombatant combatant : rawCombatants) {
             RawCombatant value = Objects.requireNonNull(combatant, "combatant must be an object");
+            RawBehavior behavior = Objects.requireNonNull(
+                    value.behavior(), "combatant behavior is required");
+            RawDamage damage = Objects.requireNonNull(
+                    behavior.damage(), "combatant behavior damage is required");
             combatants.add(new DoomCombatRules.CombatantDefinition(
-                    value.actor(), value.health(), value.radius(), value.height()));
+                    value.actor(),
+                    value.health(),
+                    value.radius(),
+                    value.height(),
+                    new DoomCombatRules.EnemyBehavior(
+                            behavior.sightRange(),
+                            behavior.attackRange(),
+                            behavior.preferredRange(),
+                            behavior.moveSpeed(),
+                            behavior.reactionMilliseconds(),
+                            behavior.attackIntervalMilliseconds(),
+                            new DoomCombatRules.DamageDefinition(
+                                    damage.minimum(), damage.maximum(), damage.step()))));
         }
         return new DoomCombatRules(
                 player.startingHealth(),
@@ -131,5 +147,19 @@ public final class DoomCombatRulesLoader {
             int damageStep) {}
 
     /** Direct JSON combatant binding retained only for conversion and validation. */
-    private record RawCombatant(String actor, int health, int radius, int height) {}
+    private record RawCombatant(
+            String actor, int health, int radius, int height, RawBehavior behavior) {}
+
+    /** Direct JSON enemy-behavior binding retained only for conversion and validation. */
+    private record RawBehavior(
+            int sightRange,
+            int attackRange,
+            int preferredRange,
+            int moveSpeed,
+            int reactionMilliseconds,
+            int attackIntervalMilliseconds,
+            RawDamage damage) {}
+
+    /** Direct JSON enemy-damage binding retained only for conversion and validation. */
+    private record RawDamage(int minimum, int maximum, int step) {}
 }

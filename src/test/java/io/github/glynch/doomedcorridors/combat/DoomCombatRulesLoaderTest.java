@@ -43,7 +43,7 @@ final class DoomCombatRulesLoaderTest {
                 source,
                 """
                 {
-                  "schemaVersion": 1,
+                  "schemaVersion": 2,
                   "player": {
                     "startingHealth": 100,
                     "startingBullets": 50,
@@ -61,7 +61,16 @@ final class DoomCombatRulesLoaderTest {
                     "actor": "unknown-enemy",
                     "health": 20,
                     "radius": 20,
-                    "height": 56
+                    "height": 56,
+                    "behavior": {
+                      "sightRange": 2048,
+                      "attackRange": 2048,
+                      "preferredRange": 96,
+                      "moveSpeed": 96,
+                      "reactionMilliseconds": 300,
+                      "attackIntervalMilliseconds": 1000,
+                      "damage": { "minimum": 3, "maximum": 15, "step": 3 }
+                    }
                   }]
                 }
                 """);

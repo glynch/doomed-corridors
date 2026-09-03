@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/combat-presentation-1.schema.json",
-  "schemaVersion": 1,
+  "$schema": "../schema/combat-presentation-2.schema.json",
+  "schemaVersion": 2,
   "weapon": {
     "id": "pistol",
     "readyFrame": "PISGA0",
@@ -8,14 +8,26 @@
     "frameMilliseconds": 70,
     "fireSound": "DSPISTOL"
   },
+  "player": {
+    "painSound": "DSPLPAIN",
+    "deathSound": "DSPLDETH"
+  },
   "combatants": [
     {
       "actor": "zombieman",
-      "painFrames": ["POSSG1"],
-      "deathFrames": ["POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0"],
-      "frameMilliseconds": 140,
-      "painSound": "DSPOPAIN",
-      "deathSounds": ["DSPODTH1", "DSPODTH2", "DSPODTH3"]
+      "animations": {
+        "walkFrames": ["POSSA1", "POSSB1", "POSSC1", "POSSD1"],
+        "attackFrames": ["POSSE1", "POSSF1", "POSSE1"],
+        "painFrames": ["POSSG1"],
+        "deathFrames": ["POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0"],
+        "frameMilliseconds": 140
+      },
+      "sounds": {
+        "sightSounds": ["DSPOSIT1", "DSPOSIT2", "DSPOSIT3"],
+        "attackSound": "DSPISTOL",
+        "painSound": "DSPOPAIN",
+        "deathSounds": ["DSPODTH1", "DSPODTH2", "DSPODTH3"]
+      }
     }
   ],
   "hud": {

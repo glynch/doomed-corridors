@@ -124,6 +124,25 @@ final class DoomGameSessionTest {
         assertThat(player.yawRadians()).isCloseTo(0.25F + (float) Math.PI / 35.0F, within(0.000_001F));
     }
 
+    /** Uses configured actor dimensions when resolving movement against a solid wall. */
+    @Test
+    void movesConfiguredActorBodyThroughMapCollision() {
+        DoomCollisionWorld collision = new DoomCollisionWorld(room(128, 108, 64));
+
+        DoomCollisionWorld.Position position = collision.moveActor(
+                108.0F / 32.0F,
+                -2.0F,
+                0.5F,
+                0.0F,
+                8.0F / 32.0F,
+                56.0F / 32.0F,
+                24.0F / 32.0F);
+
+        assertThat(position.x()).isBetween(3.74F, 3.751F);
+        assertThat(position.z()).isEqualTo(-2.0F);
+        assertThat(position.floorHeight()).isZero();
+    }
+
     private static DoomMap room(int size, int playerX, int playerY) {
         List<DoomMap.Vertex> vertices = List.of(
                 new DoomMap.Vertex(0, 0),

@@ -32,6 +32,10 @@ public record DoomCombatEvent(Type type, int thingIndex, int amount) {
         COMBATANT_DAMAGED,
         /** A combatant reached zero health. */
         COMBATANT_KILLED,
+        /** A dormant combatant acquired the player and entered active behavior. */
+        COMBATANT_ALERTED,
+        /** A combatant performed its configured ranged attack. */
+        COMBATANT_ATTACKED,
         /** The player lost health. */
         PLAYER_DAMAGED,
         /** The player reached zero health. */
