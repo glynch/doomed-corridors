@@ -55,9 +55,16 @@ test independently verifies 51 wall textures and 28 non-sky flats. The launcher
 writes a deterministic contact sheet under `target/smoke/` for manual inspection
 without initializing windowing or native rendering.
 
-The next slice constructs static floors, ceilings, and walls from the decoded
-map and imported materials, then displays them from a fixed camera. Collision,
-actor behavior, and sector specials remain separate later vertical slices.
+The static-geometry and presentation slices are complete. A renderer-independent
+builder recovers convex leaf polygons from the classic BSP, constructs textured
+floor, ceiling, one-sided wall, upper, lower, and masked-middle surfaces, and
+places the view at the WAD-defined player-one start. A separate presentation
+adapter owns the JScene3D scene, camera, meshes, materials, and textures. The
+graphical launcher displays this static MAP01 view, while the headless inspector
+exercises the same loading and geometry path without initializing GLFW.
+
+The next slice adds player movement and collision against the imported map.
+Actor behavior and sector specials remain separate later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

@@ -40,8 +40,17 @@ Run the application with:
 ./mvnw -Prun compile
 ```
 
-With the source WAD installed, the application loads the project and startup
-map, imports its referenced materials, and writes a visual material sheet to
+With the source WAD installed, the application loads the manifest-selected map,
+builds its static floors, ceilings, and walls, and opens the view at the
+WAD-defined player-one start. Press Escape or close the window to stop it.
+
+Run the same loading and geometry pipeline without starting windowing with:
+
+```shell
+./mvnw -Pinspect compile
+```
+
+The headless inspector also writes a visual material sheet to
 `target/smoke/map01-materials.png`.
 
 ## Development

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026 Graham Lynch
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +29,7 @@ final class DoomedCorridorsTest {
         try (PrintStream output = new PrintStream(captured, true, StandardCharsets.UTF_8)) {
             System.setOut(output);
 
-            DoomedCorridors.main(new String[] {"."});
+            DoomedCorridorsInspector.main(new String[] {"."});
         } finally {
             System.setOut(originalOutput);
         }
@@ -34,6 +38,7 @@ final class DoomedCorridorsTest {
                 .contains("Decoded MAP01: 200 things, 1,274 linedefs, 2,041 sidedefs, "
                         + "1,189 vertices, and 211 sectors")
                 .contains("Imported MAP01 materials: 51 wall textures and 28 flats")
+                .contains("Built MAP01 static geometry:")
                 .contains("Wrote material contact sheet to");
         assertThat(contactSheet).isNotEmptyFile();
     }
