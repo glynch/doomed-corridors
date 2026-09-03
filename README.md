@@ -1,37 +1,54 @@
 # Doomed Corridors
 
-Doomed Corridors is an unofficial Doom-compatible first-person game built as a
-standalone Java 21 application on JScene3D. It targets a full campaign using
-attributed Freedoom assets, developed incrementally from `MAP01`.
+Doomed Corridors is an unofficial Doom-compatible first-person game built with
+JScene3D. It uses attributed assets from Freedoom Phase 2 and aims to support its
+complete 32-map campaign with classic Doom II gameplay semantics.
 
-The project is deliberately separate from the JScene3D reactor. Game rules,
-world construction, asset integration, and presentation belong here; reusable
-engine code remains in JScene3D.
+## Game data
 
-## Current status
+Doomed Corridors reads its maps, artwork, audio, and other game data from a
+pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
 
-The repository contains a versioned JScene3D [`project.json`](project.json), a
-headless launcher that validates it, and a bounded WAD adapter that verifies and
-indexes the pinned Freedoom Phase 2 source. It decodes classic Doom map records
-and referenced flats and composite wall textures into immutable,
-renderer-independent models without initializing graphics or audio. The first
-playable vertical slice is documented in
-[`docs/first-room-prototype.md`](docs/first-room-prototype.md).
+Follow [`assets/README.md`](assets/README.md) to install the required source WAD
+and verify its release and checksum. The project manifest identifies the source
+asset and startup map in [`project.json`](project.json).
 
-The scaffold consumes locally installed `0.1.0-SNAPSHOT` builds of:
+## Building and running
 
-- `jscene3d-game` for the game loop, semantic input, and character movement
-- `jscene3d-project` for versioned project loading and GUI-ready diagnostics
-- `jscene3d-audio` for effects and listener control
-- `jscene3d-gui` for overlays
-
-`jscene3d-game` supplies its JScene3D core, physics, and LWJGL dependencies
-transitively. The application supplies platform-native LWJGL runtime artifacts.
-
-## Prerequisites
+Prerequisites:
 
 - JDK 21
-- JScene3D `0.1.0-SNAPSHOT` installed in the local Maven repository
+- The JScene3D artifacts declared by [`pom.xml`](pom.xml) available to Maven
+
+When developing against a local JScene3D checkout, install its artifacts into
+the local Maven repository before building Doomed Corridors. From the JScene3D
+checkout, run:
+
+```shell
+./mvnw install
+```
+
+Build and test Doomed Corridors with:
+
+```shell
+./mvnw clean verify
+```
+
+Run the application with:
+
+```shell
+./mvnw -Prun compile
+```
+
+With the source WAD installed, the application loads the project and startup
+map, imports its referenced materials, and writes a visual material sheet to
+`target/smoke/map01-materials.png`.
+
+## Development
+
+Implementation plans and architectural decisions are documented under
+[`docs/`](docs/). The first playable milestone is described in
+[`docs/first-room-prototype.md`](docs/first-room-prototype.md).
 
 ### Optional VS Code multi-root workspace
 
@@ -58,63 +75,18 @@ directories, place a `.code-workspace` file in their common parent directory:
 }
 ```
 
-Opening this workspace lets the Java extension import both independent Maven
-builds. The workspace file is local development configuration and should not be
-stored in either repository.
-
-From the JScene3D repository:
-
-```shell
-./mvnw install
-```
-
-Then verify this project:
-
-```shell
-./mvnw verify
-```
-
-The headless project-loading entry point can be run with:
-
-```shell
-./mvnw -Prun compile
-```
-
-The `run` profile adds `-XstartOnFirstThread` automatically on macOS. Until
-`assets/freedoom2.wad` is installed, it reports one expected missing-asset
-warning and confirms that the project targets `freedoom:MAP01`. With the pinned
-WAD installed, it also verifies the digest, indexes the directory, enumerates the
-32 map markers, decodes `MAP01`, imports its 51 wall textures and 28 non-sky
-flats, and writes `target/smoke/map01-materials.png` for manual inspection. The
-contact sheet orders wall textures alphabetically, followed by flats
-alphabetically.
-
-## Project definition and WAD source
-
-The manifest identifies `assets/freedoom2.wad` as the authoritative game-data
-source and `MAP01` as the startup target. The classic-map decoder reads the
-ordered `THINGS` through `BLOCKMAP` lump sequence, validates fixed record sizes,
-cross-references, BSP children, `REJECT`, and `BLOCKMAP`, and reports unsupported
-UDMF and Hexen maps explicitly. The material importer resolves only the map's
-referenced resources, applies the first `PLAYPAL` palette, observes the flat
-namespace, reads `PNAMES` and `TEXTURE1`/`TEXTURE2`, and composes transparent
-Doom patch columns while retaining source-lump provenance. Generated imported
-data will be treated as a cache, so deleting and rebuilding it never loses
-authored state. The same
-headless project loader used here is intended to support a later Godot-like
-project browser/editor. The manifest uses the vendored
-[`schema/project-1.schema.json`](schema/project-1.schema.json) for offline editor
-validation; an automated test keeps that copy identical to the schema bundled
-in `jscene3d-project`.
+Opening this workspace lets the Java extension import both Maven builds. The
+workspace file is local development configuration and should not be stored in
+either repository.
 
 ## Assets and attribution
 
-Freedoom 0.13.0 is the pinned source release. The WAD itself remains ignored
-while distribution policy is undecided; follow
-[`assets/README.md`](assets/README.md) to install the exact local source. Its
-provenance and digests are recorded in
-[`src/main/resources/assets/ATTRIBUTION.md`](src/main/resources/assets/ATTRIBUTION.md),
-and the upstream license and credits are retained in `assets/`.
+The WAD remains an authoritative source asset and is never modified by the
+import process. Generated output is disposable and can be reproduced from the
+source WAD.
 
-Freedoom and Doom are not affiliated with or endorsed by this project. The
-working title and presentation must not imply otherwise.
+Asset provenance and checksums are recorded in
+[`src/main/resources/assets/ATTRIBUTION.md`](src/main/resources/assets/ATTRIBUTION.md).
+The upstream license and credits are retained in [`assets/`](assets/).
+
+Freedoom and Doom are not affiliated with or endorsed by this project.
