@@ -15,6 +15,7 @@
         <maven.compiler.release>21</maven.compiler.release>
 
         <jscene3d.version>0.1.0-SNAPSHOT</jscene3d.version>
+        <jackson.version>2.22.2</jackson.version>
         <lwjgl.version>3.4.3</lwjgl.version>
         <junit.version>6.1.3</junit.version>
         <assertj.version>3.27.7</assertj.version>
@@ -49,6 +50,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.github.glynch</groupId>
             <artifactId>jscene3d-game</artifactId>

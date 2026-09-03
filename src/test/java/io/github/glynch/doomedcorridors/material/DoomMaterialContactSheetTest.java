@@ -2,6 +2,8 @@ package io.github.glynch.doomedcorridors.material;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.glynch.doomedcorridors.actor.DoomActorSprite;
+import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.wad.WadLump;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -33,6 +35,22 @@ final class DoomMaterialContactSheetTest {
         assertThat(image.getHeight()).isPositive();
         assertThat(containsRgb(image, 0xff0000)).isTrue();
         assertThat(containsRgb(image, 0x00ff00)).isTrue();
+    }
+
+    /** Writes unique actor sprite frames through the shared RGBA contact-sheet renderer. */
+    @Test
+    void writesSpriteImagesToPng() throws IOException {
+        RgbaImage source = new RgbaImage(
+                1, 1, new byte[] {(byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0xff});
+        DoomActorSprite sprite =
+                new DoomActorSprite("TESTA", "TESTA0", source, 0, 1, List.of());
+        Path output = temporaryDirectory.resolve("nested/sprites.png");
+
+        new DoomSpriteContactSheet().write(new DoomActorSprites(Map.of("TESTA", sprite)), output);
+
+        BufferedImage image = ImageIO.read(output.toFile());
+        assertThat(image).isNotNull();
+        assertThat(containsRgb(image, 0x112233)).isTrue();
     }
 
     private static DoomMaterial material(

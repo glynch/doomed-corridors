@@ -5,6 +5,7 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.material.DoomMaterialContactSheet;
+import io.github.glynch.doomedcorridors.material.DoomSpriteContactSheet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -28,11 +29,18 @@ public final class DoomedCorridorsInspector {
                 .resolve("target/smoke/"
                         + startup.map().name().toLowerCase(Locale.ROOT)
                         + "-materials.png");
+        Path spriteSheet = startup.project()
+                .root()
+                .resolve("target/smoke/"
+                        + startup.map().name().toLowerCase(Locale.ROOT)
+                        + "-sprites.png");
         try {
             new DoomMaterialContactSheet().write(startup.materials(), contactSheet);
+            new DoomSpriteContactSheet().write(startup.sprites(), spriteSheet);
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot write material contact sheet", exception);
         }
         System.out.println("Wrote material contact sheet to " + contactSheet);
+        System.out.println("Wrote sprite contact sheet to " + spriteSheet);
     }
 }

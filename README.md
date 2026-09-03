@@ -11,7 +11,9 @@ pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
 
 Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest identifies the source
-asset and startup map in [`project.json`](project.json).
+asset, provider-owned [`game/actors.json`](game/actors.json) catalog, and startup
+map in [`project.json`](project.json). The catalog assigns Doom II meanings and
+initial sprite frames to the numeric thing types stored in classic maps.
 
 ## Building and running
 
@@ -42,10 +44,12 @@ Run the application with:
 
 With the source WAD installed, the application loads the manifest-selected map,
 builds its static floors, ceilings, and walls, and opens the view at the
-WAD-defined player-one start. Use W/S or Up/Down to move, A/D to strafe,
-Left/Right to turn, and the mouse to look around. Click the rendered view to
-capture the pointer. Escape releases a captured pointer; press it again or close
-the window to stop the game.
+WAD-defined player-one start. Normal-skill single-player enemies, pickups, and
+decorations are presented as inert camera-facing sprites; their gameplay behavior
+is not active yet. Use W/S or Up/Down to move, A/D to strafe, Left/Right to turn,
+and the mouse to look around. Click the rendered view to capture the pointer.
+Escape releases a captured pointer; press it again or close the window to stop
+the game.
 
 Run the same loading and geometry pipeline without starting windowing with:
 
@@ -53,8 +57,8 @@ Run the same loading and geometry pipeline without starting windowing with:
 ./mvnw -Pinspect compile
 ```
 
-The headless inspector also writes a visual material sheet to
-`target/smoke/map01-materials.png`.
+The headless inspector also writes visual material and sprite sheets to
+`target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`.
 
 ## Development
 

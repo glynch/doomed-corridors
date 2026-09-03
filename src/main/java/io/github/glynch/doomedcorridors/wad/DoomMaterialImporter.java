@@ -222,62 +222,11 @@ public final class DoomMaterialImporter {
     }
 
     private static RgbaImage decodePatch(byte[] data, byte[] palette, String name) {
-        if (data.length < 8) {
-            throw materialData(name, "Patch header is shorter than eight bytes");
+        try {
+            return DoomPatchDecoder.decode(data, palette, name).image();
+        } catch (DoomPatchDataException exception) {
+            throw materialData(name, exception.getMessage());
         }
-        ByteBuffer input = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-        int width = Short.toUnsignedInt(input.getShort());
-        int height = Short.toUnsignedInt(input.getShort());
-        input.getShort();
-        input.getShort();
-        if (width == 0 || height == 0 || width > input.remaining() / Integer.BYTES) {
-            throw materialData(name, "Patch dimensions or column directory are invalid");
-        }
-        int[] offsets = new int[width];
-        for (int column = 0; column < width; column++) {
-            offsets[column] = input.getInt();
-        }
-        byte[] pixels = new byte[Math.multiplyExact(Math.multiplyExact(width, height), 4)];
-        PatchTarget target = new PatchTarget(name, width, height, pixels, palette);
-        for (int column = 0; column < width; column++) {
-            decodePatchColumn(data, target, column, offsets[column]);
-        }
-        return new RgbaImage(width, height, pixels);
-    }
-
-    private static void decodePatchColumn(byte[] data, PatchTarget target, int column, int offset) {
-        if (offset < 0 || offset >= data.length) {
-            throw materialData(target.name, "Patch column offset is outside the lump");
-        }
-        ByteBuffer input = ByteBuffer.wrap(data);
-        input.position(offset);
-        while (input.hasRemaining()) {
-            int top = Byte.toUnsignedInt(input.get());
-            if (top == 0xff) {
-                return;
-            }
-            decodePatchPost(input, target, column, top);
-        }
-        throw materialData(target.name, "Patch column is not terminated");
-    }
-
-    private static void decodePatchPost(ByteBuffer input, PatchTarget target, int column, int top) {
-        if (input.remaining() < 2) {
-            throw materialData(target.name, "Patch post header is truncated");
-        }
-        int length = Byte.toUnsignedInt(input.get());
-        input.get();
-        if (input.remaining() < length + 1) {
-            throw materialData(target.name, "Patch post pixels are truncated");
-        }
-        for (int row = 0; row < length; row++) {
-            int paletteIndex = Byte.toUnsignedInt(input.get());
-            int y = top + row;
-            if (y < target.height) {
-                setPixel(target, column, y, paletteIndex);
-            }
-        }
-        input.get();
     }
 
     private static void drawPatch(
@@ -312,15 +261,6 @@ public final class DoomMaterialImporter {
         }
         int targetOffset = (targetY * target.width + targetX) * 4;
         System.arraycopy(source, sourceOffset, target.pixels, targetOffset, 4);
-    }
-
-    private static void setPixel(PatchTarget target, int x, int y, int paletteIndex) {
-        int sourceOffset = paletteIndex * 3;
-        int targetOffset = (y * target.width + x) * 4;
-        target.pixels[targetOffset] = target.palette[sourceOffset];
-        target.pixels[targetOffset + 1] = target.palette[sourceOffset + 1];
-        target.pixels[targetOffset + 2] = target.palette[sourceOffset + 2];
-        target.pixels[targetOffset + 3] = (byte) 0xff;
     }
 
     private static String readName(ByteBuffer input) {
@@ -439,22 +379,6 @@ public final class DoomMaterialImporter {
             String name, int width, int height, List<PatchPlacement> patches, WadLump source) {}
 
     private record PatchPlacement(int originX, int originY, int patchIndex) {}
-
-    private static final class PatchTarget {
-        private final String name;
-        private final int width;
-        private final int height;
-        private final byte[] pixels;
-        private final byte[] palette;
-
-        private PatchTarget(String name, int width, int height, byte[] pixels, byte[] palette) {
-            this.name = name;
-            this.width = width;
-            this.height = height;
-            this.pixels = pixels;
-            this.palette = palette;
-        }
-    }
 
     private static final class TextureCanvas {
         private final int width;

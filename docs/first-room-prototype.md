@@ -71,8 +71,18 @@ uses the WAD linedefs and sector openings for the classic 16-unit player radius,
 host adapts keyboard and captured-pointer input to that session, while the
 presentation adapter applies the resulting position, yaw, and pitch to the camera.
 
-The next slice imports visible things and establishes the first weapon, hitscan,
-enemy, damage, health, and ammo behavior. Doors, lifts, other sector specials,
+The visible-actor slice is also complete. The project declares a provider-owned,
+versioned actor catalog that assigns stable identities, categories, and initial
+sprite frames to every classic thing type used by MAP01. The headless resolver
+applies normal-skill and single-player placement flags, reports unsupported
+selected types explicitly, and grounds visible actors through the map BSP. The
+WAD adapter imports the 21 unique spawn frames used by the resulting 119 actors,
+preserving palette and lump provenance plus classic patch offsets. The
+presentation adapter displays these inert actors as alpha-masked cylindrical
+billboards with WAD-derived anchors and pixel scale.
+
+The next slice establishes the first weapon, hitscan, enemy, damage, health, and
+ammo behavior using this actor boundary. Doors, lifts, other sector specials,
 and complete actor behavior remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
@@ -84,6 +94,7 @@ maps until the complete Freedoom campaign is covered.
 ```text
 io.github.glynch.doomedcorridors
 |-- app           native host, project loading, runtime wiring, lifecycle
+|-- actor         provider definitions, resolved placements, skill filtering, sprites
 |-- wad           Doom WAD container access and source adapter
 |-- map           immutable decoded classic-map records
 |-- material      renderer-independent imported images and smoke outputs

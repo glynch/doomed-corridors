@@ -4,16 +4,26 @@
  */
 package io.github.glynch.doomedcorridors;
 
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalog;
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoadResult;
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
+import io.github.glynch.doomedcorridors.actor.DoomActorDiagnostic;
+import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
+import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
+import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecodeResult;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.DoomMaterialImportResult;
 import io.github.glynch.doomedcorridors.wad.DoomMaterialImporter;
+import io.github.glynch.doomedcorridors.wad.DoomSpriteImportResult;
+import io.github.glynch.doomedcorridors.wad.DoomSpriteImporter;
 import io.github.glynch.doomedcorridors.wad.WadArchive;
 import io.github.glynch.doomedcorridors.wad.WadDiagnostic;
 import io.github.glynch.doomedcorridors.wad.WadLoadResult;
 import io.github.glynch.doomedcorridors.wad.WadLoader;
+import io.github.glynch.doomedcorridors.world.DoomActorResolver;
 import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
 import io.github.glynch.doomedcorridors.world.DoomGeometryDiagnostic;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
@@ -27,7 +37,12 @@ import java.nio.file.Path;
 
 /** Loaded startup data shared by graphical and headless hosts. */
 record DoomStartup(
-        GameProject project, DoomMap map, DoomMapMaterials materials, DoomStaticGeometry geometry) {
+        GameProject project,
+        DoomMap map,
+        DoomMapMaterials materials,
+        DoomStaticGeometry geometry,
+        DoomActorResolution actors,
+        DoomActorSprites sprites) {
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
 
     /** Loads the complete project-selected static-map pipeline. */
@@ -42,12 +57,32 @@ record DoomStartup(
                 project.identity().version(),
                 project.runtime().startup().asset(),
                 project.runtime().startup().target());
+        DoomActorCatalog actorCatalog = loadActorCatalog(project);
         GameProject.AssetSource asset = startupAsset(project);
         WadArchive archive = loadArchive(project, asset);
         DoomMap map = decodeMap(project, archive);
         DoomMapMaterials materials = importMaterials(archive, map);
         DoomStaticGeometry geometry = buildGeometry(map, materials);
-        return new DoomStartup(project, map, materials, geometry);
+        DoomActorResolution actors = resolveActors(archive, map, actorCatalog);
+        DoomActorSprites sprites = importSprites(archive, actors);
+        return new DoomStartup(project, map, materials, geometry, actors, sprites);
+    }
+
+    /** Loads the actor catalog declared by this Game Provider's project. */
+    private static DoomActorCatalog loadActorCatalog(GameProject project) {
+        GameProject.AssetSource source = project.assets().stream()
+                .filter(asset -> asset.id().equals("actors"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Actor catalog asset is not defined"));
+        if (!source.type().equals("doomed-corridors-actor-catalog")) {
+            throw new IllegalStateException("Actor catalog asset has the wrong type");
+        }
+        DoomActorCatalogLoadResult result = new DoomActorCatalogLoader().load(source.path());
+        result.diagnostics().forEach(DoomStartup::printActorDiagnostic);
+        DoomActorCatalog catalog = result.catalog()
+                .orElseThrow(() -> new IllegalStateException("Cannot load actor catalog"));
+        System.out.printf("Loaded %,d provider actor definitions%n", catalog.definitions().size());
+        return catalog;
     }
 
     /** Resolves the manifest-selected source asset. */
@@ -127,6 +162,26 @@ record DoomStartup(
         return geometry;
     }
 
+    /** Resolves normal-skill single-player map things through provider definitions. */
+    private static DoomActorResolution resolveActors(
+            WadArchive archive, DoomMap map, DoomActorCatalog catalog) {
+        DoomActorResolution result =
+                new DoomActorResolver().resolve(archive.source(), map, catalog, DoomSkillLevel.NORMAL);
+        result.diagnostics().forEach(DoomStartup::printActorDiagnostic);
+        System.out.printf("Resolved %s actors: %,d visible placements%n", map.name(), result.actors().size());
+        return result;
+    }
+
+    /** Imports the unique initial sprite frames used by resolved actors. */
+    private static DoomActorSprites importSprites(WadArchive archive, DoomActorResolution actors) {
+        DoomSpriteImportResult result = new DoomSpriteImporter().importActors(archive, actors.actors());
+        result.diagnostics().forEach(DoomStartup::printWadDiagnostic);
+        DoomActorSprites sprites = result.sprites()
+                .orElseThrow(() -> new IllegalStateException("Cannot import startup actor sprites"));
+        System.out.printf("Imported %,d unique actor sprite frames%n", sprites.byFrame().size());
+        return sprites;
+    }
+
     /** Prints one project diagnostic consistently for both hosts. */
     private static void printProjectDiagnostic(ProjectDiagnostic diagnostic) {
         System.out.printf(
@@ -154,5 +209,16 @@ record DoomStartup(
         System.out.printf(
                 "%s %s at %s: %s%n",
                 diagnostic.severity(), diagnostic.code(), diagnostic.location(), diagnostic.message());
+    }
+
+    /** Prints one actor diagnostic consistently for both hosts. */
+    private static void printActorDiagnostic(DoomActorDiagnostic diagnostic) {
+        System.out.printf(
+                "%s %s at %s%s: %s%n",
+                diagnostic.severity(),
+                diagnostic.code(),
+                diagnostic.source(),
+                diagnostic.location().isEmpty() ? "" : "#" + diagnostic.location(),
+                diagnostic.message());
     }
 }

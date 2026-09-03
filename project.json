@@ -30,6 +30,11 @@
   },
   "assets": [
     {
+      "id": "actors",
+      "type": "doomed-corridors-actor-catalog",
+      "path": "game/actors.json"
+    },
+    {
       "id": "freedoom",
       "type": "doom-wad",
       "path": "assets/freedoom2.wad",

@@ -23,7 +23,9 @@ final class DoomedCorridorsTest {
                 Files.isRegularFile(Path.of("assets/freedoom2.wad")),
                 "pinned Freedoom WAD is not installed");
         Path contactSheet = Path.of("target/smoke/map01-materials.png");
+        Path spriteSheet = Path.of("target/smoke/map01-sprites.png");
         Files.deleteIfExists(contactSheet);
+        Files.deleteIfExists(spriteSheet);
         PrintStream originalOutput = System.out;
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
         try (PrintStream output = new PrintStream(captured, true, StandardCharsets.UTF_8)) {
@@ -39,7 +41,12 @@ final class DoomedCorridorsTest {
                         + "1,189 vertices, and 211 sectors")
                 .contains("Imported MAP01 materials: 51 wall textures and 28 flats")
                 .contains("Built MAP01 static geometry:")
-                .contains("Wrote material contact sheet to");
+                .contains("Loaded 37 provider actor definitions")
+                .contains("Resolved MAP01 actors: 119 visible placements")
+                .contains("Imported 21 unique actor sprite frames")
+                .contains("Wrote material contact sheet to")
+                .contains("Wrote sprite contact sheet to");
         assertThat(contactSheet).isNotEmptyFile();
+        assertThat(spriteSheet).isNotEmptyFile();
     }
 }

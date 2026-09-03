@@ -9,12 +9,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.glynch.doomedcorridors.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.presentation.DoomMapPresentation;
+import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.DoomMaterialImporter;
 import io.github.glynch.doomedcorridors.wad.WadArchive;
 import io.github.glynch.doomedcorridors.wad.WadLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Assumptions;
@@ -55,7 +57,8 @@ final class FreedoomStaticGeometryBuilderTest {
                 session.advance(new DoomPlayerCommand(1.0F, 0.0F, 0.0F, 0.0F, 0.0F), Duration.ofMillis(100));
         assertThat(moved.x()).isGreaterThan(geometry.playerStart().x());
         try (DoomMapPresentation presentation =
-                DoomMapPresentation.create(geometry, materials, 16.0F / 9.0F)) {
+                DoomMapPresentation.create(
+                        geometry, materials, List.of(), new DoomActorSprites(java.util.Map.of()), 16.0F / 9.0F)) {
             assertThat(presentation.scene().children()).hasSameSizeAs(geometry.surfaces());
         }
     }

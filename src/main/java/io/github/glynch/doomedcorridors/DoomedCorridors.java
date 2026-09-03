@@ -38,7 +38,11 @@ public final class DoomedCorridors {
         try (Window window = Window.create(WINDOW_WIDTH, WINDOW_HEIGHT, startup.project().identity().name());
                 Renderer renderer = Renderer.create(window);
                 DoomMapPresentation presentation = DoomMapPresentation.create(
-                        startup.geometry(), startup.materials(), window.framebufferAspectRatio())) {
+                        startup.geometry(),
+                        startup.materials(),
+                        startup.actors().actors(),
+                        startup.sprites(),
+                        window.framebufferAspectRatio())) {
             window.show();
             long previousNanos = System.nanoTime();
             while (!window.shouldClose()) {

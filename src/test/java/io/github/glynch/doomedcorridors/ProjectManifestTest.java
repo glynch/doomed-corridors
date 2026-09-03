@@ -23,7 +23,13 @@ final class ProjectManifestTest {
         GameProject project = result.project().orElseThrow();
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
         assertThat(project.runtime().startup()).isEqualTo(new GameProject.StartupTarget("freedoom", "MAP01"));
-        assertThat(project.assets()).singleElement().satisfies(asset -> {
+        assertThat(project.assets()).extracting(GameProject.AssetSource::id).containsExactly("actors", "freedoom");
+        assertThat(project.assets().getFirst()).satisfies(asset -> {
+            assertThat(asset.type()).isEqualTo("doomed-corridors-actor-catalog");
+            assertThat(asset.path()).isEqualTo(project.root().resolve("game/actors.json"));
+            assertThat(asset.sha256()).isEmpty();
+        });
+        assertThat(project.assets().get(1)).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo("doom-wad");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256())
@@ -32,11 +38,11 @@ final class ProjectManifestTest {
         if (Files.isRegularFile(project.root().resolve("assets/freedoom2.wad"))) {
             assertThat(result.diagnostics()).isEmpty();
         } else {
-            assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
-                assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
-                assertThat(diagnostic.code()).isEqualTo("project.path.missing");
-                assertThat(diagnostic.location()).isEqualTo("/assets/0/path");
-            });
+                assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
+                    assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
+                    assertThat(diagnostic.code()).isEqualTo("project.path.missing");
+                    assertThat(diagnostic.location()).isEqualTo("/assets/1/path");
+                });
         }
     }
 
