@@ -81,9 +81,48 @@ final class DoomCombatMapPresentationTest {
         }
     }
 
+    /** Hides the billboard whose stable WAD thing index was collected by the headless session. */
+    @Test
+    void hidesCollectedPickupBillboard() {
+        DoomActor pickup = pickup();
+        DoomCombatPresentationRules rules = presentationRules();
+        DoomCombatState initial = new DoomCombatState(
+                100, 200, 50, 200, "pistol", List.of(), List.of());
+        DoomCombatPresentationState state = new DoomCombatPresentationState(rules, initial);
+        DoomCombatAssets assets = new DoomCombatAssets(rules, Map.of(), Map.of());
+        DoomStaticGeometry geometry = new DoomStaticGeometry(
+                List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomActorSprites sprites = new DoomActorSprites(
+                Map.of("CLIPA", sprite("CLIPA0", 4, 3, 2, 3)));
+
+        try (DoomMapPresentation presentation = DoomMapPresentation.create(
+                geometry,
+                new DoomMapMaterials(Map.of(), Map.of()),
+                List.of(pickup),
+                sprites,
+                assets,
+                1.0F)) {
+            Billboard billboard = (Billboard) presentation.scene().children().getFirst();
+            DoomCombatState collected = new DoomCombatState(
+                    100, 200, 60, 200, "pistol", List.of(), List.of(pickup.thingIndex()));
+            state.apply(new DoomCombatUpdate(
+                    collected,
+                    List.of(new DoomCombatEvent(
+                            DoomCombatEvent.Type.AMMUNITION_PICKED_UP,
+                            pickup.thingIndex(),
+                            10))));
+
+            presentation.applyCombatState(state);
+
+            assertThat(state.isPickupCollected(pickup.thingIndex())).isTrue();
+            assertThat(billboard.isVisible()).isFalse();
+        }
+    }
+
     /** Creates a one-combatant state visible to the presentation. */
     private static DoomCombatState combatState(DoomCombatantState combatant) {
-        return new DoomCombatState(100, 100, 50, "pistol", List.of(combatant));
+        return new DoomCombatState(
+                100, 200, 50, 200, "pistol", List.of(combatant), List.of());
     }
 
     /** Creates the resolved actor shared by simulation and scene adaptation. */
@@ -95,6 +134,17 @@ final class DoomCombatMapPresentationTest {
                 DoomActorCategory.ENEMY,
                 Optional.of("POSSA"));
         return new DoomActor(THING_INDEX, definition, 2.0F, 0.0F, -1.0F, 0.0F);
+    }
+
+    /** Creates one collectable ammunition actor with a distinct source-map identity. */
+    private static DoomActor pickup() {
+        DoomActorDefinition definition = new DoomActorDefinition(
+                2007,
+                "ammunition-clip",
+                "Ammunition Clip",
+                DoomActorCategory.AMMUNITION,
+                Optional.of("CLIPA"));
+        return new DoomActor(15, definition, 1.0F, 0.0F, -1.0F, 0.0F);
     }
 
     /** Creates a transparent test patch with classic origin metadata. */

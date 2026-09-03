@@ -16,14 +16,16 @@ import java.util.Set;
 public final class DoomCombatPresentationRules {
     private final Weapon weapon;
     private final Player player;
+    private final Pickups pickups;
     private final Map<String, Combatant> combatants;
     private final Hud hud;
 
     /** Indexes one weapon, combatant bindings, and HUD patch names. */
     DoomCombatPresentationRules(
-            Weapon weapon, Player player, List<Combatant> combatants, Hud hud) {
+            Weapon weapon, Player player, Pickups pickups, List<Combatant> combatants, Hud hud) {
         this.weapon = Objects.requireNonNull(weapon, "weapon");
         this.player = Objects.requireNonNull(player, "player");
+        this.pickups = Objects.requireNonNull(pickups, "pickups");
         this.combatants = indexCombatants(combatants);
         this.hud = Objects.requireNonNull(hud, "hud");
     }
@@ -36,6 +38,11 @@ public final class DoomCombatPresentationRules {
     /** Returns player pain and death sound bindings. */
     public Player player() {
         return player;
+    }
+
+    /** Returns listener-relative pickup feedback bindings. */
+    public Pickups pickups() {
+        return pickups;
     }
 
     /** Returns the HUD patch bindings. */
@@ -71,6 +78,7 @@ public final class DoomCombatPresentationRules {
         names.add(weapon.fireSound());
         names.add(player.painSound());
         names.add(player.deathSound());
+        names.add(pickups.collectSound());
         for (Combatant combatant : combatants.values()) {
             CombatantSounds sounds = combatant.sounds();
             names.addAll(sounds.sightSounds());
@@ -146,6 +154,14 @@ public final class DoomCombatPresentationRules {
         public Player {
             requireLump(painSound, "painSound");
             requireLump(deathSound, "deathSound");
+        }
+    }
+
+    /** Listener-relative sound effect for collecting health or ammunition. */
+    public record Pickups(String collectSound) {
+        /** Validates the exact classic sound lump name. */
+        public Pickups {
+            requireLump(collectSound, "collectSound");
         }
     }
 

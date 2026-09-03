@@ -11,15 +11,20 @@ import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 
 /** Deterministic headless combat session for hitscan, health, ammunition, and death. */
 public final class DoomCombatSession {
     private static final long FIXED_STEP_NANOS = 1_000_000_000L / 35L;
     private static final float FIXED_STEP_SECONDS = 1.0F / 35.0F;
     private static final float ENEMY_MAXIMUM_STEP = world(24.0F);
+    private static final float PLAYER_RADIUS = world(16.0F);
+    private static final float PLAYER_EYE_HEIGHT = world(41.0F);
+    private static final float PICKUP_MAXIMUM_FLOOR_DELTA = world(24.0F);
     private static final float INTERSECTION_TOLERANCE = 0.000_01F;
 
     private final DoomMap map;
@@ -27,6 +32,8 @@ public final class DoomCombatSession {
     private final DoomCollisionWorld collision;
     private final Random random;
     private final List<EnemyRuntime> enemyRuntimes;
+    private final List<Pickup> pickups;
+    private final Set<Integer> collectedPickups = new LinkedHashSet<>();
     private List<DoomCombatantState> combatants;
     private int playerHealth;
     private int bullets;
@@ -43,6 +50,7 @@ public final class DoomCombatSession {
         bullets = rules.startingBullets();
         combatants = createCombatants(actors, rules);
         enemyRuntimes = createEnemyRuntimes(combatants.size());
+        pickups = createPickups(actors, rules);
     }
 
     /**
@@ -67,10 +75,12 @@ public final class DoomCombatSession {
     public DoomCombatState state() {
         return new DoomCombatState(
                 playerHealth,
-                rules.startingHealth(),
+                rules.maximumHealth(),
                 bullets,
+                rules.maximumBullets(),
                 rules.primaryWeaponId(),
-                combatants);
+                combatants,
+                List.copyOf(collectedPickups));
     }
 
     /**
@@ -89,6 +99,7 @@ public final class DoomCombatSession {
         accumulatedNanos = Math.addExact(accumulatedNanos, validElapsed.toNanos());
         List<DoomCombatEvent> events = new ArrayList<>();
         while (accumulatedNanos >= FIXED_STEP_NANOS) {
+            collectPickups(validPlayer, events);
             advanceCombatants(validPlayer, events);
             accumulatedNanos -= FIXED_STEP_NANOS;
         }
@@ -156,6 +167,80 @@ public final class DoomCombatSession {
             result.add(new EnemyRuntime());
         }
         return List.copyOf(result);
+    }
+
+    /** Creates immutable pickup placements for actors named by the provider rules. */
+    private static List<Pickup> createPickups(
+            List<DoomActor> actors, DoomCombatRules rules) {
+        List<Pickup> result = new ArrayList<>();
+        for (DoomActor actor : actors) {
+            DoomCombatRules.PickupDefinition definition =
+                    rules.pickup(actor.definition().id());
+            if (definition != null) {
+                result.add(new Pickup(
+                        actor.thingIndex(),
+                        actor.x(),
+                        actor.floorHeight(),
+                        actor.z(),
+                        world(definition.radius()),
+                        definition));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    /** Collects every overlapping useful pickup once in source-map order. */
+    private void collectPickups(
+            DoomPlayerState player, List<DoomCombatEvent> events) {
+        if (playerHealth == 0) {
+            return;
+        }
+        for (Pickup pickup : pickups) {
+            if (!collectedPickups.contains(pickup.thingIndex())
+                    && touches(player, pickup)
+                    && applyPickup(pickup, events)) {
+                collectedPickups.add(pickup.thingIndex());
+            }
+        }
+    }
+
+    /** Applies one useful resource effect and emits its exact applied amount. */
+    private boolean applyPickup(Pickup pickup, List<DoomCombatEvent> events) {
+        DoomCombatRules.PickupDefinition definition = pickup.definition();
+        int previous = switch (definition.resource()) {
+            case HEALTH -> playerHealth;
+            case BULLETS -> bullets;
+        };
+        int current = addResource(previous, definition.amount(), definition.limit());
+        if (current == previous) {
+            return false;
+        }
+        switch (definition.resource()) {
+            case HEALTH -> playerHealth = current;
+            case BULLETS -> bullets = current;
+        }
+        DoomCombatEvent.Type eventType = switch (definition.resource()) {
+            case HEALTH -> DoomCombatEvent.Type.HEALTH_PICKED_UP;
+            case BULLETS -> DoomCombatEvent.Type.AMMUNITION_PICKED_UP;
+        };
+        int applied = current - previous;
+        events.add(event(eventType, pickup.thingIndex(), applied));
+        return true;
+    }
+
+    /** Adds a positive amount without exceeding a provider-defined resource limit. */
+    private static int addResource(int current, int amount, int limit) {
+        return (int) Math.clamp((long) current + amount, 0L, limit);
+    }
+
+    /** Tests classic horizontal pickup contact and reachable supporting-floor proximity. */
+    private static boolean touches(DoomPlayerState player, Pickup pickup) {
+        float deltaX = player.x() - pickup.x();
+        float deltaZ = player.z() - pickup.z();
+        float contactRadius = PLAYER_RADIUS + pickup.radius();
+        float playerFloor = player.eyeHeight() - PLAYER_EYE_HEIGHT;
+        return deltaX * deltaX + deltaZ * deltaZ <= contactRadius * contactRadius
+                && Math.abs(playerFloor - pickup.floorHeight()) <= PICKUP_MAXIMUM_FLOOR_DELTA;
     }
 
     /** Advances each living combatant once and publishes one immutable state list. */
@@ -418,7 +503,7 @@ public final class DoomCombatSession {
         }
         int previousHealth = playerHealth;
         long remainingHealth = (long) playerHealth - damage;
-        playerHealth = (int) Math.clamp(remainingHealth, 0L, rules.startingHealth());
+        playerHealth = (int) Math.clamp(remainingHealth, 0L, rules.maximumHealth());
         int appliedDamage = previousHealth - playerHealth;
         events.add(event(
                 DoomCombatEvent.Type.PLAYER_DAMAGED,
@@ -518,6 +603,15 @@ public final class DoomCombatSession {
 
     /** Visible-range result used to choose one behavior branch. */
     private record Perception(boolean visible, float distance) {}
+
+    /** One provider-configured collectable at its resolved map placement. */
+    private record Pickup(
+            int thingIndex,
+            float x,
+            float floorHeight,
+            float z,
+            float radius,
+            DoomCombatRules.PickupDefinition definition) {}
 
     /** Mutable internal enemy timing and last-known-target state. */
     private static final class EnemyRuntime {

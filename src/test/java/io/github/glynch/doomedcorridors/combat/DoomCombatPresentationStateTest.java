@@ -106,7 +106,8 @@ final class DoomCombatPresentationStateTest {
     /** Builds one package-visible combat snapshot for the presentation boundary. */
     private static DoomCombatState state(
             DoomCombatantState combatant, int health, int bullets) {
-        return new DoomCombatState(health, 100, bullets, "pistol", List.of(combatant));
+        return new DoomCombatState(
+                health, 200, bullets, 200, "pistol", List.of(combatant), List.of());
     }
 
     /** Builds one configured zombieman combatant. */

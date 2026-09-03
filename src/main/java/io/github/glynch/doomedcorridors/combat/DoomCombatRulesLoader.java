@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat rules and validates actor-catalog references. */
 public final class DoomCombatRulesLoader {
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -59,6 +59,7 @@ public final class DoomCombatRulesLoader {
         List<RawWeapon> rawWeapons = Objects.requireNonNull(raw.weapons(), "weapons are required");
         List<RawCombatant> rawCombatants =
                 Objects.requireNonNull(raw.combatants(), "combatants are required");
+        List<RawPickup> rawPickups = Objects.requireNonNull(raw.pickups(), "pickups are required");
         List<DoomCombatRules.WeaponDefinition> weapons = new ArrayList<>(rawWeapons.size());
         for (RawWeapon weapon : rawWeapons) {
             RawWeapon value = Objects.requireNonNull(weapon, "weapon must be an object");
@@ -93,20 +94,49 @@ public final class DoomCombatRulesLoader {
                             new DoomCombatRules.DamageDefinition(
                                     damage.minimum(), damage.maximum(), damage.step()))));
         }
+        List<DoomCombatRules.PickupDefinition> pickups = new ArrayList<>(rawPickups.size());
+        for (RawPickup pickup : rawPickups) {
+            RawPickup value = Objects.requireNonNull(pickup, "pickup must be an object");
+            pickups.add(new DoomCombatRules.PickupDefinition(
+                    value.actor(),
+                    pickupResource(value.resource()),
+                    value.amount(),
+                    value.limit(),
+                    value.radius()));
+        }
         return new DoomCombatRules(
-                player.startingHealth(),
-                player.startingBullets(),
-                player.startingWeapon(),
+                new DoomCombatRules.PlayerDefinition(
+                        player.startingHealth(),
+                        player.maximumHealth(),
+                        player.startingBullets(),
+                        player.maximumBullets(),
+                        player.startingWeapon()),
                 weapons,
-                combatants);
+                combatants,
+                pickups);
     }
 
-    /** Requires every combatant rule to name one enemy in the companion actor catalog. */
+    /** Parses one lower-case provider resource name into the internal closed set. */
+    private static DoomCombatRules.PickupResource pickupResource(String resource) {
+        return switch (Objects.requireNonNull(resource, "pickup resource is required")) {
+            case "health" -> DoomCombatRules.PickupResource.HEALTH;
+            case "bullets" -> DoomCombatRules.PickupResource.BULLETS;
+            default -> throw new IllegalArgumentException(
+                    "Unsupported pickup resource: " + resource);
+        };
+    }
+
+    /** Requires combatant and pickup rules to name compatible companion actor definitions. */
     private static void validateActorReferences(DoomCombatRules rules, DoomActorCatalog actors) {
         for (DoomActorDefinition actor : actors.definitions()) {
             DoomCombatRules.CombatantDefinition combatant = rules.combatant(actor.id());
             if (combatant != null && actor.category() != DoomActorCategory.ENEMY) {
                 throw new IllegalArgumentException("Combatant actor is not an enemy: " + actor.id());
+            }
+            DoomCombatRules.PickupDefinition pickup = rules.pickup(actor.id());
+            if (pickup != null && !isCompatible(actor.category(), pickup.resource())) {
+                throw new IllegalArgumentException(
+                        "Pickup actor category does not match its resource: " + actor.id());
             }
         }
         for (String actorId : rules.combatantActorIds()) {
@@ -115,6 +145,21 @@ public final class DoomCombatRulesLoader {
                 throw new IllegalArgumentException("Combatant actor is not defined: " + actorId);
             }
         }
+        for (String actorId : rules.pickupActorIds()) {
+            boolean defined = actors.definitions().stream().anyMatch(actor -> actor.id().equals(actorId));
+            if (!defined) {
+                throw new IllegalArgumentException("Pickup actor is not defined: " + actorId);
+            }
+        }
+    }
+
+    /** Reports whether an actor's broad catalog category matches the configured resource. */
+    private static boolean isCompatible(
+            DoomActorCategory category, DoomCombatRules.PickupResource resource) {
+        return switch (resource) {
+            case HEALTH -> category == DoomActorCategory.HEALTH;
+            case BULLETS -> category == DoomActorCategory.AMMUNITION;
+        };
     }
 
     /** Returns one failed load result with a stable diagnostic identity. */
@@ -132,10 +177,16 @@ public final class DoomCombatRulesLoader {
             int schemaVersion,
             RawPlayer player,
             List<RawWeapon> weapons,
-            List<RawCombatant> combatants) {}
+            List<RawCombatant> combatants,
+            List<RawPickup> pickups) {}
 
     /** Direct JSON player binding retained only for conversion and validation. */
-    private record RawPlayer(int startingHealth, int startingBullets, String startingWeapon) {}
+    private record RawPlayer(
+            int startingHealth,
+            int maximumHealth,
+            int startingBullets,
+            int maximumBullets,
+            String startingWeapon) {}
 
     /** Direct JSON weapon binding retained only for conversion and validation. */
     private record RawWeapon(
@@ -162,4 +213,7 @@ public final class DoomCombatRulesLoader {
 
     /** Direct JSON enemy-damage binding retained only for conversion and validation. */
     private record RawDamage(int minimum, int maximum, int step) {}
+
+    /** Direct JSON pickup binding retained only for conversion and validation. */
+    private record RawPickup(String actor, String resource, int amount, int limit, int radius) {}
 }

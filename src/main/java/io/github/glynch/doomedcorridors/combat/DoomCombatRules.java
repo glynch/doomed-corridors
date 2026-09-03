@@ -12,42 +12,46 @@ import java.util.Set;
 
 /** Immutable provider rules needed to initialize the first headless combat loop. */
 public final class DoomCombatRules {
-    private final int startingHealth;
-    private final int startingBullets;
+    private final PlayerDefinition player;
     private final WeaponDefinition primaryWeapon;
     private final Map<String, CombatantDefinition> combatants;
+    private final Map<String, PickupDefinition> pickups;
 
-    /** Validates player, weapon, and combatant rules while building lookup indexes. */
+    /** Validates player, weapon, combatant, and pickup rules while building lookup indexes. */
     DoomCombatRules(
-            int startingHealth,
-            int startingBullets,
-            String startingWeapon,
+            PlayerDefinition player,
             List<WeaponDefinition> weapons,
-            List<CombatantDefinition> combatants) {
-        if (startingHealth <= 0) {
-            throw new IllegalArgumentException("startingHealth must be positive");
-        }
-        if (startingBullets < 0) {
-            throw new IllegalArgumentException("startingBullets must not be negative");
-        }
-        this.startingHealth = startingHealth;
-        this.startingBullets = startingBullets;
+            List<CombatantDefinition> combatants,
+            List<PickupDefinition> pickups) {
+        this.player = Objects.requireNonNull(player, "player");
         Map<String, WeaponDefinition> weaponsById = indexWeapons(weapons);
-        primaryWeapon = weaponsById.get(requireId(startingWeapon, "startingWeapon"));
+        primaryWeapon = weaponsById.get(player.startingWeapon());
         if (primaryWeapon == null) {
-            throw new IllegalArgumentException("startingWeapon does not name a defined weapon: " + startingWeapon);
+            throw new IllegalArgumentException(
+                    "startingWeapon does not name a defined weapon: " + player.startingWeapon());
         }
         this.combatants = indexCombatants(combatants);
+        this.pickups = indexPickups(pickups, player);
     }
 
-    /** Returns the player's initial and maximum health. */
+    /** Returns the player's initial health. */
     public int startingHealth() {
-        return startingHealth;
+        return player.startingHealth();
+    }
+
+    /** Returns the absolute player-health ceiling, including over-health pickups. */
+    public int maximumHealth() {
+        return player.maximumHealth();
     }
 
     /** Returns the player's initial bullet count. */
     public int startingBullets() {
-        return startingBullets;
+        return player.startingBullets();
+    }
+
+    /** Returns the player's bullet-ammunition capacity. */
+    public int maximumBullets() {
+        return player.maximumBullets();
     }
 
     /** Returns the stable identifier of the initially selected weapon. */
@@ -58,6 +62,11 @@ public final class DoomCombatRules {
     /** Returns the number of actor definitions that participate in combat. */
     public int combatantDefinitionCount() {
         return combatants.size();
+    }
+
+    /** Returns the number of configured collectable actor definitions. */
+    public int pickupDefinitionCount() {
+        return pickups.size();
     }
 
     /** Returns whether the actor identity participates in configured combat. */
@@ -75,9 +84,19 @@ public final class DoomCombatRules {
         return combatants.get(actorId);
     }
 
+    /** Returns matching pickup rules or {@code null} for a non-collectable actor definition. */
+    PickupDefinition pickup(String actorId) {
+        return pickups.get(actorId);
+    }
+
     /** Returns configured actor identifiers for cross-catalog validation. */
     Set<String> combatantActorIds() {
         return combatants.keySet();
+    }
+
+    /** Returns configured pickup actor identifiers for cross-catalog validation. */
+    Set<String> pickupActorIds() {
+        return pickups.keySet();
     }
 
     /** Indexes validated weapon definitions by stable provider ID. */
@@ -104,6 +123,31 @@ public final class DoomCombatRules {
             if (previous != null) {
                 throw new IllegalArgumentException(
                         "Duplicate combatant actor id: " + validDefinition.actorId());
+            }
+        }
+        return Map.copyOf(indexed);
+    }
+
+    /** Indexes pickup definitions and checks each per-item limit against player capacity. */
+    private static Map<String, PickupDefinition> indexPickups(
+            List<PickupDefinition> definitions, PlayerDefinition player) {
+        Map<String, PickupDefinition> indexed = new LinkedHashMap<>();
+        for (PickupDefinition definition :
+                List.copyOf(Objects.requireNonNull(definitions, "pickups"))) {
+            PickupDefinition validDefinition = Objects.requireNonNull(definition, "pickup");
+            int capacity = switch (validDefinition.resource()) {
+                case HEALTH -> player.maximumHealth();
+                case BULLETS -> player.maximumBullets();
+            };
+            if (validDefinition.limit() > capacity) {
+                throw new IllegalArgumentException(
+                        "Pickup limit exceeds player capacity: " + validDefinition.actorId());
+            }
+            PickupDefinition previous = indexed.putIfAbsent(
+                    validDefinition.actorId(), validDefinition);
+            if (previous != null) {
+                throw new IllegalArgumentException(
+                        "Duplicate pickup actor id: " + validDefinition.actorId());
             }
         }
         return Map.copyOf(indexed);
@@ -136,6 +180,27 @@ public final class DoomCombatRules {
     /** Reports whether one character is an ASCII digit. */
     private static boolean isDigit(char character) {
         return character >= '0' && character <= '9';
+    }
+
+    /** Validated starting resources and absolute capacities for the player. */
+    record PlayerDefinition(
+            int startingHealth,
+            int maximumHealth,
+            int startingBullets,
+            int maximumBullets,
+            String startingWeapon) {
+        /** Validates resource ranges and the selected weapon identity. */
+        PlayerDefinition {
+            if (startingHealth <= 0 || maximumHealth < startingHealth) {
+                throw new IllegalArgumentException(
+                        "health values must satisfy 0 < startingHealth <= maximumHealth");
+            }
+            if (startingBullets < 0 || maximumBullets < startingBullets) {
+                throw new IllegalArgumentException(
+                        "bullet values must satisfy 0 <= startingBullets <= maximumBullets");
+            }
+            requireId(startingWeapon, "startingWeapon");
+        }
     }
 
     /** Validated rules for one hitscan weapon. */
@@ -179,6 +244,25 @@ public final class DoomCombatRules {
             }
             Objects.requireNonNull(behavior, "behavior");
         }
+    }
+
+    /** Validated resource effect and contact radius for one collectable actor identity. */
+    record PickupDefinition(
+            String actorId, PickupResource resource, int amount, int limit, int radius) {
+        /** Validates the provider actor identity and positive effect values. */
+        PickupDefinition {
+            requireId(actorId, "pickup actor");
+            Objects.requireNonNull(resource, "resource");
+            if (amount <= 0 || limit <= 0 || radius <= 0) {
+                throw new IllegalArgumentException("pickup numeric values must be positive");
+            }
+        }
+    }
+
+    /** Player resource modified by one collectable actor. */
+    enum PickupResource {
+        HEALTH,
+        BULLETS
     }
 
     /** Validated awareness, movement, timing, and hitscan damage for one enemy. */

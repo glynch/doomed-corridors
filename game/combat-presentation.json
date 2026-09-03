@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/combat-presentation-2.schema.json",
-  "schemaVersion": 2,
+  "$schema": "../schema/combat-presentation-3.schema.json",
+  "schemaVersion": 3,
   "weapon": {
     "id": "pistol",
     "readyFrame": "PISGA0",
@@ -11,6 +11,9 @@
   "player": {
     "painSound": "DSPLPAIN",
     "deathSound": "DSPLDETH"
+  },
+  "pickups": {
+    "collectSound": "DSITEMUP"
   },
   "combatants": [
     {

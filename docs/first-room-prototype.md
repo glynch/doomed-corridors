@@ -98,9 +98,19 @@ patches plus classic DMX effects without graphics or audio initialization. The
 standalone host captures the pointer on an initial click inside the game window;
 that click does not fire. It presents moving and attacking enemies, spatial alert
 and attack sounds, player-local pain and death sounds, a red damage response, live
-health and ammunition, and terminal player and enemy death. Health and ammunition
-pickups, doors, lifts, navigation beyond last-visible-position pursuit, and other
-sector specials remain later vertical slices.
+health and ammunition, and terminal player and enemy death.
+
+The health-and-ammunition pickup slice is complete. Versioned provider rules
+declare the player's absolute health and bullet capacities plus per-actor amounts,
+ordinary or bonus limits, and contact radii. The same deterministic combat session
+collects useful overlapping items once by stable WAD thing index and emits the
+applied resource amount without depending on rendering. Presentation hides the
+collected billboard, updates the existing HUD snapshot, and plays the imported
+`DSITEMUP` effect. Stimpacks, medikits, health bonuses, soulspheres, ammunition
+clips, and bullet boxes are active; shell, rocket, and cell inventory follows with
+the weapons that consume those resources. Doors, lifts, navigation beyond
+last-visible-position pursuit, and other sector specials remain later vertical
+slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

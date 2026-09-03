@@ -183,6 +183,7 @@ public final class DoomMapPresentation implements AutoCloseable {
         DoomCombatAssets assets = combatAssets.orElseThrow(
                 () -> new IllegalStateException("Combat assets were not supplied to this presentation"));
         actorVisuals.forEach((thingIndex, visual) -> {
+            visual.setVisible(!validState.isPickupCollected(thingIndex));
             validState.combatant(thingIndex).ifPresent(visual::move);
             DoomActorSprite sprite = validState.actorFrame(thingIndex)
                     .map(assets::image)
@@ -401,6 +402,11 @@ public final class DoomMapPresentation implements AutoCloseable {
         /** Applies one current simulation placement. */
         private void move(DoomCombatantState combatant) {
             billboard.setPosition(combatant.x(), combatant.floorHeight(), combatant.z());
+        }
+
+        /** Includes or excludes this actor from visible scene traversal. */
+        private void setVisible(boolean visible) {
+            billboard.setVisible(visible);
         }
 
         /** Applies the selected frame material and dimensions. */

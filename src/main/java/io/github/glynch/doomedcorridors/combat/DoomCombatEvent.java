@@ -28,6 +28,10 @@ public record DoomCombatEvent(Type type, int thingIndex, int amount) {
         WEAPON_FIRED,
         /** The selected weapon did not have enough ammunition. */
         WEAPON_EMPTY,
+        /** A health pickup increased the player's health. */
+        HEALTH_PICKED_UP,
+        /** An ammunition pickup increased the player's bullet supply. */
+        AMMUNITION_PICKED_UP,
         /** A living combatant lost health. */
         COMBATANT_DAMAGED,
         /** A combatant reached zero health. */

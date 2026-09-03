@@ -12,10 +12,12 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatantState;
 import io.github.glynch.doomedcorridors.combat.DoomCombatantStatus;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Renderer-independent timed weapon and combatant visual state derived from combat events. */
 public final class DoomCombatPresentationState {
@@ -24,6 +26,7 @@ public final class DoomCombatPresentationState {
     private final DoomCombatPresentationRules rules;
     private final Map<Integer, ActorTrack> actors;
     private final Map<Integer, DoomCombatantState> combatants;
+    private final Set<Integer> collectedPickups = new LinkedHashSet<>();
     private FrameSequence weaponSequence;
     private int health;
     private int bullets;
@@ -38,6 +41,7 @@ public final class DoomCombatPresentationState {
         health = state.playerHealth();
         bullets = state.bullets();
         playerDead = state.isPlayerDead();
+        collectedPickups.addAll(state.collectedPickupThingIndices());
         actors = new LinkedHashMap<>();
         combatants = new LinkedHashMap<>();
         for (DoomCombatantState combatant : state.combatants()) {
@@ -55,6 +59,8 @@ public final class DoomCombatPresentationState {
         health = validUpdate.state().playerHealth();
         bullets = validUpdate.state().bullets();
         playerDead = validUpdate.state().isPlayerDead();
+        collectedPickups.clear();
+        collectedPickups.addAll(validUpdate.state().collectedPickupThingIndices());
         synchronizeCombatants(validUpdate.state());
         for (DoomCombatEvent event : validUpdate.events()) {
             applyEvent(event, validUpdate.state());
@@ -106,6 +112,11 @@ public final class DoomCombatPresentationState {
         return track == null ? Optional.empty() : track.frame();
     }
 
+    /** Returns whether a collected map actor should no longer be presented. */
+    public boolean isPickupCollected(int thingIndex) {
+        return collectedPickups.contains(thingIndex);
+    }
+
     /** Returns the latest headless state for one presented combatant. */
     Optional<DoomCombatantState> combatant(int thingIndex) {
         return Optional.ofNullable(combatants.get(thingIndex));
@@ -134,7 +145,7 @@ public final class DoomCombatPresentationState {
             case COMBATANT_ATTACKED -> applyActorAttack(event.thingIndex());
             case PLAYER_DAMAGED -> damageFlashNanos = DAMAGE_FLASH_NANOS;
             case PLAYER_KILLED -> playerDead = true;
-            case WEAPON_EMPTY, COMBATANT_ALERTED -> {
+            case WEAPON_EMPTY, HEALTH_PICKED_UP, AMMUNITION_PICKED_UP, COMBATANT_ALERTED -> {
                 // These events have no transient visual beyond synchronized base state.
             }
         }

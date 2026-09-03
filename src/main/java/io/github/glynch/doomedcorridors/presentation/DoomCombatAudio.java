@@ -61,6 +61,7 @@ public final class DoomCombatAudio implements AutoCloseable {
             Map<String, AudioSource> playerSources = new LinkedHashMap<>();
             addSource(engine, clips, playerSources, validAssets.rules().player().painSound(), true);
             addSource(engine, clips, playerSources, validAssets.rules().player().deathSound(), true);
+            addSource(engine, clips, playerSources, validAssets.rules().pickups().collectSound(), true);
             Map<String, AudioSource> worldSources = new LinkedHashMap<>();
             for (String name : validAssets.rules().soundLumps()) {
                 addSource(engine, clips, worldSources, name, false);
@@ -135,6 +136,10 @@ public final class DoomCombatAudio implements AutoCloseable {
                 case DoomCombatEvent playerDeath
                         when playerDeath.type() == DoomCombatEvent.Type.PLAYER_KILLED ->
                     playPlayerSound(rules.player().deathSound());
+                case DoomCombatEvent pickup
+                        when pickup.type() == DoomCombatEvent.Type.HEALTH_PICKED_UP
+                                || pickup.type() == DoomCombatEvent.Type.AMMUNITION_PICKED_UP ->
+                    playPlayerSound(rules.pickups().collectSound());
                 default -> {
                     // No sound is bound for this event in the first combat presentation.
                 }

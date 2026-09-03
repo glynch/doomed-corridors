@@ -16,10 +16,12 @@ map in [`project.json`](project.json). The actor catalog assigns Doom II meaning
 and initial sprite frames to the numeric thing types stored in classic maps.
 Provider-owned [`game/combat.json`](game/combat.json) defines initial player
 resources, the pistol's hitscan and damage rules, and the zombieman's health and
-collision bounds, awareness, pursuit, attack timing, and damage.
+collision bounds, awareness, pursuit, attack timing, and damage. It also defines
+player resource capacities and effects for stimpacks, medikits, health bonuses,
+soulspheres, ammunition clips, and bullet boxes.
 [`game/combat-presentation.json`](game/combat-presentation.json) binds those
-identities to WAD-backed weapon, movement, attack, pain, death, sound, and HUD
-assets without embedding their lump names in the application.
+identities to WAD-backed weapon, movement, attack, pain, death, pickup sound, and
+HUD assets without embedding their lump names in the application.
 
 ## Building and running
 
@@ -57,8 +59,10 @@ to move, A/D to strafe, Left/Right to turn, the mouse to look around, and the
 left mouse button to fire the pistol. Click inside the window to capture the
 pointer; this initial click does not fire. The WAD-backed HUD shows health and
 remaining bullets; damage flashes the view red and zero health ends player
-movement. Escape releases the pointer. Press Escape again or close the window to
-stop the game.
+movement. Walking over a useful configured health or bullet pickup applies its
+effect, plays its sound, updates the HUD, and removes it from the map. Pickups
+remain available while their resource is at that item's limit. Escape releases
+the pointer. Press Escape again or close the window to stop the game.
 
 Run the same loading and geometry pipeline without starting windowing with:
 
@@ -67,7 +71,7 @@ Run the same loading and geometry pipeline without starting windowing with:
 ```
 
 The headless inspector also validates the combat presentation's 28 patches and
-ten DMX sounds, and writes visual material and sprite sheets to
+11 DMX sounds, and writes visual material and sprite sheets to
 `target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`. Its
 console summary includes the combat rules and number of initialized MAP01
 combatants.

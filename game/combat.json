@@ -1,9 +1,11 @@
 {
-  "$schema": "../schema/combat-2.schema.json",
-  "schemaVersion": 2,
+  "$schema": "../schema/combat-3.schema.json",
+  "schemaVersion": 3,
   "player": {
     "startingHealth": 100,
+    "maximumHealth": 200,
     "startingBullets": 50,
+    "maximumBullets": 200,
     "startingWeapon": "pistol"
   },
   "weapons": [
@@ -36,5 +38,13 @@
         }
       }
     }
+  ],
+  "pickups": [
+    { "actor": "ammunition-clip", "resource": "bullets", "amount": 10, "limit": 200, "radius": 20 },
+    { "actor": "box-of-bullets", "resource": "bullets", "amount": 50, "limit": 200, "radius": 20 },
+    { "actor": "stimpack", "resource": "health", "amount": 10, "limit": 100, "radius": 20 },
+    { "actor": "medikit", "resource": "health", "amount": 25, "limit": 100, "radius": 20 },
+    { "actor": "health-bonus", "resource": "health", "amount": 1, "limit": 200, "radius": 20 },
+    { "actor": "soulsphere", "resource": "health", "amount": 100, "limit": 200, "radius": 20 }
   ]
 }

@@ -42,7 +42,7 @@ final class DoomedCorridorsTest {
                 .contains("Imported MAP01 materials: 51 wall textures and 28 flats")
                 .contains("Built MAP01 static geometry:")
                 .contains("Loaded 37 provider actor definitions")
-                .contains("Loaded combat rules for pistol and 1 combatant definition")
+                .contains("Loaded combat rules for pistol, 1 combatant definition, and 6 pickup definitions")
                 .contains("Resolved MAP01 actors: 119 visible placements")
                 .contains("Imported 21 unique actor sprite frames")
                 .contains("Initialized headless combat: pistol, 100 health, 50 bullets, and 11 combatants")

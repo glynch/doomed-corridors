@@ -29,9 +29,12 @@ final class DoomCombatRulesLoaderTest {
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.rules()).hasValueSatisfying(rules -> {
             assertThat(rules.startingHealth()).isEqualTo(100);
+            assertThat(rules.maximumHealth()).isEqualTo(200);
             assertThat(rules.startingBullets()).isEqualTo(50);
+            assertThat(rules.maximumBullets()).isEqualTo(200);
             assertThat(rules.primaryWeaponId()).isEqualTo("pistol");
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
+            assertThat(rules.pickupDefinitionCount()).isEqualTo(6);
         });
     }
 
@@ -43,10 +46,12 @@ final class DoomCombatRulesLoaderTest {
                 source,
                 """
                 {
-                  "schemaVersion": 2,
+                  "schemaVersion": 3,
                   "player": {
                     "startingHealth": 100,
+                    "maximumHealth": 200,
                     "startingBullets": 50,
+                    "maximumBullets": 200,
                     "startingWeapon": "pistol"
                   },
                   "weapons": [{
@@ -71,7 +76,8 @@ final class DoomCombatRulesLoaderTest {
                       "attackIntervalMilliseconds": 1000,
                       "damage": { "minimum": 3, "maximum": 15, "step": 3 }
                     }
-                  }]
+                  }],
+                  "pickups": []
                 }
                 """);
 
@@ -82,6 +88,24 @@ final class DoomCombatRulesLoaderTest {
         assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
             assertThat(diagnostic.code()).isEqualTo("doom.combat.rules-invalid");
             assertThat(diagnostic.message()).contains("unknown-enemy");
+        });
+    }
+
+    /** Rejects a health effect assigned to an ammunition-category actor. */
+    @Test
+    void rejectsPickupResourceCategoryMismatch() throws IOException {
+        Path source = temporaryDirectory.resolve("combat.json");
+        String mismatched = Files.readString(Path.of("game/combat.json"))
+                .replace("\"actor\": \"stimpack\"", "\"actor\": \"shotgun-shells\"");
+        Files.writeString(source, mismatched);
+
+        DoomCombatRulesLoadResult result =
+                new DoomCombatRulesLoader().load(source, actorCatalog());
+
+        assertThat(result.rules()).isEmpty();
+        assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
+            assertThat(diagnostic.code()).isEqualTo("doom.combat.rules-invalid");
+            assertThat(diagnostic.message()).contains("shotgun-shells", "category");
         });
     }
 

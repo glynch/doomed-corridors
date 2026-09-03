@@ -138,8 +138,10 @@ record DoomStartup(
         DoomCombatRules rules = result.rules()
                 .orElseThrow(() -> new IllegalStateException("Cannot load combat rules"));
         System.out.printf(
-                "Loaded combat rules for %s and %,d combatant definition%n",
-                rules.primaryWeaponId(), rules.combatantDefinitionCount());
+                "Loaded combat rules for %s, %,d combatant definition, and %,d pickup definitions%n",
+                rules.primaryWeaponId(),
+                rules.combatantDefinitionCount(),
+                rules.pickupDefinitionCount());
         return rules;
     }
 

@@ -32,8 +32,10 @@ final class DoomCombatSessionTest {
         DoomCombatState state = session.state();
 
         assertThat(state.playerHealth()).isEqualTo(100);
-        assertThat(state.maximumPlayerHealth()).isEqualTo(100);
+        assertThat(state.maximumPlayerHealth()).isEqualTo(200);
         assertThat(state.bullets()).isEqualTo(50);
+        assertThat(state.maximumBullets()).isEqualTo(200);
+        assertThat(state.collectedPickupThingIndices()).isEmpty();
         assertThat(state.primaryWeaponId()).isEqualTo("pistol");
         assertThat(state.combatants()).singleElement().satisfies(combatant -> {
             assertThat(combatant.thingIndex()).isEqualTo(1);
@@ -250,6 +252,87 @@ final class DoomCombatSessionTest {
         assertThat(secondHealth).isEqualTo(firstHealth);
     }
 
+    /** Collects one overlapping ammunition actor once and reports the applied amount. */
+    @Test
+    void collectsAmmunitionOnce() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(pickup(7, "ammunition-clip", DoomActorCategory.AMMUNITION, 0.0F)), 0L);
+
+        DoomCombatUpdate collected =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate repeated =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(collected.state().bullets()).isEqualTo(60);
+        assertThat(collected.state().collectedPickupThingIndices()).containsExactly(7);
+        assertThat(collected.events()).singleElement().satisfies(event -> {
+            assertThat(event.type()).isEqualTo(DoomCombatEvent.Type.AMMUNITION_PICKED_UP);
+            assertThat(event.thingIndex()).isEqualTo(7);
+            assertThat(event.amount()).isEqualTo(10);
+        });
+        assertThat(repeated.state().bullets()).isEqualTo(60);
+        assertThat(repeated.events()).isEmpty();
+    }
+
+    /** Leaves a capped health pickup present until player damage makes it useful. */
+    @Test
+    void collectsHealthOnlyWhenUseful() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(pickup(8, "stimpack", DoomActorCategory.HEALTH, 0.0F)), 0L);
+
+        DoomCombatUpdate atCapacity =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        session.damagePlayer(30);
+        DoomCombatUpdate collected =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(atCapacity.state().playerHealth()).isEqualTo(100);
+        assertThat(atCapacity.state().isPickupCollected(8)).isFalse();
+        assertThat(collected.state().playerHealth()).isEqualTo(80);
+        assertThat(collected.state().isPickupCollected(8)).isTrue();
+        assertThat(collected.events()).singleElement().satisfies(event -> {
+            assertThat(event.type()).isEqualTo(DoomCombatEvent.Type.HEALTH_PICKED_UP);
+            assertThat(event.amount()).isEqualTo(10);
+        });
+    }
+
+    /** Allows bonus health to exceed the ordinary medical-item limit up to 200. */
+    @Test
+    void collectsBonusHealthAboveOneHundred() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(pickup(9, "health-bonus", DoomActorCategory.HEALTH, 0.0F)), 0L);
+
+        DoomCombatUpdate collected =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(collected.state().playerHealth()).isEqualTo(101);
+        assertThat(collected.state().isPickupCollected(9)).isTrue();
+    }
+
+    /** Preserves a later bullet box when earlier pickups fill the ammunition capacity. */
+    @Test
+    void leavesAmmunitionAtCapacity() {
+        DoomCombatSession session = session(
+                openRoom(),
+                List.of(
+                        pickup(10, "box-of-bullets", DoomActorCategory.AMMUNITION, 0.0F),
+                        pickup(11, "box-of-bullets", DoomActorCategory.AMMUNITION, 0.0F),
+                        pickup(12, "box-of-bullets", DoomActorCategory.AMMUNITION, 0.0F),
+                        pickup(13, "box-of-bullets", DoomActorCategory.AMMUNITION, 0.0F)),
+                0L);
+
+        DoomCombatUpdate collected =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(collected.state().bullets()).isEqualTo(200);
+        assertThat(collected.state().collectedPickupThingIndices())
+                .containsExactly(10, 11, 12);
+        assertThat(collected.state().isPickupCollected(13)).isFalse();
+        assertThat(collected.events())
+                .extracting(DoomCombatEvent::amount)
+                .containsExactly(50, 50, 50);
+    }
+
     private static DoomCombatSession session(DoomMap map, List<DoomActor> actors, long seed) {
         return DoomCombatSession.create(map, rules(), actors, seed);
     }
@@ -287,6 +370,17 @@ final class DoomCombatSessionTest {
                 DoomActorCategory.DECORATION,
                 Optional.of("TRE1A"));
         return new DoomActor(thingIndex, definition, x, 0.0F, -2.0F, 0.0F);
+    }
+
+    private static DoomActor pickup(
+            int thingIndex, String id, DoomActorCategory category, float floorHeight) {
+        DoomActorDefinition definition = new DoomActorDefinition(
+                20_000 + thingIndex,
+                id,
+                id,
+                category,
+                Optional.of("TESTA"));
+        return new DoomActor(thingIndex, definition, 2.0F, floorHeight, -2.0F, 0.0F);
     }
 
     private static DoomMap openRoom() {

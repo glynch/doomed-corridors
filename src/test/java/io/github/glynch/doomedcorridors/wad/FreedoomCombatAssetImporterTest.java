@@ -43,8 +43,8 @@ final class FreedoomCombatAssetImporterTest {
                 .hasSize(28)
                 .containsKeys("PISGA0", "POSSA1", "POSSE1", "POSSG1", "POSSL0", "STTNUM0");
         assertThat(assets.sounds())
-                .hasSize(10)
-                .containsKeys("DSPISTOL", "DSPOSIT1", "DSPOPAIN", "DSPODTH3", "DSPLDETH");
+                .hasSize(11)
+                .containsKeys("DSPISTOL", "DSPOSIT1", "DSPOPAIN", "DSPODTH3", "DSPLDETH", "DSITEMUP");
         assertThat(assets.image("PISGA0").image().width()).isPositive();
         assertThat(assets.image("POSSL0").image().height()).isPositive();
         assertThat(assets.sound("DSPISTOL").channels()).isOne();
