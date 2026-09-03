@@ -22,9 +22,9 @@ public final class DoomCombatSession {
     private static final long FIXED_STEP_NANOS = 1_000_000_000L / 35L;
     private static final float FIXED_STEP_SECONDS = 1.0F / 35.0F;
     private static final float ENEMY_MAXIMUM_STEP = world(24.0F);
-    private static final float PLAYER_RADIUS = world(16.0F);
-    private static final float PLAYER_EYE_HEIGHT = world(41.0F);
-    private static final float PICKUP_MAXIMUM_FLOOR_DELTA = world(24.0F);
+    private static final float PICKUP_MINIMUM_HEIGHT_DELTA = world(-8.0F);
+    private static final float AUTO_AIM_ANGLE = (float) Math.toRadians(5.625);
+    private static final float AUTO_AIM_MAXIMUM_SLOPE = 100.0F / 160.0F;
     private static final float INTERSECTION_TOLERANCE = 0.000_01F;
 
     private final DoomMap map;
@@ -215,9 +215,10 @@ public final class DoomCombatSession {
         if (current == previous) {
             return false;
         }
-        switch (definition.resource()) {
-            case HEALTH -> playerHealth = current;
-            case BULLETS -> bullets = current;
+        if (definition.resource() == DoomCombatRules.PickupResource.HEALTH) {
+            playerHealth = current;
+        } else {
+            bullets = current;
         }
         DoomCombatEvent.Type eventType = switch (definition.resource()) {
             case HEALTH -> DoomCombatEvent.Type.HEALTH_PICKED_UP;
@@ -233,14 +234,16 @@ public final class DoomCombatSession {
         return (int) Math.clamp((long) current + amount, 0L, limit);
     }
 
-    /** Tests classic horizontal pickup contact and reachable supporting-floor proximity. */
+    /** Tests classic horizontal pickup contact and asymmetric vertical player reach. */
     private static boolean touches(DoomPlayerState player, Pickup pickup) {
         float deltaX = player.x() - pickup.x();
         float deltaZ = player.z() - pickup.z();
-        float contactRadius = PLAYER_RADIUS + pickup.radius();
-        float playerFloor = player.eyeHeight() - PLAYER_EYE_HEIGHT;
+        float contactRadius = DoomCollisionWorld.PLAYER_RADIUS + pickup.radius();
+        float playerFloor = player.eyeHeight() - DoomCollisionWorld.PLAYER_EYE_HEIGHT;
+        float heightDelta = pickup.floorHeight() - playerFloor;
         return deltaX * deltaX + deltaZ * deltaZ <= contactRadius * contactRadius
-                && Math.abs(playerFloor - pickup.floorHeight()) <= PICKUP_MAXIMUM_FLOOR_DELTA;
+                && heightDelta <= DoomCollisionWorld.PLAYER_HEIGHT
+                && heightDelta >= PICKUP_MINIMUM_HEIGHT_DELTA;
     }
 
     /** Advances each living combatant once and publishes one immutable state list. */
@@ -368,6 +371,24 @@ public final class DoomCombatSession {
             DoomPlayerState shooter, DoomCombatRules.WeaponDefinition weapon) {
         float range = world(weapon.range());
         Ray ray = Ray.from(shooter);
+        Target target = closestTarget(ray, range);
+        if (target != null) {
+            return target;
+        }
+        target = closestAutoAimTarget(shooter, range, shooter.yawRadians());
+        if (target != null) {
+            return target;
+        }
+        target = closestAutoAimTarget(
+                shooter, range, shooter.yawRadians() + AUTO_AIM_ANGLE);
+        return target != null
+                ? target
+                : closestAutoAimTarget(
+                        shooter, range, shooter.yawRadians() - AUTO_AIM_ANGLE);
+    }
+
+    /** Selects the nearest living actor intersected by one fully specified ray. */
+    private Target closestTarget(Ray ray, float range) {
         float wallDistance = nearestWallDistance(ray, range);
         Target nearest = null;
         for (int index = 0; index < combatants.size(); index++) {
@@ -381,6 +402,40 @@ public final class DoomCombatSession {
             }
         }
         return nearest;
+    }
+
+    /** Selects the nearest visible actor reached by one classic horizontal auto-aim probe. */
+    private Target closestAutoAimTarget(
+            DoomPlayerState shooter, float range, float yaw) {
+        Target nearest = null;
+        for (int index = 0; index < combatants.size(); index++) {
+            DoomCombatantState combatant = combatants.get(index);
+            if (combatant.status() == DoomCombatantStatus.ALIVE) {
+                Ray ray = autoAimRay(shooter, combatant, yaw);
+                float distance = combatantDistance(ray, combatant, range);
+                float wallDistance = nearestWallDistance(ray, range);
+                if (distance < wallDistance
+                        && (nearest == null || distance < nearest.distance())) {
+                    nearest = new Target(index, distance);
+                }
+            }
+        }
+        return nearest;
+    }
+
+    /** Aims toward a target's vertical center within Doom's classic aiming slope window. */
+    private static Ray autoAimRay(
+            DoomPlayerState shooter, DoomCombatantState combatant, float yaw) {
+        float distance = (float) Math.hypot(
+                combatant.x() - shooter.x(), combatant.z() - shooter.z());
+        float targetHeight = combatant.floorHeight() + combatant.height() * 0.5F;
+        float slope = distance < INTERSECTION_TOLERANCE
+                ? 0.0F
+                : Math.clamp(
+                        (targetHeight - shooter.eyeHeight()) / distance,
+                        -AUTO_AIM_MAXIMUM_SLOPE,
+                        AUTO_AIM_MAXIMUM_SLOPE);
+        return Ray.from(shooter, yaw, slope);
     }
 
     /** Returns the first distance where a ray enters one finite vertical collision cylinder. */
@@ -568,13 +623,21 @@ public final class DoomCombatSession {
             float verticalSlope) {
         /** Creates a normalized horizontal ray from one player view pose. */
         private static Ray from(DoomPlayerState player) {
+            return from(
+                    player,
+                    player.yawRadians(),
+                    (float) Math.tan(player.pitchRadians()));
+        }
+
+        /** Creates a ray from one player position with an explicit yaw and vertical slope. */
+        private static Ray from(DoomPlayerState player, float yaw, float verticalSlope) {
             return new Ray(
                     player.x(),
                     player.eyeHeight(),
                     player.z(),
-                    (float) Math.cos(player.yawRadians()),
-                    -(float) Math.sin(player.yawRadians()),
-                    (float) Math.tan(player.pitchRadians()));
+                    (float) Math.cos(yaw),
+                    -(float) Math.sin(yaw),
+                    verticalSlope);
         }
 
         /** Creates a ray from one world point toward another. */

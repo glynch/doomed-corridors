@@ -139,6 +139,18 @@ final class DoomCombatSessionTest {
                 .containsExactly(DoomCombatEvent.Type.WEAPON_FIRED, DoomCombatEvent.Type.COMBATANT_DAMAGED);
     }
 
+    /** Hits a centered combatant at the closest non-overlapping player separation. */
+    @Test
+    void hitsCenteredCombatantAtCloseRange() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(zombieman(1, 3.125F)), 0L);
+
+        DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
+
+        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
+                assertThat(target.health()).isLessThan(20));
+    }
+
     /** Stops a shot at a one-sided linedef before an otherwise aligned combatant. */
     @Test
     void blocksHitscanAtSolidWall() {
@@ -166,16 +178,16 @@ final class DoomCombatSessionTest {
                 assertThat(target.health()).isLessThan(20));
     }
 
-    /** Leaves an actor unharmed when vertical aim misses its collision cylinder. */
+    /** Vertically auto-aims at a combatant centered on the player's horizontal bearing. */
     @Test
-    void missesCombatantAboveItsHeight() {
+    void autoAimsVerticallyAtCenteredCombatant() {
         DoomCombatSession session = session(
                 openRoom(), List.of(zombieman(1, 6.0F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.75F));
 
         assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isEqualTo(20));
+                assertThat(target.health()).isLessThan(20));
     }
 
     /** Marks a zero-health combatant dead and lets later shots pass through it. */
@@ -307,6 +319,49 @@ final class DoomCombatSessionTest {
 
         assertThat(collected.state().playerHealth()).isEqualTo(101);
         assertThat(collected.state().isPickupCollected(9)).isTrue();
+    }
+
+    /** Collects a health bonus resting one full classic player height above the player's feet. */
+    @Test
+    void collectsHealthBonusAtMaximumVerticalReach() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(pickup(14, "health-bonus", DoomActorCategory.HEALTH, 56.0F / 32.0F)), 0L);
+
+        DoomCombatUpdate collected =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(collected.state().playerHealth()).isEqualTo(101);
+        assertThat(collected.state().isPickupCollected(14)).isTrue();
+    }
+
+    /** Rejects a health bonus immediately above the classic player's vertical reach. */
+    @Test
+    void rejectsHealthBonusAboveMaximumVerticalReach() {
+        DoomCombatSession session = session(
+                openRoom(), List.of(pickup(15, "health-bonus", DoomActorCategory.HEALTH, 57.0F / 32.0F)), 0L);
+
+        DoomCombatUpdate update =
+                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+
+        assertThat(update.state().playerHealth()).isEqualTo(100);
+        assertThat(update.state().isPickupCollected(15)).isFalse();
+    }
+
+    /** Accepts an item eight units below the player but rejects one unit farther below. */
+    @Test
+    void appliesClassicLowerPickupReach() {
+        DoomCombatSession reachable = session(
+                openRoom(), List.of(pickup(16, "health-bonus", DoomActorCategory.HEALTH, -8.0F / 32.0F)), 0L);
+        DoomCombatSession unreachable = session(
+                openRoom(), List.of(pickup(17, "health-bonus", DoomActorCategory.HEALTH, -9.0F / 32.0F)), 0L);
+
+        DoomCombatState collected =
+                reachable.advance(player(0.0F, 0.0F), Duration.ofMillis(30)).state();
+        DoomCombatState ignored =
+                unreachable.advance(player(0.0F, 0.0F), Duration.ofMillis(30)).state();
+
+        assertThat(collected.isPickupCollected(16)).isTrue();
+        assertThat(ignored.isPickupCollected(17)).isFalse();
     }
 
     /** Preserves a later bullet box when earlier pickups fill the ammunition capacity. */

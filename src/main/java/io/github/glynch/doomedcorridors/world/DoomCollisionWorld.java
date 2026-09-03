@@ -9,10 +9,15 @@ import java.util.Objects;
 
 /** Circle-versus-linedef movement shared by player and actor simulation. */
 public final class DoomCollisionWorld {
-    static final float PLAYER_EYE_HEIGHT = world(41.0F);
+    /** Classic player collision radius expressed in JScene3D world units. */
+    public static final float PLAYER_RADIUS = world(16.0F);
 
-    private static final float PLAYER_RADIUS = world(16.0F);
-    private static final float PLAYER_HEIGHT = world(56.0F);
+    /** Classic player collision height expressed in JScene3D world units. */
+    public static final float PLAYER_HEIGHT = world(56.0F);
+
+    /** Classic player eye height expressed in JScene3D world units. */
+    public static final float PLAYER_EYE_HEIGHT = world(41.0F);
+
     private static final float MAXIMUM_STEP = world(24.0F);
     private static final int BLOCKING_LINE = 0x0001;
     private static final int SAFE_FRACTION_ITERATIONS = 14;
