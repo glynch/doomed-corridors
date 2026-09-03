@@ -18,7 +18,9 @@
         <lwjgl.version>3.4.3</lwjgl.version>
         <junit.version>6.1.3</junit.version>
         <assertj.version>3.27.7</assertj.version>
+        <checkstyle.version>13.8.0</checkstyle.version>
 
+        <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
         <maven.compiler.version>3.15.0</maven.compiler.version>
         <maven.enforcer.version>3.6.3</maven.enforcer.version>
         <maven.surefire.version>3.5.6</maven.surefire.version>
@@ -114,6 +116,34 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <failsOnError>true</failsOnError>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>check-java-semantics</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

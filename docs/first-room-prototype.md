@@ -63,8 +63,17 @@ adapter owns the JScene3D scene, camera, meshes, materials, and textures. The
 graphical launcher displays this static MAP01 view, while the headless inspector
 exercises the same loading and geometry path without initializing GLFW.
 
-The next slice adds player movement and collision against the imported map.
-Actor behavior and sector specials remain separate later vertical slices.
+The headless player-movement slice is also complete. Its game-session interface
+accepts GUI-independent commands and elapsed time, advances deterministic 35 Hz
+steps, and exposes immutable player state. The internal collision implementation
+uses the WAD linedefs and sector openings for the classic 16-unit player radius,
+56-unit height, 24-unit step limit, portal clearance, and wall sliding. The native
+host adapts keyboard and captured-pointer input to that session, while the
+presentation adapter applies the resulting position, yaw, and pitch to the camera.
+
+The next slice imports visible things and establishes the first weapon, hitscan,
+enemy, damage, health, and ammo behavior. Doors, lifts, other sector specials,
+and complete actor behavior remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

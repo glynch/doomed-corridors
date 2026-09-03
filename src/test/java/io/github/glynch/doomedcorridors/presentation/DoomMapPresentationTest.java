@@ -12,6 +12,7 @@ import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
 import io.github.glynch.doomedcorridors.world.DoomMeshData;
 import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
+import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomSurface;
 import io.github.glynch.jscene3d.geometries.BufferGeometry;
@@ -73,6 +74,18 @@ final class DoomMapPresentationTest {
 
             presentation.resize(4.0F / 3.0F);
             assertThat(presentation.camera().aspectRatio()).isEqualTo(4.0F / 3.0F);
+
+            presentation.applyPlayerState(new DoomPlayerState(4.0F, 5.0F, 6.0F, 0.0F, 0.25F));
+            assertThat(presentation.camera().position()).satisfies(position -> {
+                assertThat(position.x()).isEqualTo(4.0F);
+                assertThat(position.y()).isEqualTo(5.0F);
+                assertThat(position.z()).isEqualTo(6.0F);
+            });
+            Vector3f raisedForward = new Vector3f(0.0F, 0.0F, -1.0F)
+                    .rotate(presentation.camera().quaternion());
+            assertThat(raisedForward.x()).isCloseTo((float) Math.cos(0.25F), within());
+            assertThat(raisedForward.y()).isCloseTo((float) Math.sin(0.25F), within());
+            assertThat(raisedForward.z()).isCloseTo(0.0F, within());
         }
     }
 

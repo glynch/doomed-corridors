@@ -9,6 +9,7 @@ import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
 import io.github.glynch.doomedcorridors.world.DoomMeshData;
 import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
+import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomSurface;
 import io.github.glynch.jscene3d.cameras.PerspectiveCamera;
@@ -102,6 +103,12 @@ public final class DoomMapPresentation implements AutoCloseable {
         camera.setAspectRatio(aspectRatio);
     }
 
+    /** Applies the latest headless player position and view orientation to the camera. */
+    public void applyPlayerState(DoomPlayerState player) {
+        requireOpen();
+        applyCamera(camera, Objects.requireNonNull(player, "player"));
+    }
+
     /** Closes all adapter-owned geometries, materials, and textures. */
     @Override
     public void close() {
@@ -119,11 +126,23 @@ public final class DoomMapPresentation implements AutoCloseable {
     private static PerspectiveCamera createCamera(DoomPlayerStart start, float aspectRatio) {
         PerspectiveCamera camera =
                 new PerspectiveCamera(VERTICAL_FIELD_OF_VIEW, aspectRatio, NEAR_CLIP, FAR_CLIP);
-        camera.setPosition(start.x(), start.eyeHeight(), start.z());
-        float targetX = start.x() + (float) Math.cos(start.yawRadians());
-        float targetZ = start.z() - (float) Math.sin(start.yawRadians());
-        camera.lookAt(targetX, start.eyeHeight(), targetZ);
+        applyCamera(
+                camera,
+                new DoomPlayerState(start.x(), start.eyeHeight(), start.z(), start.yawRadians(), 0.0F));
         return camera;
+    }
+
+    /** Maps headless yaw and pitch onto the camera's right-handed look direction. */
+    private static void applyCamera(PerspectiveCamera camera, DoomPlayerState player) {
+        float horizontal = (float) Math.cos(player.pitchRadians());
+        float directionX = (float) Math.cos(player.yawRadians()) * horizontal;
+        float directionY = (float) Math.sin(player.pitchRadians());
+        float directionZ = -(float) Math.sin(player.yawRadians()) * horizontal;
+        camera.setPosition(player.x(), player.eyeHeight(), player.z());
+        camera.lookAt(
+                player.x() + directionX,
+                player.eyeHeight() + directionY,
+                player.z() + directionZ);
     }
 
     /** Copies one headless mesh description into JScene3D buffer ownership. */

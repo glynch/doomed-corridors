@@ -42,7 +42,10 @@ Run the application with:
 
 With the source WAD installed, the application loads the manifest-selected map,
 builds its static floors, ceilings, and walls, and opens the view at the
-WAD-defined player-one start. Press Escape or close the window to stop it.
+WAD-defined player-one start. Use W/S or Up/Down to move, A/D to strafe,
+Left/Right to turn, and the mouse to look around. Click the rendered view to
+capture the pointer. Escape releases a captured pointer; press it again or close
+the window to stop the game.
 
 Run the same loading and geometry pipeline without starting windowing with:
 
