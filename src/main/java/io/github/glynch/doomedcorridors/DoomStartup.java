@@ -39,6 +39,9 @@ import io.github.glynch.doomedcorridors.world.DoomGeometryDiagnostic;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
+import io.github.glynch.jscene3d.project.imports.ImportDefinition;
+import io.github.glynch.jscene3d.project.imports.ImportLoadResult;
+import io.github.glynch.jscene3d.project.imports.ImportLoader;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
@@ -64,7 +67,8 @@ record DoomStartup(
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
     private static final String APPLICATION_EXTENSION = "io.github.glynch.doomed-corridors";
     private static final String DOOM_LEVEL_TYPE = APPLICATION_EXTENSION + "/doom-level-3d";
-    private static final String DOOM_WAD_TYPE = APPLICATION_EXTENSION + "/doom-wad";
+    private static final String DOOM_MAP_IMPORTER = "io.github.glynch.jscene3d.doom/maps";
+    private static final String WAD_SOURCE_TYPE = "io.github.glynch.jscene3d.wad/source";
     private static final String ACTOR_CATALOG_TYPE = APPLICATION_EXTENSION + "/actor-catalog";
     private static final String COMBAT_RULES_TYPE = APPLICATION_EXTENSION + "/combat-rules";
     private static final String COMBAT_PRESENTATION_TYPE = APPLICATION_EXTENSION + "/combat-presentation";
@@ -76,7 +80,7 @@ record DoomStartup(
         GameProject project = projectResult.project()
                 .orElseThrow(() -> new IllegalStateException("Cannot load Doomed Corridors project"));
         SceneDefinition entryScene = loadEntryScene(project);
-        DoomLevelSource level = levelSource(entryScene);
+        DoomLevelSource level = levelSource(project, entryScene);
         System.out.printf(
                 "Loaded %s %s; startup %s:%s%n",
                 project.identity().name(),
@@ -107,21 +111,43 @@ record DoomStartup(
     }
 
     /** Reads the Doom source selection from the typed entry-scene root. */
-    private static DoomLevelSource levelSource(SceneDefinition scene) {
+    private static DoomLevelSource levelSource(GameProject project, SceneDefinition scene) {
         if (!(scene.root().source() instanceof SceneNodeDefinition.TypedNode typed)
                 || !typed.type().id().equals(DOOM_LEVEL_TYPE)) {
             throw new IllegalStateException("Entry scene root must be a Doomed Corridors Doom level");
         }
-        ProjectValue source = typed.properties().get("source");
-        if (!(source instanceof ProjectValue.ReferenceValue reference)
-                || reference.reference().kind() != ResourceReference.Kind.ASSET) {
-            throw new IllegalStateException("Doom level source must reference a declared asset");
-        }
         ProjectValue map = typed.properties().get("map");
-        if (!(map instanceof ProjectValue.TextValue mapName)) {
-            throw new IllegalStateException("Doom level map must be text");
+        if (!(map instanceof ProjectValue.ReferenceValue reference)
+                || reference.reference().kind() != ResourceReference.Kind.IMPORT) {
+            throw new IllegalStateException("Doom level map must reference an imported resource");
         }
-        return new DoomLevelSource(reference.reference().locator(), mapName.value());
+        String locator = reference.reference().locator();
+        int separator = locator.indexOf('/');
+        String importId = locator.substring(0, separator);
+        String output = locator.substring(separator + 1);
+        ImportDefinition definition = findImport(project, importId);
+        if (!definition.importer().equals(DOOM_MAP_IMPORTER) || !definition.selection().contains(output)) {
+            throw new IllegalStateException("Doom level map is not selected by its declared import");
+        }
+        if (!output.startsWith("maps/") || output.length() == "maps/".length()) {
+            throw new IllegalStateException("Doom level map output has an invalid identity: " + output);
+        }
+        return new DoomLevelSource(definition.asset().id(), output.substring("maps/".length()));
+    }
+
+    /** Finds the import definition selected by an imported resource reference. */
+    private static ImportDefinition findImport(GameProject project, String importId) {
+        ImportLoader loader = new ImportLoader();
+        for (Path path : project.imports()) {
+            ImportLoadResult result = loader.load(project, path);
+            result.diagnostics().forEach(DoomStartup::printProjectDiagnostic);
+            ImportDefinition definition = result.definition()
+                    .orElseThrow(() -> new IllegalStateException("Cannot load import definition: " + path));
+            if (definition.id().equals(importId)) {
+                return definition;
+            }
+        }
+        throw new IllegalStateException("Doom level import is not defined: " + importId);
     }
 
     /** Loads the independently versioned combat-to-WAD presentation bindings. */
@@ -194,7 +220,7 @@ record DoomStartup(
         if (!Files.isRegularFile(asset.path())) {
             throw new IllegalStateException("Startup asset is not installed: " + asset.path());
         }
-        if (!asset.type().equals(DOOM_WAD_TYPE)) {
+        if (!asset.type().equals(WAD_SOURCE_TYPE)) {
             throw new IllegalStateException("Startup asset is not a Doom WAD");
         }
         return asset;

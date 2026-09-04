@@ -8,8 +8,7 @@
     "type": "io.github.glynch.doomed-corridors/doom-level-3d",
     "typeVersion": 1,
     "properties": {
-      "source": {"$ref": "asset:freedoom"},
-      "map": "MAP01"
+      "map": {"$ref": "import:freedoom-maps/maps/MAP01"}
     }
   }
 }

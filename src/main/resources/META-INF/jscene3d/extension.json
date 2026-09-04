@@ -14,17 +14,12 @@
       "description": "A playable level imported from a Doom-format map.",
       "properties": [
         {
-          "id": "source",
+          "id": "map",
           "valueKind": "reference",
           "required": true,
-          "displayName": "WAD Source",
-          "acceptedReferences": ["asset"]
-        },
-        {
-          "id": "map",
-          "valueKind": "text",
-          "required": true,
-          "displayName": "Map"
+          "displayName": "Map",
+          "description": "Imported classic Doom map used to construct this level.",
+          "acceptedReferences": ["import"]
         }
       ]
     }

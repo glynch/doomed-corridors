@@ -1,0 +1,8 @@
+{
+  "$schema": "../schema/import-1.schema.json",
+  "schemaVersion": 1,
+  "id": "freedoom-maps",
+  "source": "asset:freedoom",
+  "importer": "io.github.glynch.jscene3d.doom/maps",
+  "selection": ["maps/MAP01"]
+}

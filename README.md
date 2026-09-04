@@ -13,8 +13,10 @@ Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest declares the source
 asset and selects [`application/main.scene.json`](application/main.scene.json)
 as its entry scene. That scene contains a typed Doom level whose properties
-select the WAD asset and `MAP01`, allowing the same choices to be inspected and
-edited by future tooling. The actor catalog in
+reference `MAP01` through [`imports/freedoom-maps.import.json`](imports/freedoom-maps.import.json).
+The import definition selects the map from the WAD through JScene3D's generic
+import framework, allowing the source, selection, and generated native resource
+to be inspected and edited by future tooling. The actor catalog in
 [`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
 sprite frames to the numeric thing types stored in classic maps.
 [`game/combat.json`](game/combat.json) defines initial player
@@ -78,6 +80,17 @@ The headless inspector also validates the combat presentation's 28 patches and
 `target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`. Its
 console summary includes the combat rules and number of initialized MAP01
 combatants.
+
+Run the declarative import and project-runtime path headlessly with:
+
+```shell
+./mvnw -Pinspect-project-runtime compile
+```
+
+This updates the disposable import cache when required, resolves the scene's
+`import:freedoom-maps/maps/MAP01` reference, creates a typed JScene3D `DoomMap`,
+and supplies it to the application extension's `doom-level-3d` factory. The
+console summary reports the imported map's thing, linedef, and sector counts.
 
 ## Development
 

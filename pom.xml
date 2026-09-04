@@ -67,6 +67,21 @@
         </dependency>
         <dependency>
             <groupId>io.github.glynch</groupId>
+            <artifactId>jscene3d-project-import</artifactId>
+            <version>${jscene3d.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.glynch</groupId>
+            <artifactId>jscene3d-project-runtime</artifactId>
+            <version>${jscene3d.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.glynch</groupId>
+            <artifactId>jscene3d-doom</artifactId>
+            <version>${jscene3d.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.glynch</groupId>
             <artifactId>jscene3d-audio</artifactId>
             <version>${jscene3d.version}</version>
         </dependency>
@@ -323,6 +338,30 @@
                                         <classpath />
                                         <argument>io.github.glynch.doomedcorridors.DoomedCorridorsInspector</argument>
                                     </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>inspect-project-runtime</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec.maven.version}</version>
+                        <executions>
+                            <execution>
+                                <id>inspect-project-runtime</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>io.github.glynch.doomedcorridors.runtime.DoomedCorridorsRuntimeInspector</mainClass>
                                 </configuration>
                             </execution>
                         </executions>

@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
+import io.github.glynch.jscene3d.project.imports.ImportDefinition;
+import io.github.glynch.jscene3d.project.imports.ImportLoadResult;
+import io.github.glynch.jscene3d.project.imports.ImportLoader;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
@@ -35,6 +38,7 @@ final class ProjectManifestTest {
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
         assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("application/main.scene.json"));
+        assertThat(project.imports()).containsExactly(project.root().resolve("imports/freedoom-maps.import.json"));
     }
 
     /** Loads declared assets with or without the ignored local WAD installation. */
@@ -62,7 +66,7 @@ final class ProjectManifestTest {
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(3)).satisfies(asset -> {
-            assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/doom-wad");
+            assertThat(asset.type()).isEqualTo("io.github.glynch.jscene3d.wad/source");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256())
                     .contains("a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b");
@@ -91,9 +95,10 @@ final class ProjectManifestTest {
         assertThat(scene.root().source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
         SceneNodeDefinition.TypedNode root = (SceneNodeDefinition.TypedNode) scene.root().source();
         assertThat(root.type().id()).isEqualTo(EXTENSION_ID + "/doom-level-3d");
-        assertThat(root.properties().get("map")).isEqualTo(new ProjectValue.TextValue("MAP01"));
-        assertThat(root.properties().get("source"))
-                .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.asset("freedoom")));
+        assertThat(root.properties()).containsOnlyKeys("map");
+        assertThat(root.properties().get("map"))
+                .isEqualTo(new ProjectValue.ReferenceValue(
+                        ResourceReference.imported("freedoom-maps/maps/MAP01")));
 
         ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
                 .load(project, ProjectManifestTest.class.getClassLoader());
@@ -111,6 +116,27 @@ final class ProjectManifestTest {
     @Test
     void vendorsCurrentSceneSchema() throws IOException {
         assertBundledSchemaMatches("scene-1.schema.json");
+    }
+
+    /** Loads the MAP01 import definition through its declared generic Doom importer. */
+    @Test
+    void loadsFreedoomMapImport() {
+        GameProject project = loadProject().project().orElseThrow();
+        ImportLoadResult result = new ImportLoader().load(project, project.imports().getFirst());
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        ImportDefinition definition = result.definition().orElseThrow();
+        assertThat(definition.id()).isEqualTo("freedoom-maps");
+        assertThat(definition.asset().id()).isEqualTo("freedoom");
+        assertThat(definition.importer()).isEqualTo("io.github.glynch.jscene3d.doom/maps");
+        assertThat(definition.selection()).containsExactly("maps/MAP01");
+    }
+
+    /** Keeps the editor-facing import schema copy identical to the engine contract. */
+    @Test
+    void vendorsCurrentImportSchema() throws IOException {
+        assertBundledSchemaMatches("import-1.schema.json");
     }
 
     /** Compares a vendored schema with the engine resource of the same name. */
