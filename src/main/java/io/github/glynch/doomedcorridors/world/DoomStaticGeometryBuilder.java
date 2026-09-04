@@ -15,9 +15,6 @@ import io.github.glynch.doomedcorridors.material.DoomMaterial;
 
 /** Builds immutable static surfaces from decoded classic Doom map records. */
 public final class DoomStaticGeometryBuilder {
-    /** Number of classic Doom map units represented by one JScene3D world unit. */
-    public static final float DOOM_UNITS_PER_WORLD_UNIT = 32.0F;
-
     private static final int PLAYER_ONE_THING_TYPE = 1;
     private static final float PLAYER_VIEW_HEIGHT = 41.0F;
     private static final int DONT_PEG_TOP = 0x0008;
@@ -88,9 +85,9 @@ public final class DoomStaticGeometryBuilder {
         for (int index = 0; index < vertexCount; index++) {
             PlanarPoint vertex = vertices.get(index);
             int positionOffset = index * 3;
-            positions[positionOffset] = world((float) vertex.x());
-            positions[positionOffset + 1] = world(height);
-            positions[positionOffset + 2] = worldZ(vertex.y());
+            positions[positionOffset] = DoomUnits.toWorld((float) vertex.x());
+            positions[positionOffset + 1] = DoomUnits.toWorld(height);
+            positions[positionOffset + 2] = DoomUnits.yToWorldZ(vertex.y());
             normals[positionOffset + 1] = floor ? 1.0F : -1.0F;
             int textureOffset = index * 2;
             textureCoordinates[textureOffset] = (float) (vertex.x() / material.image().width());
@@ -242,10 +239,12 @@ public final class DoomStaticGeometryBuilder {
         }
         float[] positions = wallPositions(first, second, span.range.bottom, span.range.top);
         float[] normals = wallNormals(positions);
-        float length = (float) Math.hypot(second.x() - first.x(), second.y() - first.y());
+        double deltaX = (double) second.x() - first.x();
+        double deltaY = (double) second.y() - first.y();
+        float length = (float) Math.hypot(deltaX, deltaY);
         float startU = (float) span.sidedef.xOffset() / material.image().width();
         float endU = startU + length / material.image().width();
-        float textureTop = span.range.textureTop + span.sidedef.yOffset();
+        float textureTop = (float) span.range.textureTop + span.sidedef.yOffset();
         float topV = (textureTop - span.range.top) / material.image().height();
         float bottomV = (textureTop - span.range.bottom) / material.image().height();
         float[] textureCoordinates = {startU, bottomV, endU, bottomV, endU, topV, startU, topV};
@@ -259,12 +258,12 @@ public final class DoomStaticGeometryBuilder {
     /** Builds the four bottom-to-top wall vertices. */
     private static float[] wallPositions(
             DoomMap.Vertex first, DoomMap.Vertex second, int bottom, int top) {
-        float firstX = world(first.x());
-        float firstZ = world(-first.y());
-        float secondX = world(second.x());
-        float secondZ = world(-second.y());
-        float bottomY = world(bottom);
-        float topY = world(top);
+        float firstX = DoomUnits.toWorld(first.x());
+        float firstZ = DoomUnits.yToWorldZ(first.y());
+        float secondX = DoomUnits.toWorld(second.x());
+        float secondZ = DoomUnits.yToWorldZ(second.y());
+        float bottomY = DoomUnits.toWorld(bottom);
+        float topY = DoomUnits.toWorld(top);
         return new float[] {
             firstX, bottomY, firstZ,
             secondX, bottomY, secondZ,
@@ -301,9 +300,9 @@ public final class DoomStaticGeometryBuilder {
         int sectorIndex = sectorContaining(state.map, player.x(), player.y());
         int floorHeight = state.map.sectors().get(sectorIndex).floorHeight();
         return new DoomPlayerStart(
-                world(player.x()),
-                world(floorHeight + PLAYER_VIEW_HEIGHT),
-                world(-player.y()),
+                DoomUnits.toWorld(player.x()),
+                DoomUnits.toWorld(floorHeight + PLAYER_VIEW_HEIGHT),
+                DoomUnits.yToWorldZ(player.y()),
                 (float) Math.toRadians(player.angle()));
     }
 
@@ -463,16 +462,6 @@ public final class DoomStaticGeometryBuilder {
     private static int textureHeight(BuildState state, String materialName) {
         DoomMaterial material = state.materials.wallTextures().get(materialName);
         return material == null ? 0 : material.image().height();
-    }
-
-    /** Converts a classic fixed map unit to a compact world unit. */
-    private static float world(float doomUnits) {
-        return doomUnits / DOOM_UNITS_PER_WORLD_UNIT;
-    }
-
-    /** Converts a Doom Y coordinate to engine Z without retaining negative zero. */
-    private static float worldZ(double doomY) {
-        return doomY == 0.0 ? 0.0F : world((float) -doomY);
     }
 
     /** Mutable implementation state hidden behind the single public build operation. */

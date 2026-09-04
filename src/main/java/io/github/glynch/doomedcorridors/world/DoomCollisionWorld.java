@@ -10,15 +10,15 @@ import java.util.Objects;
 /** Circle-versus-linedef movement shared by player and actor simulation. */
 public final class DoomCollisionWorld {
     /** Classic player collision radius expressed in JScene3D world units. */
-    public static final float PLAYER_RADIUS = world(16.0F);
+    public static final float PLAYER_RADIUS = DoomUnits.toWorld(16.0F);
 
     /** Classic player collision height expressed in JScene3D world units. */
-    public static final float PLAYER_HEIGHT = world(56.0F);
+    public static final float PLAYER_HEIGHT = DoomUnits.toWorld(56.0F);
 
     /** Classic player eye height expressed in JScene3D world units. */
-    public static final float PLAYER_EYE_HEIGHT = world(41.0F);
+    public static final float PLAYER_EYE_HEIGHT = DoomUnits.toWorld(41.0F);
 
-    private static final float MAXIMUM_STEP = world(24.0F);
+    private static final float MAXIMUM_STEP = DoomUnits.toWorld(24.0F);
     private static final int BLOCKING_LINE = 0x0001;
     private static final int SAFE_FRACTION_ITERATIONS = 14;
     private static final float COLLISION_TOLERANCE = 0.000_01F;
@@ -94,7 +94,7 @@ public final class DoomCollisionWorld {
     /** Returns the sector floor under one world-coordinate point. */
     float floorHeight(float x, float z) {
         int sectorIndex = sectorAt(x, z);
-        return world(map.sectors().get(sectorIndex).floorHeight());
+        return DoomUnits.toWorld(map.sectors().get(sectorIndex).floorHeight());
     }
 
     /** Finds the largest collision-free fraction of a proposed movement. */
@@ -149,8 +149,8 @@ public final class DoomCollisionWorld {
         }
         DoomMap.Sector right = sectorForSide(linedef.rightSidedef());
         DoomMap.Sector left = sectorForSide(linedef.leftSidedef());
-        float openingBottom = world(Math.max(right.floorHeight(), left.floorHeight()));
-        float openingTop = world(Math.min(right.ceilingHeight(), left.ceilingHeight()));
+        float openingBottom = DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
+        float openingTop = DoomUnits.toWorld(Math.min(right.ceilingHeight(), left.ceilingHeight()));
         return openingTop - openingBottom < body.height()
                 || openingTop - currentFloor < body.height()
                 || openingBottom - currentFloor > body.maximumStep();
@@ -160,10 +160,10 @@ public final class DoomCollisionWorld {
     private boolean touches(DoomMap.Linedef linedef, float x, float z, float radius) {
         DoomMap.Vertex start = map.vertices().get(linedef.startVertex());
         DoomMap.Vertex end = map.vertices().get(linedef.endVertex());
-        float startX = world(start.x());
-        float startZ = world(-start.y());
-        float endX = world(end.x());
-        float endZ = world(-end.y());
+        float startX = DoomUnits.toWorld(start.x());
+        float startZ = DoomUnits.yToWorldZ(start.y());
+        float endX = DoomUnits.toWorld(end.x());
+        float endZ = DoomUnits.yToWorldZ(end.y());
         float segmentX = endX - startX;
         float segmentZ = endZ - startZ;
         float lengthSquared = segmentX * segmentX + segmentZ * segmentZ;
@@ -182,8 +182,8 @@ public final class DoomCollisionWorld {
     private Slide projectOntoLine(float deltaX, float deltaZ, DoomMap.Linedef linedef) {
         DoomMap.Vertex start = map.vertices().get(linedef.startVertex());
         DoomMap.Vertex end = map.vertices().get(linedef.endVertex());
-        float lineX = world(end.x() - start.x());
-        float lineZ = world(start.y() - end.y());
+        float lineX = DoomUnits.deltaToWorld(end.x(), start.x());
+        float lineZ = DoomUnits.deltaToWorld(start.y(), end.y());
         float inverseLength = 1.0F / (float) Math.hypot(lineX, lineZ);
         float directionX = lineX * inverseLength;
         float directionZ = lineZ * inverseLength;
@@ -206,8 +206,8 @@ public final class DoomCollisionWorld {
         if (map.nodes().isEmpty()) {
             return sectorForSubsector(0);
         }
-        double doomX = x * DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
-        double doomY = -z * DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
+        double doomX = DoomUnits.fromWorld(x);
+        double doomY = DoomUnits.worldZToY(z);
         DoomMap.NodeChild child = new DoomMap.NodeChild(false, map.nodes().size() - 1);
         while (!child.subsector()) {
             DoomMap.Node node = map.nodes().get(child.index());
@@ -226,11 +226,6 @@ public final class DoomCollisionWorld {
         DoomMap.Linedef linedef = map.linedefs().get(seg.linedef());
         int side = seg.direction() == 0 ? linedef.rightSidedef() : linedef.leftSidedef();
         return map.sidedefs().get(side).sector();
-    }
-
-    /** Converts classic map units to JScene3D world units. */
-    private static float world(float value) {
-        return value / DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
     }
 
     /** Accepted position and its supporting floor. */

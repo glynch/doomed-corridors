@@ -13,6 +13,7 @@ import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomSurface;
+import io.github.glynch.doomedcorridors.world.DoomUnits;
 import io.github.glynch.jscene3d.cameras.PerspectiveCamera;
 import io.github.glynch.jscene3d.materials.BasicMaterial;
 import io.github.glynch.jscene3d.math.Color;
@@ -240,7 +241,10 @@ public final class DoomMapPresentation implements AutoCloseable {
         billboard.setAnchor(
                 sprite.leftOffset() / (float) sprite.image().width(),
                 (sprite.image().height() - sprite.topOffset()) / (float) sprite.image().height());
-        billboard.setScale(world(sprite.image().width()), world(sprite.image().height()), 1.0F);
+        billboard.setScale(
+                DoomUnits.toWorld(sprite.image().width()),
+                DoomUnits.toWorld(sprite.image().height()),
+                1.0F);
     }
 
     /** Creates a camera looking along the classic Doom thing angle. */
@@ -273,11 +277,6 @@ public final class DoomMapPresentation implements AutoCloseable {
                 sprite.image(),
                 TextureWrap.CLAMP_TO_EDGE,
                 TextureCoordinateOrigin.BOTTOM_LEFT);
-    }
-
-    /** Converts classic pixel/map units to JScene3D world units. */
-    private static float world(float value) {
-        return value / 32.0F;
     }
 
     /** Rejects access after terminal resource closure. */

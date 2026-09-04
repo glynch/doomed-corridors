@@ -48,8 +48,8 @@ public final class DoomActorResolver {
     /** Converts one selected visible thing into engine world coordinates. */
     private static DoomActor resolve(
             int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomCollisionWorld world) {
-        float x = world(thing.x());
-        float z = world(-thing.y());
+        float x = DoomUnits.toWorld(thing.x());
+        float z = DoomUnits.yToWorldZ(thing.y());
         return new DoomActor(
                 index,
                 definition,
@@ -69,8 +69,4 @@ public final class DoomActorResolver {
                 "No actor definition exists for classic thing type " + thingType);
     }
 
-    /** Converts classic Doom map units to JScene3D world units. */
-    private static float world(float value) {
-        return value / DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
-    }
 }

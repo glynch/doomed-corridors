@@ -11,6 +11,7 @@ import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.jscene3d.objects.Object3D;
+import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
 import io.github.glynch.jscene3d.project.runtime.extension.SceneNodeContext;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
@@ -91,8 +92,7 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
     /** Resolves one required imported resource through the generic runtime cache boundary. */
     private static <T> T resolveImported(
             SceneNodeContext context, String property, Class<T> valueType) {
-        ResourceReference reference =
-                ProjectValues.reference(context.properties(), property).reference();
+        ResourceReference reference = ProjectValues.reference(context.properties(), property);
         if (reference.kind() != ResourceReference.Kind.IMPORT) {
             throw new IllegalArgumentException(property + " must reference an imported resource");
         }

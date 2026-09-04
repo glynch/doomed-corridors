@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors.runtime;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
+import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
 import io.github.glynch.jscene3d.project.runtime.extension.ResourceFactoryContext;
 import io.github.glynch.jscene3d.project.value.ProjectValue;
 import java.util.Base64;

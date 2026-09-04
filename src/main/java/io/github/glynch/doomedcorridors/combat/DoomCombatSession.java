@@ -8,7 +8,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
-import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
+import io.github.glynch.doomedcorridors.world.DoomUnits;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -21,8 +21,8 @@ import java.util.Set;
 public final class DoomCombatSession {
     private static final long FIXED_STEP_NANOS = 1_000_000_000L / 35L;
     private static final float FIXED_STEP_SECONDS = 1.0F / 35.0F;
-    private static final float ENEMY_MAXIMUM_STEP = world(24.0F);
-    private static final float PICKUP_MINIMUM_HEIGHT_DELTA = world(-8.0F);
+    private static final float ENEMY_MAXIMUM_STEP = DoomUnits.toWorld(24.0F);
+    private static final float PICKUP_MINIMUM_HEIGHT_DELTA = DoomUnits.toWorld(-8.0F);
     private static final float AUTO_AIM_ANGLE = (float) Math.toRadians(5.625);
     private static final float AUTO_AIM_MAXIMUM_SLOPE = 100.0F / 160.0F;
     private static final float INTERSECTION_TOLERANCE = 0.000_01F;
@@ -152,8 +152,8 @@ public final class DoomCombatSession {
             if (definition != null) {
                 result.add(new DoomCombatantState(
                         actor,
-                        world(definition.radius()),
-                        world(definition.height()),
+                        DoomUnits.toWorld(definition.radius()),
+                        DoomUnits.toWorld(definition.height()),
                         definition.health()));
             }
         }
@@ -182,7 +182,7 @@ public final class DoomCombatSession {
                         actor.x(),
                         actor.floorHeight(),
                         actor.z(),
-                        world(definition.radius()),
+                        DoomUnits.toWorld(definition.radius()),
                         definition));
             }
         }
@@ -283,12 +283,12 @@ public final class DoomCombatSession {
         }
         runtime.elapse(FIXED_STEP_NANOS);
         if (perception.visible()
-                && perception.distance() <= world(behavior.attackRange())
+                && perception.distance() <= DoomUnits.toWorld(behavior.attackRange())
                 && runtime.cooldownNanos == 0L) {
             return attack(combatant, behavior, runtime, events);
         }
         if (perception.visible()
-                && perception.distance() <= world(behavior.preferredRange())) {
+                && perception.distance() <= DoomUnits.toWorld(behavior.preferredRange())) {
             return combatant.withActivity(DoomCombatantActivity.ATTACKING);
         }
         return pursue(combatant, behavior, runtime);
@@ -328,7 +328,8 @@ public final class DoomCombatSession {
         if (remaining <= INTERSECTION_TOLERANCE) {
             return combatant.withActivity(DoomCombatantActivity.PURSUING);
         }
-        float distance = Math.min(world(behavior.moveSpeed()) * FIXED_STEP_SECONDS, remaining);
+        float distance = Math.min(
+                DoomUnits.toWorld(behavior.moveSpeed()) * FIXED_STEP_SECONDS, remaining);
         float scale = distance / remaining;
         DoomCollisionWorld.Position position = collision.moveActor(
                 combatant.x(),
@@ -353,7 +354,7 @@ public final class DoomCombatSession {
         float deltaX = player.x() - combatant.x();
         float deltaZ = player.z() - combatant.z();
         float distance = (float) Math.hypot(deltaX, deltaZ);
-        if (distance > world(behavior.sightRange())) {
+        if (distance > DoomUnits.toWorld(behavior.sightRange())) {
             return new Perception(false, distance);
         }
         if (distance <= INTERSECTION_TOLERANCE) {
@@ -369,7 +370,7 @@ public final class DoomCombatSession {
     /** Selects the nearest living actor intersection not hidden behind map geometry. */
     private Target closestTarget(
             DoomPlayerState shooter, DoomCombatRules.WeaponDefinition weapon) {
-        float range = world(weapon.range());
+        float range = DoomUnits.toWorld(weapon.range());
         Ray ray = Ray.from(shooter);
         Target target = closestTarget(ray, range);
         if (target != null) {
@@ -505,10 +506,10 @@ public final class DoomCombatSession {
     private float lineDistance(Ray ray, DoomMap.Linedef linedef) {
         DoomMap.Vertex start = map.vertices().get(linedef.startVertex());
         DoomMap.Vertex end = map.vertices().get(linedef.endVertex());
-        float startX = world(start.x());
-        float startZ = world(-start.y());
-        float segmentX = world(end.x() - start.x());
-        float segmentZ = world(start.y() - end.y());
+        float startX = DoomUnits.toWorld(start.x());
+        float startZ = DoomUnits.yToWorldZ(start.y());
+        float segmentX = DoomUnits.deltaToWorld(end.x(), start.x());
+        float segmentZ = DoomUnits.deltaToWorld(start.y(), end.y());
         float denominator = cross(ray.directionX(), ray.directionZ(), segmentX, segmentZ);
         if (Math.abs(denominator) < INTERSECTION_TOLERANCE) {
             return Float.POSITIVE_INFINITY;
@@ -529,8 +530,10 @@ public final class DoomCombatSession {
         }
         DoomMap.Sector right = sectorForSide(linedef.rightSidedef());
         DoomMap.Sector left = sectorForSide(linedef.leftSidedef());
-        float openingBottom = world(Math.max(right.floorHeight(), left.floorHeight()));
-        float openingTop = world(Math.min(right.ceilingHeight(), left.ceilingHeight()));
+        float openingBottom =
+                DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
+        float openingTop =
+                DoomUnits.toWorld(Math.min(right.ceilingHeight(), left.ceilingHeight()));
         return shotHeight <= openingBottom || shotHeight >= openingTop;
     }
 
@@ -601,11 +604,6 @@ public final class DoomCombatSession {
     /** Returns the signed two-dimensional cross product. */
     private static float cross(float firstX, float firstZ, float secondX, float secondZ) {
         return firstX * secondZ - firstZ * secondX;
-    }
-
-    /** Converts classic Doom map units to JScene3D world units. */
-    private static float world(float doomUnits) {
-        return doomUnits / DoomStaticGeometryBuilder.DOOM_UNITS_PER_WORLD_UNIT;
     }
 
     /** Converts positive provider-authored milliseconds to exact nanoseconds. */
