@@ -38,16 +38,23 @@ import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
 import io.github.glynch.doomedcorridors.world.DoomGeometryDiagnostic;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
-import io.github.glynch.jscene3d.project.GameProject;
-import io.github.glynch.jscene3d.project.ProjectDiagnostic;
-import io.github.glynch.jscene3d.project.ProjectLoadResult;
-import io.github.glynch.jscene3d.project.ProjectLoader;
+import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
+import io.github.glynch.jscene3d.project.manifest.GameProject;
+import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
+import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
+import io.github.glynch.jscene3d.project.scene.SceneDefinition;
+import io.github.glynch.jscene3d.project.scene.SceneLoadResult;
+import io.github.glynch.jscene3d.project.scene.SceneLoader;
+import io.github.glynch.jscene3d.project.scene.SceneNodeDefinition;
+import io.github.glynch.jscene3d.project.value.ProjectValue;
+import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** Loaded startup data shared by graphical and headless hosts. */
 record DoomStartup(
         GameProject project,
+        SceneDefinition entryScene,
         DoomMap map,
         DoomMapMaterials materials,
         DoomStaticGeometry geometry,
@@ -55,6 +62,12 @@ record DoomStartup(
         DoomActorSprites sprites,
         DoomCombatStartup combat) {
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
+    private static final String APPLICATION_EXTENSION = "io.github.glynch.doomed-corridors";
+    private static final String DOOM_LEVEL_TYPE = APPLICATION_EXTENSION + "/doom-level-3d";
+    private static final String DOOM_WAD_TYPE = APPLICATION_EXTENSION + "/doom-wad";
+    private static final String ACTOR_CATALOG_TYPE = APPLICATION_EXTENSION + "/actor-catalog";
+    private static final String COMBAT_RULES_TYPE = APPLICATION_EXTENSION + "/combat-rules";
+    private static final String COMBAT_PRESENTATION_TYPE = APPLICATION_EXTENSION + "/combat-presentation";
 
     /** Loads the complete project-selected static-map pipeline. */
     static DoomStartup load(Path projectDirectory) {
@@ -62,26 +75,53 @@ record DoomStartup(
         projectResult.diagnostics().forEach(DoomStartup::printProjectDiagnostic);
         GameProject project = projectResult.project()
                 .orElseThrow(() -> new IllegalStateException("Cannot load Doomed Corridors project"));
+        SceneDefinition entryScene = loadEntryScene(project);
+        DoomLevelSource level = levelSource(entryScene);
         System.out.printf(
                 "Loaded %s %s; startup %s:%s%n",
                 project.identity().name(),
                 project.identity().version(),
-                project.runtime().startup().asset(),
-                project.runtime().startup().target());
+                level.assetId(),
+                level.mapName());
         DoomActorCatalog actorCatalog = loadActorCatalog(project);
         DoomCombatRules combatRules = loadCombatRules(project, actorCatalog);
         DoomCombatPresentationRules combatPresentation = loadCombatPresentation(project, combatRules);
-        GameProject.AssetSource asset = startupAsset(project);
-        WadArchive archive = loadArchive(project, asset);
-        DoomMap map = decodeMap(project, archive);
+        GameProject.AssetSource asset = startupAsset(project, level.assetId());
+        WadArchive archive = loadArchive(asset, level.mapName());
+        DoomMap map = decodeMap(archive, level.mapName());
         DoomMapMaterials materials = importMaterials(archive, map);
         DoomStaticGeometry geometry = buildGeometry(map, materials);
         DoomActorResolution actors = resolveActors(archive, map, actorCatalog);
         DoomActorSprites sprites = importSprites(archive, actors);
         DoomCombatAssets combatAssets = importCombatAssets(archive, combatPresentation);
         return new DoomStartup(
-                project, map, materials, geometry, actors, sprites,
+                project, entryScene, map, materials, geometry, actors, sprites,
                 new DoomCombatStartup(combatRules, combatAssets));
+    }
+
+    /** Loads the manifest-selected entry scene. */
+    private static SceneDefinition loadEntryScene(GameProject project) {
+        SceneLoadResult result = new SceneLoader().loadEntryScene(project);
+        result.diagnostics().forEach(DoomStartup::printProjectDiagnostic);
+        return result.scene().orElseThrow(() -> new IllegalStateException("Cannot load entry scene"));
+    }
+
+    /** Reads the Doom source selection from the typed entry-scene root. */
+    private static DoomLevelSource levelSource(SceneDefinition scene) {
+        if (!(scene.root().source() instanceof SceneNodeDefinition.TypedNode typed)
+                || !typed.type().id().equals(DOOM_LEVEL_TYPE)) {
+            throw new IllegalStateException("Entry scene root must be a Doomed Corridors Doom level");
+        }
+        ProjectValue source = typed.properties().get("source");
+        if (!(source instanceof ProjectValue.ReferenceValue reference)
+                || reference.reference().kind() != ResourceReference.Kind.ASSET) {
+            throw new IllegalStateException("Doom level source must reference a declared asset");
+        }
+        ProjectValue map = typed.properties().get("map");
+        if (!(map instanceof ProjectValue.TextValue mapName)) {
+            throw new IllegalStateException("Doom level map must be text");
+        }
+        return new DoomLevelSource(reference.reference().locator(), mapName.value());
     }
 
     /** Loads the independently versioned combat-to-WAD presentation bindings. */
@@ -91,7 +131,7 @@ record DoomStartup(
                 .filter(asset -> asset.id().equals("combat-presentation"))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Combat presentation asset is not defined"));
-        if (!source.type().equals("doomed-corridors-combat-presentation")) {
+        if (!source.type().equals(COMBAT_PRESENTATION_TYPE)) {
             throw new IllegalStateException("Combat presentation asset has the wrong type");
         }
         DoomCombatPresentationLoadResult result =
@@ -111,7 +151,7 @@ record DoomStartup(
                 .filter(asset -> asset.id().equals("actors"))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Actor catalog asset is not defined"));
-        if (!source.type().equals("doomed-corridors-actor-catalog")) {
+        if (!source.type().equals(ACTOR_CATALOG_TYPE)) {
             throw new IllegalStateException("Actor catalog asset has the wrong type");
         }
         DoomActorCatalogLoadResult result = new DoomActorCatalogLoader().load(source.path());
@@ -129,7 +169,7 @@ record DoomStartup(
                 .filter(asset -> asset.id().equals("combat"))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Combat rules asset is not defined"));
-        if (!source.type().equals("doomed-corridors-combat-rules")) {
+        if (!source.type().equals(COMBAT_RULES_TYPE)) {
             throw new IllegalStateException("Combat rules asset has the wrong type");
         }
         DoomCombatRulesLoadResult result =
@@ -146,28 +186,26 @@ record DoomStartup(
     }
 
     /** Resolves the manifest-selected source asset. */
-    private static GameProject.AssetSource startupAsset(GameProject project) {
-        GameProject.StartupTarget startup = project.runtime().startup();
+    private static GameProject.AssetSource startupAsset(GameProject project, String assetId) {
         GameProject.AssetSource asset = project.assets().stream()
-                .filter(candidate -> candidate.id().equals(startup.asset()))
+                .filter(candidate -> candidate.id().equals(assetId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Startup asset is not defined"));
         if (!Files.isRegularFile(asset.path())) {
             throw new IllegalStateException("Startup asset is not installed: " + asset.path());
         }
-        if (!asset.type().equals("doom-wad")) {
+        if (!asset.type().equals(DOOM_WAD_TYPE)) {
             throw new IllegalStateException("Startup asset is not a Doom WAD");
         }
         return asset;
     }
 
     /** Loads and checks the startup archive. */
-    private static WadArchive loadArchive(GameProject project, GameProject.AssetSource asset) {
+    private static WadArchive loadArchive(GameProject.AssetSource asset, String target) {
         WadLoadResult result = new WadLoader().load(asset.path(), asset.sha256());
         result.diagnostics().forEach(DoomStartup::printWadDiagnostic);
         WadArchive archive = result.archive()
                 .orElseThrow(() -> new IllegalStateException("Cannot inspect startup WAD"));
-        String target = project.runtime().startup().target();
         if (!archive.mapNames().contains(target)) {
             throw new IllegalStateException("Startup map is not present in WAD: " + target);
         }
@@ -178,8 +216,7 @@ record DoomStartup(
     }
 
     /** Decodes the selected classic map. */
-    private static DoomMap decodeMap(GameProject project, WadArchive archive) {
-        String target = project.runtime().startup().target();
+    private static DoomMap decodeMap(WadArchive archive, String target) {
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, target);
         result.diagnostics().forEach(DoomStartup::printWadDiagnostic);
         DoomMap map = result.map()
@@ -305,6 +342,9 @@ record DoomStartup(
                 diagnostic.location().isEmpty() ? "" : "#" + diagnostic.location(),
                 diagnostic.message());
     }
+
+    /** Declarative WAD asset and map selected by the entry scene. */
+    private record DoomLevelSource(String assetId, String mapName) {}
 }
 
 /** Combat simulation rules paired with presentation assets for both application hosts. */

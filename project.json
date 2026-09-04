@@ -22,31 +22,34 @@
     "authoredWith": "0.1.0-SNAPSHOT"
   },
   "runtime": {
-    "gameProvider": "io.github.glynch.doomed-corridors",
-    "startup": {
-      "asset": "freedoom",
-      "target": "MAP01"
-    }
+    "applicationExtension": "io.github.glynch.doomed-corridors",
+    "entryScene": "application/main.scene.json"
   },
+  "extensions": [
+    {
+      "id": "io.github.glynch.doomed-corridors",
+      "requires": ">=0.1.0-SNAPSHOT <0.2.0"
+    }
+  ],
   "assets": [
     {
       "id": "actors",
-      "type": "doomed-corridors-actor-catalog",
+      "type": "io.github.glynch.doomed-corridors/actor-catalog",
       "path": "game/actors.json"
     },
     {
       "id": "combat",
-      "type": "doomed-corridors-combat-rules",
+      "type": "io.github.glynch.doomed-corridors/combat-rules",
       "path": "game/combat.json"
     },
     {
       "id": "combat-presentation",
-      "type": "doomed-corridors-combat-presentation",
+      "type": "io.github.glynch.doomed-corridors/combat-presentation",
       "path": "game/combat-presentation.json"
     },
     {
       "id": "freedoom",
-      "type": "doom-wad",
+      "type": "io.github.glynch.doomed-corridors/doom-wad",
       "path": "assets/freedoom2.wad",
       "sha256": "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b"
     }

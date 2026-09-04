@@ -1,0 +1,32 @@
+{
+  "$schema": "https://jscene3d.org/schemas/extension-1.json",
+  "schemaVersion": 1,
+  "id": "io.github.glynch.doomed-corridors",
+  "version": "0.1.0-SNAPSHOT",
+  "engineRequires": ">=0.1.0-SNAPSHOT <0.2.0",
+  "displayName": "Doomed Corridors",
+  "types": [
+    {
+      "id": "io.github.glynch.doomed-corridors/doom-level-3d",
+      "typeVersion": 1,
+      "scope": "scene-node",
+      "displayName": "Doom Level 3d",
+      "description": "A playable level imported from a Doom-format map.",
+      "properties": [
+        {
+          "id": "source",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "WAD Source",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "map",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Map"
+        }
+      ]
+    }
+  ]
+}

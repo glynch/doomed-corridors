@@ -5,6 +5,14 @@
     <property name="severity" value="error" />
     <module name="TreeWalker">
         <module name="MatchXpath">
+            <property name="query" value="//LAMBDA[ancestor::METHOD_CALL[descendant::IDENT[@text='assertThatThrownBy' or @text='assertThrows']]][count(.//METHOD_CALL | .//LITERAL_NEW) &gt; 1]" />
+            <message key="matchxpath.match" value="Prepare arguments before an exception assertion so its lambda contains only the invocation under test." />
+        </module>
+        <module name="MatchXpath">
+            <property name="query" value="//METHOD_DEF[count(.//METHOD_CALL[./IDENT[starts-with(@text, 'assertThat') or @text='assertThrows']]) &gt; 24]" />
+            <message key="matchxpath.match" value="Split tests containing more than 24 assertions into focused test methods." />
+        </module>
+        <module name="MatchXpath">
             <property name="query" value="//METHOD_CALL[./DOT[./IDENT[@text='Math'] and ./IDENT[@text='min']] and ./ELIST/EXPR//METHOD_CALL[./DOT[./IDENT[@text='Math'] and ./IDENT[@text='max']]]] | //METHOD_CALL[./DOT[./IDENT[@text='Math'] and ./IDENT[@text='max']] and ./ELIST/EXPR//METHOD_CALL[./DOT[./IDENT[@text='Math'] and ./IDENT[@text='min']]]]" />
             <message key="matchxpath.match" value="Use Math.clamp instead of nesting Math.min and Math.max." />
         </module>

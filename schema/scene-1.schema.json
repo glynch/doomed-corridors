@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/scene-1.json",
+  "title": "JScene3D Scene version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "root"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/connection"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "type": {
+          "type": "string"
+        },
+        "typeVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "instance": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object"
+        },
+        "overrides": {
+          "type": "object"
+        },
+        "controller": {
+          "$ref": "#/$defs/controller"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["type", "typeVersion"],
+          "not": {
+            "required": ["instance"]
+          }
+        },
+        {
+          "required": ["instance"],
+          "not": {
+            "anyOf": [
+              {"required": ["type"]},
+              {"required": ["typeVersion"]},
+              {"required": ["properties"]}
+            ]
+          }
+        }
+      ]
+    },
+    "controller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "typeVersion"],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "typeVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "signalEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "signal"],
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "signal": {
+          "type": "string"
+        }
+      }
+    },
+    "actionEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "action"],
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        }
+      }
+    },
+    "connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/signalEndpoint"
+        },
+        "to": {
+          "$ref": "#/$defs/actionEndpoint"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "../schema/scene-1.schema.json",
+  "schemaVersion": 1,
+  "id": "main",
+  "root": {
+    "id": "level",
+    "name": "MAP01",
+    "type": "io.github.glynch.doomed-corridors/doom-level-3d",
+    "typeVersion": 1,
+    "properties": {
+      "source": {"$ref": "asset:freedoom"},
+      "map": "MAP01"
+    }
+  }
+}

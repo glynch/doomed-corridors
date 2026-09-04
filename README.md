@@ -10,11 +10,14 @@ Doomed Corridors reads its maps, artwork, audio, and other game data from a
 pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
 
 Follow [`assets/README.md`](assets/README.md) to install the required source WAD
-and verify its release and checksum. The project manifest identifies the source
-asset, provider-owned [`game/actors.json`](game/actors.json) catalog, and startup
-map in [`project.json`](project.json). The actor catalog assigns Doom II meanings
-and initial sprite frames to the numeric thing types stored in classic maps.
-Provider-owned [`game/combat.json`](game/combat.json) defines initial player
+and verify its release and checksum. The project manifest declares the source
+asset and selects [`application/main.scene.json`](application/main.scene.json)
+as its entry scene. That scene contains a typed Doom level whose properties
+select the WAD asset and `MAP01`, allowing the same choices to be inspected and
+edited by future tooling. The actor catalog in
+[`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
+sprite frames to the numeric thing types stored in classic maps.
+[`game/combat.json`](game/combat.json) defines initial player
 resources, the pistol's hitscan and damage rules, and the zombieman's health and
 collision bounds, awareness, pursuit, attack timing, and damage. It also defines
 player resource capacities and effects for stimpacks, medikits, health bonuses,

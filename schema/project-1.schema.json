@@ -4,7 +4,7 @@
   "title": "JScene3D Project Manifest version 1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "identity", "engine", "runtime", "assets"],
+  "required": ["schemaVersion", "identity", "engine", "runtime", "extensions"],
   "properties": {
     "$schema": {
       "type": "string",
@@ -34,12 +34,32 @@
     "runtime": {
       "$ref": "#/$defs/runtime"
     },
-    "assets": {
+    "extensions": {
       "type": "array",
       "minItems": 1,
       "items": {
+        "$ref": "#/$defs/extension"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
         "$ref": "#/$defs/asset"
       }
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "exportPresets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
     },
     "catalog": {
       "$ref": "#/$defs/catalog"
@@ -156,31 +176,34 @@
         }
       }
     },
-    "startup": {
+    "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["asset", "target"],
+      "required": ["applicationExtension", "entryScene"],
       "properties": {
-        "asset": {
+        "applicationExtension": {
           "type": "string"
         },
-        "target": {
+        "entryScene": {
+          "type": "string"
+        },
+        "projectSystems": {
+          "type": "string"
+        },
+        "inputMap": {
           "type": "string"
         }
       }
     },
-    "runtime": {
+    "extension": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["gameProvider", "startup"],
+      "required": ["id", "requires"],
       "properties": {
-        "gameProvider": {
+        "id": {
           "type": "string"
         },
-        "startup": {
-          "$ref": "#/$defs/startup"
-        },
-        "inputMap": {
+        "requires": {
           "type": "string"
         }
       }

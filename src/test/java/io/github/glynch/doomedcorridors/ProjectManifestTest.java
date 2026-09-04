@@ -2,10 +2,18 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.jscene3d.project.GameProject;
-import io.github.glynch.jscene3d.project.ProjectDiagnostic;
-import io.github.glynch.jscene3d.project.ProjectLoadResult;
-import io.github.glynch.jscene3d.project.ProjectLoader;
+import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
+import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
+import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
+import io.github.glynch.jscene3d.project.manifest.GameProject;
+import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
+import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
+import io.github.glynch.jscene3d.project.scene.SceneDefinition;
+import io.github.glynch.jscene3d.project.scene.SceneLoadResult;
+import io.github.glynch.jscene3d.project.scene.SceneLoader;
+import io.github.glynch.jscene3d.project.scene.SceneNodeDefinition;
+import io.github.glynch.jscene3d.project.value.ProjectValue;
+import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,35 +22,47 @@ import org.junit.jupiter.api.Test;
 
 /** Verifies the repository remains a loadable JScene3D game project. */
 final class ProjectManifestTest {
-    /** Loads project metadata with or without the ignored local WAD installation. */
+    private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
+    private static final String EXTENSION_ID = "io.github.glynch.doomed-corridors";
+
+    /** Loads the project's identity and runtime metadata. */
     @Test
     void loadsDoomedCorridorsProject() {
-        ProjectLoadResult result = new ProjectLoader("0.1.0-SNAPSHOT").load(Path.of("."));
+        ProjectLoadResult result = loadProject();
 
         assertThat(result.isValid()).isTrue();
         GameProject project = result.project().orElseThrow();
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
-        assertThat(project.runtime().startup()).isEqualTo(new GameProject.StartupTarget("freedoom", "MAP01"));
+        assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
+        assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("application/main.scene.json"));
+    }
+
+    /** Loads declared assets with or without the ignored local WAD installation. */
+    @Test
+    void loadsDoomedCorridorsAssets() {
+        ProjectLoadResult result = loadProject();
+        GameProject project = result.project().orElseThrow();
+
         assertThat(project.assets())
                 .extracting(GameProject.AssetSource::id)
                 .containsExactly("actors", "combat", "combat-presentation", "freedoom");
         assertThat(project.assets().getFirst()).satisfies(asset -> {
-            assertThat(asset.type()).isEqualTo("doomed-corridors-actor-catalog");
+            assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/actor-catalog");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/actors.json"));
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(1)).satisfies(asset -> {
-            assertThat(asset.type()).isEqualTo("doomed-corridors-combat-rules");
+            assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/combat-rules");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/combat.json"));
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(2)).satisfies(asset -> {
-            assertThat(asset.type()).isEqualTo("doomed-corridors-combat-presentation");
+            assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/combat-presentation");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/combat-presentation.json"));
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(3)).satisfies(asset -> {
-            assertThat(asset.type()).isEqualTo("doom-wad");
+            assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/doom-wad");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256())
                     .contains("a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b");
@@ -50,24 +70,63 @@ final class ProjectManifestTest {
         if (Files.isRegularFile(project.root().resolve("assets/freedoom2.wad"))) {
             assertThat(result.diagnostics()).isEmpty();
         } else {
-                assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
-                    assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
-                    assertThat(diagnostic.code()).isEqualTo("project.path.missing");
-                    assertThat(diagnostic.location()).isEqualTo("/assets/3/path");
-                });
+            assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
+                assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
+                assertThat(diagnostic.code()).isEqualTo("project.path.missing");
+                assertThat(diagnostic.location()).isEqualTo("/assets/3/path");
+            });
         }
+    }
+
+    /** Loads and catalog-validates the declarative Doom level entry scene. */
+    @Test
+    void loadsDoomLevelEntryScene() {
+        GameProject project = loadProject().project().orElseThrow();
+        SceneLoadResult sceneResult = new SceneLoader().loadEntryScene(project);
+
+        assertThat(sceneResult.isValid()).isTrue();
+        assertThat(sceneResult.diagnostics()).isEmpty();
+        SceneDefinition scene = sceneResult.scene().orElseThrow();
+        assertThat(scene.id()).isEqualTo("main");
+        assertThat(scene.root().source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
+        SceneNodeDefinition.TypedNode root = (SceneNodeDefinition.TypedNode) scene.root().source();
+        assertThat(root.type().id()).isEqualTo(EXTENSION_ID + "/doom-level-3d");
+        assertThat(root.properties().get("map")).isEqualTo(new ProjectValue.TextValue("MAP01"));
+        assertThat(root.properties().get("source"))
+                .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.asset("freedoom")));
+
+        ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, ProjectManifestTest.class.getClassLoader());
+        assertThat(catalogResult.diagnostics()).isEmpty();
+        assertThat(catalogResult.catalog().validate(scene)).isEmpty();
     }
 
     /** Keeps the editor-facing schema copy identical to the engine contract. */
     @Test
     void vendorsCurrentProjectSchema() throws IOException {
-        String resource = "/META-INF/jscene3d/project/project-1.schema.json";
-        String localSchema = Files.readString(Path.of("schema/project-1.schema.json"));
+        assertBundledSchemaMatches("project-1.schema.json");
+    }
+
+    /** Keeps the editor-facing scene schema copy identical to the engine contract. */
+    @Test
+    void vendorsCurrentSceneSchema() throws IOException {
+        assertBundledSchemaMatches("scene-1.schema.json");
+    }
+
+    /** Compares a vendored schema with the engine resource of the same name. */
+    private static void assertBundledSchemaMatches(String name) throws IOException {
+        String resource = "/META-INF/jscene3d/project/" + name;
+        String localSchema = Files.readString(Path.of("schema").resolve(name));
 
         try (var input = ProjectLoader.class.getResourceAsStream(resource)) {
             assertThat(input).isNotNull();
             String engineSchema = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             assertThat(localSchema).isEqualTo(engineSchema);
         }
+    }
+
+    /** Loads the repository's project manifest. */
+    private static ProjectLoadResult loadProject() {
+        return new ProjectLoader(ENGINE_VERSION).load(Path.of("."));
     }
 }
