@@ -11,7 +11,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.DoomSpriteImportResult;
 import io.github.glynch.doomedcorridors.wad.DoomSpriteImporter;

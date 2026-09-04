@@ -27,13 +27,18 @@ public final class DoomedCorridorsRuntimeInspector {
         Path projectDirectory = Path.of(arguments.length == 0 ? "." : arguments[0]);
         try (ProjectRuntime runtime = DoomedCorridorsRuntimeLoader.load(projectDirectory)) {
             runtime.start();
-            if (!(runtime.root().object() instanceof DoomLevel3d level)) {
-                throw new IllegalStateException("entry-scene root is not a Doom level");
+            if (!(runtime.root().children().getFirst().object() instanceof DoomLevel3d level)) {
+                throw new IllegalStateException("entry scene does not contain a Doom level");
             }
             DoomMap map = level.map();
             System.out.printf(
-                    "Resolved imported %s through the project runtime: %,d things, %,d linedefs, and %,d sectors%n",
-                    map.name(), map.things().size(), map.linedefs().size(), map.sectors().size());
+                    "Resolved imported %s through the project runtime: %,d things, %,d linedefs, "
+                            + "%,d sectors, and %,d graphical surfaces%n",
+                    map.name(),
+                    map.things().size(),
+                    map.linedefs().size(),
+                    map.sectors().size(),
+                    level.surfaceCount());
         }
     }
 }

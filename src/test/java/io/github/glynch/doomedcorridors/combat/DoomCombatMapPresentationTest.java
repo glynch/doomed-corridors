@@ -53,7 +53,7 @@ final class DoomCombatMapPresentationTest {
 
         try (DoomMapPresentation presentation = DoomMapPresentation.create(
                 geometry,
-                new DoomMapMaterials(Map.of(), Map.of()),
+                new DoomMapMaterials("MAP01", Map.of(), Map.of()),
                 List.of(actor),
                 idleSprites,
                 assets,
@@ -97,7 +97,7 @@ final class DoomCombatMapPresentationTest {
 
         try (DoomMapPresentation presentation = DoomMapPresentation.create(
                 geometry,
-                new DoomMapMaterials(Map.of(), Map.of()),
+                new DoomMapMaterials("MAP01", Map.of(), Map.of()),
                 List.of(pickup),
                 sprites,
                 assets,

@@ -1,0 +1,8 @@
+{
+  "$schema": "../schema/import-1.schema.json",
+  "schemaVersion": 1,
+  "id": "freedoom-map-materials",
+  "source": "asset:freedoom",
+  "importer": "io.github.glynch.doomed-corridors/map-materials-importer",
+  "selection": ["materials/MAP01"]
+}

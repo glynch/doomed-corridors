@@ -77,6 +77,11 @@
         </dependency>
         <dependency>
             <groupId>io.github.glynch</groupId>
+            <artifactId>jscene3d-project-runtime-lwjgl</artifactId>
+            <version>${jscene3d.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.glynch</groupId>
             <artifactId>jscene3d-doom</artifactId>
             <version>${jscene3d.version}</version>
         </dependency>
@@ -362,6 +367,36 @@
                                 </goals>
                                 <configuration>
                                     <mainClass>io.github.glynch.doomedcorridors.runtime.DoomedCorridorsRuntimeInspector</mainClass>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>run-project-runtime</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec.maven.version}</version>
+                        <executions>
+                            <execution>
+                                <id>run-project-runtime</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${java.home}/bin/java</executable>
+                                    <arguments>
+                                        <argument>${doomed.corridors.firstThreadArgument}</argument>
+                                        <argument>-classpath</argument>
+                                        <classpath />
+                                        <argument>io.github.glynch.doomedcorridors.runtime.DoomedCorridorsRuntimePreview</argument>
+                                    </arguments>
                                 </configuration>
                             </execution>
                         </executions>

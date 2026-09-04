@@ -35,6 +35,10 @@
       "requires": ">=0.1.0-SNAPSHOT <0.2.0"
     },
     {
+      "id": "io.github.glynch.jscene3d",
+      "requires": ">=0.1.0-SNAPSHOT <0.2.0"
+    },
+    {
       "id": "io.github.glynch.doomed-corridors",
       "requires": ">=0.1.0-SNAPSHOT <0.2.0"
     }
@@ -62,7 +66,10 @@
       "sha256": "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b"
     }
   ],
-  "imports": ["imports/freedoom-maps.import.json"],
+  "imports": [
+    "imports/freedoom-maps.import.json",
+    "imports/freedoom-map-materials.import.json"
+  ],
   "catalog": {
     "genres": ["first-person shooter"],
     "tags": ["doom-compatible", "freedoom", "single-player"],

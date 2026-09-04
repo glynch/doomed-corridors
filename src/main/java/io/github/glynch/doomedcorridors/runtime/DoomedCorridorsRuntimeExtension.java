@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.runtime;
 
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsTypes;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectRuntimeExtension;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectRuntimeRegistry;
 import java.util.Objects;
@@ -22,7 +23,10 @@ public final class DoomedCorridorsRuntimeExtension implements ProjectRuntimeExte
 
     @Override
     public void register(ProjectRuntimeRegistry registry) {
-        Objects.requireNonNull(registry, "registry")
-                .registerSceneNode(DoomedCorridorsTypes.DOOM_LEVEL_3D, DoomLevel3d::create);
+        ProjectRuntimeRegistry validRegistry = Objects.requireNonNull(registry, "registry");
+        validRegistry.registerResource(
+                DoomedCorridorsTypes.MAP_MATERIALS,
+                DoomMapMaterialsResourceDecoder::decode);
+        validRegistry.registerSceneNode(DoomedCorridorsTypes.DOOM_LEVEL_3D, DoomLevel3d::create);
     }
 }

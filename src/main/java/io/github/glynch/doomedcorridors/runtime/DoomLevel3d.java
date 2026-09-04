@@ -4,40 +4,65 @@
  */
 package io.github.glynch.doomedcorridors.runtime;
 
+import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
+import io.github.glynch.doomedcorridors.presentation.DoomStaticMapPresentation;
+import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
+import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
+import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
-import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeObject;
+import io.github.glynch.jscene3d.objects.Object3D;
 import io.github.glynch.jscene3d.project.runtime.extension.SceneNodeContext;
-import io.github.glynch.jscene3d.project.value.ProjectValue;
+import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 
-/** Runtime root for one declaratively selected imported Doom map. */
-final class DoomLevel3d implements ProjectRuntimeObject {
+/** Runtime scene node presenting one declaratively selected imported Doom map. */
+final class DoomLevel3d implements Scene3dRuntimeObject {
     private final DoomMap map;
+    private final DoomStaticMapPresentation presentation;
     private boolean started;
     private boolean closed;
 
-    /** Stores the typed imported map resolved during scene composition. */
-    private DoomLevel3d(DoomMap map) {
+    /** Stores one typed map and its deterministic derived presentation. */
+    private DoomLevel3d(DoomMap map, DoomStaticMapPresentation presentation) {
         this.map = map;
+        this.presentation = presentation;
     }
 
-    /** Resolves the authored map reference through the generic runtime resource boundary. */
+    /** Resolves authored imports and constructs the derived spatial subtree. */
     static DoomLevel3d create(SceneNodeContext context) {
-        ProjectValue value = context.properties().get("map");
-        if (!(value instanceof ProjectValue.ReferenceValue referenceValue)) {
-            throw new IllegalArgumentException("map must be a resource reference");
+        DoomMap map = resolveImported(context, "map", DoomMap.class);
+        DoomMapMaterials materials =
+                resolveImported(context, "materials", DoomMapMaterials.class);
+        if (!materials.mapName().equals(map.name())) {
+            throw new IllegalArgumentException(
+                    "Imported Doom map and materials must identify the same map");
         }
-        ResourceReference reference = referenceValue.reference();
-        if (reference.kind() != ResourceReference.Kind.IMPORT) {
-            throw new IllegalArgumentException("map must reference an imported resource");
-        }
-        return new DoomLevel3d(context.resolveResource(reference, DoomMap.class));
+        DoomGeometryBuildResult result = new DoomStaticGeometryBuilder().build(map, materials);
+        DoomStaticGeometry geometry = result.geometry()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Imported Doom map geometry could not be built: " + result.diagnostics()));
+        DoomStaticMapPresentation presentation =
+                DoomStaticMapPresentation.create(geometry, materials);
+        attach(context, presentation.root());
+        return new DoomLevel3d(map, presentation);
     }
 
     /** Returns the imported runtime map after confirming this node remains open. */
     DoomMap map() {
         requireOpen();
         return map;
+    }
+
+    /** Returns the number of statically generated map surfaces. */
+    int surfaceCount() {
+        requireOpen();
+        return presentation.surfaceCount();
+    }
+
+    @Override
+    public Object3D object3d() {
+        requireOpen();
+        return presentation.root();
     }
 
     /** Returns whether scene lifecycle startup has completed. */
@@ -56,7 +81,32 @@ final class DoomLevel3d implements ProjectRuntimeObject {
 
     @Override
     public void close() {
+        if (closed) {
+            return;
+        }
+        presentation.close();
         closed = true;
+    }
+
+    /** Resolves one required imported resource through the generic runtime cache boundary. */
+    private static <T> T resolveImported(
+            SceneNodeContext context, String property, Class<T> valueType) {
+        ResourceReference reference =
+                ProjectValues.reference(context.properties(), property).reference();
+        if (reference.kind() != ResourceReference.Kind.IMPORT) {
+            throw new IllegalArgumentException(property + " must reference an imported resource");
+        }
+        return context.resolveResource(reference, valueType);
+    }
+
+    /** Attaches the generated subtree to an authored spatial parent when one is present. */
+    private static void attach(SceneNodeContext context, Object3D object) {
+        context.parent().ifPresent(parent -> {
+            if (!(parent.object() instanceof Scene3dRuntimeObject spatialParent)) {
+                throw new IllegalArgumentException("doom-level-3d requires a spatial 3d parent");
+            }
+            spatialParent.object3d().add(object);
+        });
     }
 
     /** Rejects access after terminal lifecycle closure. */

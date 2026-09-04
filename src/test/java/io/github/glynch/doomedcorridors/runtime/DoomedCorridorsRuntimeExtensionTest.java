@@ -18,6 +18,7 @@ import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
+import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -26,8 +27,12 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** Exercises the application's runtime extension through the generic project loader. */
+/** Exercises imported map presentation through the generic project loader. */
 final class DoomedCorridorsRuntimeExtensionTest {
+    private static final RegisteredType MAP_TYPE =
+            new RegisteredType("io.github.glynch.jscene3d.doom/map", 1);
+    private static final RegisteredType MATERIALS_TYPE =
+            new RegisteredType("io.github.glynch.doomed-corridors/map-materials", 1);
     private static final String MAP_RESOURCE = """
             {
               "schemaVersion": 1,
@@ -41,31 +46,62 @@ final class DoomedCorridorsRuntimeExtensionTest {
                   "size": 1,
                   "sha256": "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b"
                 },
-                "things": [],
+                "things": [{"x": 64, "y": 64, "angle": 0, "type": 1, "flags": 7}],
                 "geometry": {
-                  "vertices": [],
-                  "linedefs": [],
-                  "sidedefs": [],
-                  "sectors": []
+                  "vertices": [
+                    {"x": 0, "y": 0},
+                    {"x": 0, "y": 128},
+                    {"x": 128, "y": 128},
+                    {"x": 128, "y": 0}
+                  ],
+                  "linedefs": [
+                    {"startVertex": 0, "endVertex": 1, "flags": 0, "special": 0, "tag": 0, "rightSidedef": 0, "leftSidedef": -1},
+                    {"startVertex": 1, "endVertex": 2, "flags": 0, "special": 0, "tag": 0, "rightSidedef": 1, "leftSidedef": -1},
+                    {"startVertex": 2, "endVertex": 3, "flags": 0, "special": 0, "tag": 0, "rightSidedef": 2, "leftSidedef": -1},
+                    {"startVertex": 3, "endVertex": 0, "flags": 0, "special": 0, "tag": 0, "rightSidedef": 3, "leftSidedef": -1}
+                  ],
+                  "sidedefs": [
+                    {"xOffset": 0, "yOffset": 0, "upperTexture": "-", "lowerTexture": "-", "middleTexture": "WALL", "sector": 0},
+                    {"xOffset": 0, "yOffset": 0, "upperTexture": "-", "lowerTexture": "-", "middleTexture": "WALL", "sector": 0},
+                    {"xOffset": 0, "yOffset": 0, "upperTexture": "-", "lowerTexture": "-", "middleTexture": "WALL", "sector": 0},
+                    {"xOffset": 0, "yOffset": 0, "upperTexture": "-", "lowerTexture": "-", "middleTexture": "WALL", "sector": 0}
+                  ],
+                  "sectors": [{"floorHeight": 0, "ceilingHeight": 128, "floorTexture": "FLOOR", "ceilingTexture": "CEILING", "lightLevel": 160, "special": 0, "tag": 0}]
                 },
                 "bsp": {
-                  "segs": [],
-                  "subsectors": [],
+                  "segs": [
+                    {"startVertex": 0, "endVertex": 1, "angle": 0, "linedef": 0, "direction": 0, "offset": 0},
+                    {"startVertex": 1, "endVertex": 2, "angle": 0, "linedef": 1, "direction": 0, "offset": 0},
+                    {"startVertex": 2, "endVertex": 3, "angle": 0, "linedef": 2, "direction": 0, "offset": 0},
+                    {"startVertex": 3, "endVertex": 0, "angle": 0, "linedef": 3, "direction": 0, "offset": 0}
+                  ],
+                  "subsectors": [{"segCount": 4, "firstSeg": 0}],
                   "nodes": []
                 },
-                "reject": [],
-                "blockmap": {
-                  "originX": 0,
-                  "originY": 0,
-                  "columns": 0,
-                  "rows": 0,
-                  "cells": []
-                }
+                "reject": [0],
+                "blockmap": {"originX": 0, "originY": 0, "columns": 1, "rows": 1, "cells": [[]]}
+              }
+            }
+            """;
+    private static final String MATERIALS_RESOURCE = """
+            {
+              "schemaVersion": 1,
+              "type": "io.github.glynch.doomed-corridors/map-materials",
+              "typeVersion": 1,
+              "properties": {
+                "map": "MAP01",
+                "wall-textures": [
+                  {"name": "WALL", "width": 1, "height": 1, "pixels-base64": "/////w=="}
+                ],
+                "flats": [
+                  {"name": "FLOOR", "width": 1, "height": 1, "pixels-base64": "/////w=="},
+                  {"name": "CEILING", "width": 1, "height": 1, "pixels-base64": "/////w=="}
+                ]
               }
             }
             """;
 
-    /** Resolves the authored import reference into a typed map owned by the level node. */
+    /** Resolves imported resources and derives a six-surface spatial map subtree. */
     @Test
     void composesImportedMapAsDoomLevel() {
         GameProject project = new ProjectLoader("0.1.0-SNAPSHOT")
@@ -73,16 +109,22 @@ final class DoomedCorridorsRuntimeExtensionTest {
                 .project()
                 .orElseThrow();
         ProjectRuntimeLoadResult result = new ProjectRuntimeLoader("0.1.0-SNAPSHOT")
-                .load(project, getClass().getClassLoader(), List.of(), new MapArtifactLookup());
+                .load(
+                        project,
+                        getClass().getClassLoader(),
+                        List.of(JScene3dRuntimeExtension.headless()),
+                        new ResourceArtifactLookup());
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.isOpen()).isTrue();
         try (ProjectRuntime runtime = result.runtime().orElseThrow()) {
-            assertThat(runtime.root().object()).isInstanceOf(DoomLevel3d.class);
-            DoomLevel3d level = (DoomLevel3d) runtime.root().object();
+            DoomLevel3d level =
+                    (DoomLevel3d) runtime.root().children().getFirst().object();
             assertThat(level.isStarted()).isFalse();
             assertThat(level.map().name()).isEqualTo("MAP01");
             assertThat(level.map()).isInstanceOf(DoomMap.class);
+            assertThat(level.surfaceCount()).isEqualTo(6);
+            assertThat(level.object3d().children()).hasSize(6);
 
             runtime.start();
 
@@ -90,37 +132,47 @@ final class DoomedCorridorsRuntimeExtensionTest {
         }
     }
 
-    /** Supplies the expected native resource without requiring the ignored Freedoom installation. */
-    private static final class MapArtifactLookup implements ImportedArtifactLookup {
+    /** Supplies both expected native resources without the ignored Freedoom installation. */
+    private static final class ResourceArtifactLookup implements ImportedArtifactLookup {
         @Override
-        public Optional<ImportedArtifact> openArtifact(ImportDefinition definition, String identity) {
-            if (!definition.id().equals("freedoom-maps") || !identity.equals("maps/MAP01")) {
-                return Optional.empty();
+        public Optional<ImportedArtifact> openArtifact(
+                ImportDefinition definition, String identity) {
+            if (definition.id().equals("freedoom-maps") && identity.equals("maps/MAP01")) {
+                return Optional.of(new TestArtifact(identity, MAP_TYPE, MAP_RESOURCE));
             }
-            return Optional.of(new MapArtifact());
+            if (definition.id().equals("freedoom-map-materials")
+                    && identity.equals("materials/MAP01")) {
+                return Optional.of(new TestArtifact(identity, MATERIALS_TYPE, MATERIALS_RESOURCE));
+            }
+            return Optional.empty();
         }
     }
 
     /** In-memory imported-resource handle used by the project runtime test. */
-    private static final class MapArtifact implements ImportedArtifact {
-        private static final byte[] CONTENT = MAP_RESOURCE.getBytes(StandardCharsets.UTF_8);
-        private static final ImportedArtifactMetadata METADATA = new ImportedArtifactMetadata(
-                ImportArtifactDescriptor.resource(
-                        "maps/MAP01", new RegisteredType("io.github.glynch.jscene3d.doom/map", 1), List.of()),
-                "0000000000000000000000000000000000000000000000000000000000000000",
-                CONTENT.length);
+    private static final class TestArtifact implements ImportedArtifact {
+        private final byte[] content;
+        private final ImportedArtifactMetadata metadata;
         private boolean closed;
+
+        /** Stores one typed resource document and derives its immutable metadata. */
+        private TestArtifact(String identity, RegisteredType type, String resource) {
+            content = resource.getBytes(StandardCharsets.UTF_8);
+            metadata = new ImportedArtifactMetadata(
+                    ImportArtifactDescriptor.resource(identity, type, List.of()),
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    content.length);
+        }
 
         @Override
         public ImportedArtifactMetadata metadata() {
             requireOpen();
-            return METADATA;
+            return metadata;
         }
 
         @Override
         public InputStream openStream() {
             requireOpen();
-            return new ByteArrayInputStream(CONTENT);
+            return new ByteArrayInputStream(content);
         }
 
         @Override

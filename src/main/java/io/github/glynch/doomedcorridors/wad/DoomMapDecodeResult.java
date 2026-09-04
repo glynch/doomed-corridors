@@ -1,6 +1,6 @@
 package io.github.glynch.doomedcorridors.wad;
 
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

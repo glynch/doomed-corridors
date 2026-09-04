@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 

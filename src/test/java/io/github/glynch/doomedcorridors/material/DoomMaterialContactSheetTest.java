@@ -24,7 +24,8 @@ final class DoomMaterialContactSheetTest {
     void writesMaterialImagesToPng() throws IOException {
         DoomMaterial wall = material("WALL", DoomMaterial.Kind.WALL_TEXTURE, (byte) 0xff, (byte) 0, (byte) 0);
         DoomMaterial flat = material("FLAT", DoomMaterial.Kind.FLAT, (byte) 0, (byte) 0xff, (byte) 0);
-        DoomMapMaterials materials = new DoomMapMaterials(Map.of("WALL", wall), Map.of("FLAT", flat));
+        DoomMapMaterials materials =
+                new DoomMapMaterials("MAP01", Map.of("WALL", wall), Map.of("FLAT", flat));
         Path output = temporaryDirectory.resolve("nested/materials.png");
 
         new DoomMaterialContactSheet().write(materials, output);

@@ -19,6 +19,8 @@ import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
+import io.github.glynch.jscene3d.project.runtime.extension.ProjectRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,12 @@ final class DoomedCorridorsRuntimeLoader {
 
     /** Composes the project through its descriptors, imports, and service-discovered extensions. */
     static ProjectRuntime load(Path projectDirectory) {
+        return load(projectDirectory, List.of(JScene3dRuntimeExtension.headless()));
+    }
+
+    /** Composes the project with additional host-bound runtime extensions. */
+    static ProjectRuntime load(
+            Path projectDirectory, List<? extends ProjectRuntimeExtension> extensions) {
         ProjectLoadResult projectResult = new ProjectLoader(ENGINE_VERSION).load(projectDirectory);
         GameProject project = require(projectResult.project(), projectResult.diagnostics(), "project");
         ClassLoader classLoader = DoomedCorridorsRuntimeLoader.class.getClassLoader();
@@ -49,8 +57,8 @@ final class DoomedCorridorsRuntimeLoader {
                 classLoader,
                 List.of());
         publishImports(project, importManager);
-        ProjectRuntimeLoadResult runtimeResult =
-                new ProjectRuntimeLoader(ENGINE_VERSION).load(project, classLoader, List.of(), importManager);
+        ProjectRuntimeLoadResult runtimeResult = new ProjectRuntimeLoader(ENGINE_VERSION)
+                .load(project, classLoader, List.copyOf(extensions), importManager);
         return require(runtimeResult.runtime(), runtimeResult.diagnostics(), "project runtime");
     }
 

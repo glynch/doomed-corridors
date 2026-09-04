@@ -1,6 +1,6 @@
 package io.github.glynch.doomedcorridors.wad;
 
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
@@ -40,7 +40,7 @@ public final class DoomMaterialImporter {
             Map<String, WadLump> flatLumps = flatLumps(archive);
             Map<String, DoomMaterial> flats = importFlats(archive, map, paletteLump, palette, flatLumps);
             Map<String, DoomMaterial> walls = importWallTextures(archive, map, paletteLump, palette);
-            DoomMapMaterials materials = new DoomMapMaterials(walls, flats);
+            DoomMapMaterials materials = new DoomMapMaterials(map.name(), walls, flats);
             return new DoomMaterialImportResult(Optional.of(materials), diagnostics);
         } catch (ImportFailure failure) {
             diagnostics.add(new WadDiagnostic(

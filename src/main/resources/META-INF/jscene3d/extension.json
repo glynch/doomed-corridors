@@ -7,6 +7,38 @@
   "displayName": "Doomed Corridors",
   "types": [
     {
+      "id": "io.github.glynch.doomed-corridors/map-materials-importer",
+      "typeVersion": 1,
+      "scope": "importer",
+      "displayName": "Doom Map Materials"
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/map-materials",
+      "typeVersion": 1,
+      "scope": "resource",
+      "displayName": "Doom Map Materials",
+      "properties": [
+        {
+          "id": "map",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Map"
+        },
+        {
+          "id": "wall-textures",
+          "valueKind": "array",
+          "required": true,
+          "displayName": "Wall Textures"
+        },
+        {
+          "id": "flats",
+          "valueKind": "array",
+          "required": true,
+          "displayName": "Flats"
+        }
+      ]
+    },
+    {
       "id": "io.github.glynch.doomed-corridors/doom-level-3d",
       "typeVersion": 1,
       "scope": "scene-node",
@@ -19,6 +51,14 @@
           "required": true,
           "displayName": "Map",
           "description": "Imported classic Doom map used to construct this level.",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "materials",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Materials",
+          "description": "Imported wall textures and flats used to render the map.",
           "acceptedReferences": ["import"]
         }
       ]

@@ -13,10 +13,12 @@ Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest declares the source
 asset and selects [`application/main.scene.json`](application/main.scene.json)
 as its entry scene. That scene contains a typed Doom level whose properties
-reference `MAP01` through [`imports/freedoom-maps.import.json`](imports/freedoom-maps.import.json).
-The import definition selects the map from the WAD through JScene3D's generic
-import framework, allowing the source, selection, and generated native resource
-to be inspected and edited by future tooling. The actor catalog in
+reference `MAP01` through [`imports/freedoom-maps.import.json`](imports/freedoom-maps.import.json)
+and its renderer-independent material set through
+[`imports/freedoom-map-materials.import.json`](imports/freedoom-map-materials.import.json).
+The import definitions select data from the WAD through JScene3D's generic
+import framework, allowing the sources, selections, and generated native
+resources to be inspected and edited by future tooling. The actor catalog in
 [`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
 sprite frames to the numeric thing types stored in classic maps.
 [`game/combat.json`](game/combat.json) defines initial player
@@ -87,10 +89,23 @@ Run the declarative import and project-runtime path headlessly with:
 ./mvnw -Pinspect-project-runtime compile
 ```
 
-This updates the disposable import cache when required, resolves the scene's
-`import:freedoom-maps/maps/MAP01` reference, creates a typed JScene3D `DoomMap`,
-and supplies it to the application extension's `doom-level-3d` factory. The
-console summary reports the imported map's thing, linedef, and sector counts.
+This updates the disposable import cache when required; resolves the scene's map
+and material references; creates typed runtime resources; and supplies them to
+the application extension's `doom-level-3d` factory. That factory derives the
+static floors, ceilings, and walls without reopening the WAD. The console
+summary reports the imported map counts and number of graphical surfaces.
+
+Render the same declarative scene through the graphical project runtime with:
+
+```shell
+./mvnw -Prun-project-runtime compile
+```
+
+This preview renders the imported static MAP01 geometry from the native import
+cache. It intentionally does not yet include movement, actors, combat, doors,
+switches, or the HUD; those remain available through the playable launcher
+while they are migrated onto the project runtime. Press Escape or close the
+window to stop the preview.
 
 ## Development
 

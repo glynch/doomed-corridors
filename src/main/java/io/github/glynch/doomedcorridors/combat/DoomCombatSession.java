@@ -5,7 +5,7 @@
 package io.github.glynch.doomedcorridors.combat;
 
 import io.github.glynch.doomedcorridors.actor.DoomActor;
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;

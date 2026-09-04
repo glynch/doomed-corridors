@@ -38,7 +38,10 @@ final class ProjectManifestTest {
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
         assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("application/main.scene.json"));
-        assertThat(project.imports()).containsExactly(project.root().resolve("imports/freedoom-maps.import.json"));
+        assertThat(project.imports())
+                .containsExactly(
+                        project.root().resolve("imports/freedoom-maps.import.json"),
+                        project.root().resolve("imports/freedoom-map-materials.import.json"));
     }
 
     /** Loads declared assets with or without the ignored local WAD installation. */
@@ -94,11 +97,20 @@ final class ProjectManifestTest {
         assertThat(scene.id()).isEqualTo("main");
         assertThat(scene.root().source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
         SceneNodeDefinition.TypedNode root = (SceneNodeDefinition.TypedNode) scene.root().source();
-        assertThat(root.type().id()).isEqualTo(EXTENSION_ID + "/doom-level-3d");
-        assertThat(root.properties()).containsOnlyKeys("map");
-        assertThat(root.properties().get("map"))
+        assertThat(root.type().id()).isEqualTo("io.github.glynch.jscene3d/group-3d");
+        assertThat(scene.root().children()).hasSize(2);
+        SceneNodeDefinition levelDefinition = scene.root().children().getFirst();
+        assertThat(levelDefinition.source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
+        SceneNodeDefinition.TypedNode level =
+                (SceneNodeDefinition.TypedNode) levelDefinition.source();
+        assertThat(level.type().id()).isEqualTo(EXTENSION_ID + "/doom-level-3d");
+        assertThat(level.properties()).containsOnlyKeys("map", "materials");
+        assertThat(level.properties().get("map"))
                 .isEqualTo(new ProjectValue.ReferenceValue(
                         ResourceReference.imported("freedoom-maps/maps/MAP01")));
+        assertThat(level.properties().get("materials"))
+                .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.imported(
+                        "freedoom-map-materials/materials/MAP01")));
 
         ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
                 .load(project, ProjectManifestTest.class.getClassLoader());
@@ -131,6 +143,22 @@ final class ProjectManifestTest {
         assertThat(definition.asset().id()).isEqualTo("freedoom");
         assertThat(definition.importer()).isEqualTo("io.github.glynch.jscene3d.doom/maps");
         assertThat(definition.selection()).containsExactly("maps/MAP01");
+    }
+
+    /** Loads the MAP01 material import independently from runtime presentation. */
+    @Test
+    void loadsFreedoomMapMaterialsImport() {
+        GameProject project = loadProject().project().orElseThrow();
+        ImportLoadResult result = new ImportLoader().load(project, project.imports().get(1));
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        ImportDefinition definition = result.definition().orElseThrow();
+        assertThat(definition.id()).isEqualTo("freedoom-map-materials");
+        assertThat(definition.asset().id()).isEqualTo("freedoom");
+        assertThat(definition.importer())
+                .isEqualTo(EXTENSION_ID + "/map-materials-importer");
+        assertThat(definition.selection()).containsExactly("materials/MAP01");
     }
 
     /** Keeps the editor-facing import schema copy identical to the engine contract. */

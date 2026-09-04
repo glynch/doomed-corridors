@@ -176,7 +176,8 @@ final class DoomMapPresentationTest {
                 DoomMaterial.Kind.FLAT,
                 new RgbaImage(1, 1, new byte[] {(byte) 0xff, 0, 0, (byte) 0xff}),
                 List.of());
-        return new DoomMapMaterials(Map.of("GRATE", grate), Map.of("FLOOR", floor));
+        return new DoomMapMaterials(
+                "MAP01", Map.of("GRATE", grate), Map.of("FLOOR", floor));
     }
 
     private static DoomSurface maskedWall() {

@@ -3,12 +3,39 @@
   "schemaVersion": 1,
   "id": "main",
   "root": {
-    "id": "level",
-    "name": "MAP01",
-    "type": "io.github.glynch.doomed-corridors/doom-level-3d",
+    "id": "world",
+    "name": "World",
+    "type": "io.github.glynch.jscene3d/group-3d",
     "typeVersion": 1,
     "properties": {
-      "map": {"$ref": "import:freedoom-maps/maps/MAP01"}
-    }
+      "background": "#000000"
+    },
+    "children": [
+      {
+        "id": "level",
+        "name": "MAP01",
+        "type": "io.github.glynch.doomed-corridors/doom-level-3d",
+        "typeVersion": 1,
+        "properties": {
+          "map": {"$ref": "import:freedoom-maps/maps/MAP01"},
+          "materials": {
+            "$ref": "import:freedoom-map-materials/materials/MAP01"
+          }
+        }
+      },
+      {
+        "id": "camera",
+        "name": "Preview Camera",
+        "type": "io.github.glynch.jscene3d/perspective-camera-3d",
+        "typeVersion": 1,
+        "properties": {
+          "position": [-6, 1.28125, 6],
+          "target": [-5, 1.28125, 6],
+          "near": 0.05,
+          "far": 256,
+          "active": true
+        }
+      }
+    ]
   }
 }

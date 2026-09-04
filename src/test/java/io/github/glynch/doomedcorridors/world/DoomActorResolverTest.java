@@ -11,7 +11,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCategory;
 import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;

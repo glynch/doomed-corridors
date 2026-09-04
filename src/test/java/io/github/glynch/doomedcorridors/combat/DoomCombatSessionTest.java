@@ -10,7 +10,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.actor.DoomActorCategory;
 import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import java.nio.file.Path;
 import java.time.Duration;

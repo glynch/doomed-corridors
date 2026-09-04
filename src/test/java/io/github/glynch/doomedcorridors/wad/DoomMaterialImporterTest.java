@@ -2,7 +2,7 @@ package io.github.glynch.doomedcorridors.wad;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import java.io.IOException;
 import java.nio.ByteBuffer;
