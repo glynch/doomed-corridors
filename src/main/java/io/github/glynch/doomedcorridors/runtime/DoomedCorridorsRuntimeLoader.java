@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.runtime;
 
+import io.github.glynch.jscene3d.game.input.InputMap;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
@@ -13,12 +14,16 @@ import io.github.glynch.jscene3d.project.importing.PreparedImport;
 import io.github.glynch.jscene3d.project.imports.ImportDefinition;
 import io.github.glynch.jscene3d.project.imports.ImportLoadResult;
 import io.github.glynch.jscene3d.project.imports.ImportLoader;
+import io.github.glynch.jscene3d.project.input.InputMapDefinition;
+import io.github.glynch.jscene3d.project.input.InputMapLoadResult;
+import io.github.glynch.jscene3d.project.input.InputMapLoader;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
+import io.github.glynch.jscene3d.project.runtime.ProjectInputMaps;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectRuntimeExtension;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
 import java.nio.file.Path;
@@ -60,6 +65,16 @@ final class DoomedCorridorsRuntimeLoader {
         ProjectRuntimeLoadResult runtimeResult = new ProjectRuntimeLoader(ENGINE_VERSION)
                 .load(project, classLoader, List.copyOf(extensions), importManager);
         return require(runtimeResult.runtime(), runtimeResult.diagnostics(), "project runtime");
+    }
+
+    /** Loads the semantic input map selected by the project manifest. */
+    static InputMap loadInputMap(GameProject project) {
+        Path inputMapPath = project.runtime()
+                .inputMap()
+                .orElseThrow(() -> new IllegalStateException("project runtime does not declare an input map"));
+        InputMapLoadResult result = new InputMapLoader().load(project, inputMapPath);
+        InputMapDefinition definition = require(result.definition(), result.diagnostics(), "input map");
+        return ProjectInputMaps.create(definition);
     }
 
     /** Publishes each import when its source, definition, or dependencies changed. */

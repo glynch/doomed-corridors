@@ -62,6 +62,30 @@
           "acceptedReferences": ["import"]
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/doom-player-controller",
+      "typeVersion": 1,
+      "scope": "node-controller",
+      "displayName": "Doom Player Controller",
+      "description": "Moves a Doom player from semantic input and updates its declared camera.",
+      "properties": [
+        {
+          "id": "camera-node",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Camera Node",
+          "description": "Identifier of the perspective-camera-3d child controlled by the player."
+        },
+        {
+          "id": "pointer-sensitivity",
+          "valueKind": "number",
+          "required": false,
+          "defaultValue": 0.002,
+          "displayName": "Pointer Sensitivity",
+          "description": "Radians of view rotation applied per pointer-motion unit."
+        }
+      ]
     }
   ]
 }

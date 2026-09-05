@@ -177,7 +177,7 @@ public final class DoomMapPresentation implements AutoCloseable {
     /** Applies the latest headless player position and view orientation to the camera. */
     public void applyPlayerState(DoomPlayerState player) {
         requireOpen();
-        applyCamera(camera, Objects.requireNonNull(player, "player"));
+        DoomPlayerCamera.apply(camera, Objects.requireNonNull(player, "player"));
     }
 
     /** Applies current pain/death frame overrides to indexed actor billboards. */
@@ -251,23 +251,10 @@ public final class DoomMapPresentation implements AutoCloseable {
     private static PerspectiveCamera createCamera(DoomPlayerStart start, float aspectRatio) {
         PerspectiveCamera camera =
                 new PerspectiveCamera(VERTICAL_FIELD_OF_VIEW, aspectRatio, NEAR_CLIP, FAR_CLIP);
-        applyCamera(
+        DoomPlayerCamera.apply(
                 camera,
                 new DoomPlayerState(start.x(), start.eyeHeight(), start.z(), start.yawRadians(), 0.0F));
         return camera;
-    }
-
-    /** Maps headless yaw and pitch onto the camera's right-handed look direction. */
-    private static void applyCamera(PerspectiveCamera camera, DoomPlayerState player) {
-        float horizontal = (float) Math.cos(player.pitchRadians());
-        float directionX = (float) Math.cos(player.yawRadians()) * horizontal;
-        float directionY = (float) Math.sin(player.pitchRadians());
-        float directionZ = -(float) Math.sin(player.yawRadians()) * horizontal;
-        camera.setPosition(player.x(), player.eyeHeight(), player.z());
-        camera.lookAt(
-                player.x() + directionX,
-                player.eyeHeight() + directionY,
-                player.z() + directionZ);
     }
 
     /** Creates one alpha-masked, edge-clamped material for an actor sprite. */

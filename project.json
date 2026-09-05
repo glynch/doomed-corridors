@@ -23,7 +23,8 @@
   },
   "runtime": {
     "applicationExtension": "io.github.glynch.doomed-corridors",
-    "entryScene": "application/main.scene.json"
+    "entryScene": "application/main.scene.json",
+    "inputMap": "application/input-map.json"
   },
   "extensions": [
     {

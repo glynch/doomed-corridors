@@ -23,6 +23,10 @@ public final class DoomedCorridorsTypes {
     public static final RegisteredType DOOM_LEVEL_3D =
             new RegisteredType(EXTENSION_IDENTIFIER + "/doom-level-3d", 1);
 
+    /** Player movement controller attached to a declarative Doom level. */
+    public static final RegisteredType DOOM_PLAYER_CONTROLLER =
+            new RegisteredType(EXTENSION_IDENTIFIER + "/doom-player-controller", 1);
+
     /** Prevents construction of this type-identity namespace. */
     private DoomedCorridorsTypes() {
         throw new AssertionError("DoomedCorridorsTypes cannot be instantiated");

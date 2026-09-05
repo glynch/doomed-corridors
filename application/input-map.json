@@ -1,0 +1,18 @@
+{
+  "$schema": "../schema/input-map-1.schema.json",
+  "schemaVersion": 1,
+  "actions": {
+    "move-forward": [
+      {"device": "keyboard", "key": "W"},
+      {"device": "keyboard", "key": "UP"}
+    ],
+    "move-backward": [
+      {"device": "keyboard", "key": "S"},
+      {"device": "keyboard", "key": "DOWN"}
+    ],
+    "strafe-left": [{"device": "keyboard", "key": "A"}],
+    "strafe-right": [{"device": "keyboard", "key": "D"}],
+    "turn-left": [{"device": "keyboard", "key": "LEFT"}],
+    "turn-right": [{"device": "keyboard", "key": "RIGHT"}]
+  }
+}

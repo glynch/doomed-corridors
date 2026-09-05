@@ -6,7 +6,11 @@ package io.github.glynch.doomedcorridors.runtime;
 
 import io.github.glynch.jscene3d.game.GameRuntime;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
+import io.github.glynch.jscene3d.game.input.InputCapture;
+import io.github.glynch.jscene3d.game.input.InputMap;
+import io.github.glynch.jscene3d.platform.CursorMode;
 import io.github.glynch.jscene3d.platform.Key;
+import io.github.glynch.jscene3d.platform.MouseButton;
 import io.github.glynch.jscene3d.platform.Window;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
@@ -38,31 +42,61 @@ public final class DoomedCorridorsRuntimePreview {
         Path projectDirectory = Path.of(arguments.length == 0 ? "." : arguments[0]);
         try (Window window = Window.create(WINDOW_WIDTH, WINDOW_HEIGHT, "Doomed Corridors Runtime Preview");
                 Renderer renderer = Renderer.create(window)) {
-            ProjectRuntime project = DoomedCorridorsRuntimeLoader.load(
-                    projectDirectory,
-                    List.of(new JScene3dRuntimeExtension(window, renderer)));
-            try (GameRuntime runtime = new GameRuntime(project)) {
-                runtime.start();
-                window.show();
-                run(window, runtime);
-            }
+            runProject(window, renderer, projectDirectory);
+        }
+    }
+
+    /** Composes and owns the project runtime for one graphical session. */
+    private static void runProject(Window window, Renderer renderer, Path projectDirectory) {
+        try (ProjectRuntime project = DoomedCorridorsRuntimeLoader.load(
+                projectDirectory, List.of(new JScene3dRuntimeExtension(window, renderer)))) {
+            runGame(window, project);
+        }
+    }
+
+    /** Loads project input and transfers the composed project into the game loop. */
+    private static void runGame(Window window, ProjectRuntime project) {
+        InputMap inputMap = DoomedCorridorsRuntimeLoader.loadInputMap(project.project());
+        try (GameRuntime runtime = new GameRuntime(project)) {
+            runtime.start();
+            window.show();
+            run(window, runtime, inputMap);
         }
     }
 
     /** Drives the generic runtime until the preview window closes. */
-    private static void run(Window window, GameRuntime runtime) {
+    private static void run(Window window, GameRuntime runtime, InputMap inputMap) {
         long previousNanos = System.nanoTime();
         while (!window.shouldClose()) {
             Window.pollEvents();
-            if (window.input().wasKeyPressed(Key.ESCAPE)) {
-                window.requestClose();
-            }
+            handlePointerCapture(window);
             long nowNanos = System.nanoTime();
             long elapsedNanos = Math.clamp(nowNanos - previousNanos, 0L, MAXIMUM_FRAME_NANOS);
             previousNanos = nowNanos;
-            runtime.advance(Duration.ofNanos(elapsedNanos), ActionSnapshot.empty());
+            ActionSnapshot input = inputMap.sample(
+                    window.input(), new InputCapture(false, window.cursorMode() != CursorMode.DISABLED));
+            runtime.advance(Duration.ofNanos(elapsedNanos), input);
             runtime.render();
             window.swapBuffers();
+        }
+    }
+
+    /** Acquires relative mouse input on click and releases it on Escape. */
+    private static void handlePointerCapture(Window window) {
+        if (window.input().wasKeyPressed(Key.ESCAPE)) {
+            if (window.cursorMode() == CursorMode.DISABLED) {
+                window.setCursorMode(CursorMode.NORMAL);
+            } else {
+                window.requestClose();
+            }
+            return;
+        }
+        if (window.cursorMode() == CursorMode.NORMAL
+                && window.input().wasMouseButtonPressed(MouseButton.LEFT)) {
+            window.setCursorMode(CursorMode.DISABLED);
+            if (window.isRawMouseMotionSupported()) {
+                window.setRawMouseMotionEnabled(true);
+            }
         }
     }
 }

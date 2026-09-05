@@ -7,6 +7,9 @@ package io.github.glynch.doomedcorridors.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.glynch.jscene3d.doom.map.DoomMap;
+import io.github.glynch.jscene3d.game.GameRuntime;
+import io.github.glynch.jscene3d.game.input.ActionSnapshot;
+import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.project.extension.RegisteredType;
 import io.github.glynch.jscene3d.project.importing.ImportArtifactDescriptor;
 import io.github.glynch.jscene3d.project.importing.ImportedArtifact;
@@ -23,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -101,7 +105,7 @@ final class DoomedCorridorsRuntimeExtensionTest {
             }
             """;
 
-    /** Resolves imported resources and derives a six-surface spatial map subtree. */
+    /** Resolves imported resources, derives the map, and advances its declared player controller. */
     @Test
     void composesImportedMapAsDoomLevel() {
         GameProject project = new ProjectLoader("0.1.0-SNAPSHOT")
@@ -117,18 +121,27 @@ final class DoomedCorridorsRuntimeExtensionTest {
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.isOpen()).isTrue();
-        try (ProjectRuntime runtime = result.runtime().orElseThrow()) {
-            DoomLevel3d level =
-                    (DoomLevel3d) runtime.root().children().getFirst().object();
+        ProjectRuntime projectRuntime = result.runtime().orElseThrow();
+        DoomLevel3d level = (DoomLevel3d) projectRuntime.root().children().getFirst().object();
+        DoomPlayerController controller =
+                (DoomPlayerController) projectRuntime.root().children().getFirst().controller().orElseThrow();
+        float initialX = controller.player().x();
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
             assertThat(level.isStarted()).isFalse();
             assertThat(level.map().name()).isEqualTo("MAP01");
             assertThat(level.map()).isInstanceOf(DoomMap.class);
             assertThat(level.surfaceCount()).isEqualTo(6);
-            assertThat(level.object3d().children()).hasSize(6);
+            assertThat(level.object3d().children()).hasSize(7);
 
             runtime.start();
+            runtime.advance(
+                    Duration.ofMillis(30),
+                    ActionSnapshot.builder()
+                            .down(new InputAction("move-forward"))
+                            .build());
 
             assertThat(level.isStarted()).isTrue();
+            assertThat(controller.player().x()).isGreaterThan(initialX);
         }
     }
 

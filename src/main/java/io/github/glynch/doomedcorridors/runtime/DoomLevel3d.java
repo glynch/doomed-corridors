@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors.runtime;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.presentation.DoomStaticMapPresentation;
 import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
+import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometryBuilder;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
@@ -19,13 +20,15 @@ import io.github.glynch.jscene3d.project.value.ResourceReference;
 /** Runtime scene node presenting one declaratively selected imported Doom map. */
 final class DoomLevel3d implements Scene3dRuntimeObject {
     private final DoomMap map;
+    private final DoomPlayerStart playerStart;
     private final DoomStaticMapPresentation presentation;
     private boolean started;
     private boolean closed;
 
     /** Stores one typed map and its deterministic derived presentation. */
-    private DoomLevel3d(DoomMap map, DoomStaticMapPresentation presentation) {
+    private DoomLevel3d(DoomMap map, DoomPlayerStart playerStart, DoomStaticMapPresentation presentation) {
         this.map = map;
+        this.playerStart = playerStart;
         this.presentation = presentation;
     }
 
@@ -45,13 +48,19 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
         DoomStaticMapPresentation presentation =
                 DoomStaticMapPresentation.create(geometry, materials);
         attach(context, presentation.root());
-        return new DoomLevel3d(map, presentation);
+        return new DoomLevel3d(map, geometry.playerStart(), presentation);
     }
 
     /** Returns the imported runtime map after confirming this node remains open. */
     DoomMap map() {
         requireOpen();
         return map;
+    }
+
+    /** Returns the authored player-one start resolved from the imported level. */
+    DoomPlayerStart playerStart() {
+        requireOpen();
+        return playerStart;
     }
 
     /** Returns the number of statically generated map surfaces. */

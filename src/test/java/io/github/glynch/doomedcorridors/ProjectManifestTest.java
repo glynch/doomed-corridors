@@ -8,6 +8,8 @@ import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
 import io.github.glynch.jscene3d.project.imports.ImportDefinition;
 import io.github.glynch.jscene3d.project.imports.ImportLoadResult;
 import io.github.glynch.jscene3d.project.imports.ImportLoader;
+import io.github.glynch.jscene3d.project.input.InputMapLoadResult;
+import io.github.glynch.jscene3d.project.input.InputMapLoader;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
@@ -38,6 +40,8 @@ final class ProjectManifestTest {
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
         assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("application/main.scene.json"));
+        assertThat(project.runtime().inputMap())
+                .contains(project.root().resolve("application/input-map.json"));
         assertThat(project.imports())
                 .containsExactly(
                         project.root().resolve("imports/freedoom-maps.import.json"),
@@ -98,7 +102,7 @@ final class ProjectManifestTest {
         assertThat(scene.root().source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
         SceneNodeDefinition.TypedNode root = (SceneNodeDefinition.TypedNode) scene.root().source();
         assertThat(root.type().id()).isEqualTo("io.github.glynch.jscene3d/group-3d");
-        assertThat(scene.root().children()).hasSize(2);
+        assertThat(scene.root().children()).hasSize(1);
         SceneNodeDefinition levelDefinition = scene.root().children().getFirst();
         assertThat(levelDefinition.source()).isInstanceOf(SceneNodeDefinition.TypedNode.class);
         SceneNodeDefinition.TypedNode level =
@@ -111,6 +115,10 @@ final class ProjectManifestTest {
         assertThat(level.properties().get("materials"))
                 .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.imported(
                         "freedoom-map-materials/materials/MAP01")));
+        assertThat(levelDefinition.controller()).isPresent();
+        assertThat(levelDefinition.children()).singleElement()
+                .extracting(SceneNodeDefinition::id)
+                .isEqualTo("camera");
 
         ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
                 .load(project, ProjectManifestTest.class.getClassLoader());
@@ -128,6 +136,31 @@ final class ProjectManifestTest {
     @Test
     void vendorsCurrentSceneSchema() throws IOException {
         assertBundledSchemaMatches("scene-1.schema.json");
+    }
+
+    /** Loads the semantic input map selected by the project manifest. */
+    @Test
+    void loadsProjectInputMap() {
+        GameProject project = loadProject().project().orElseThrow();
+
+        InputMapLoadResult result = new InputMapLoader().load(project, project.runtime().inputMap().orElseThrow());
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.definition().orElseThrow().actions())
+                .containsOnlyKeys(
+                        "move-forward",
+                        "move-backward",
+                        "strafe-left",
+                        "strafe-right",
+                        "turn-left",
+                        "turn-right");
+    }
+
+    /** Keeps the editor-facing input-map schema copy identical to the engine contract. */
+    @Test
+    void vendorsCurrentInputMapSchema() throws IOException {
+        assertBundledSchemaMatches("input-map-1.schema.json");
     }
 
     /** Loads the MAP01 import definition through its declared generic Doom importer. */

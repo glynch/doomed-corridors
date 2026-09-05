@@ -21,20 +21,30 @@
           "materials": {
             "$ref": "import:freedoom-map-materials/materials/MAP01"
           }
-        }
-      },
-      {
-        "id": "camera",
-        "name": "Preview Camera",
-        "type": "io.github.glynch.jscene3d/perspective-camera-3d",
-        "typeVersion": 1,
-        "properties": {
-          "position": [-6, 1.28125, 6],
-          "target": [-5, 1.28125, 6],
-          "near": 0.05,
-          "far": 256,
-          "active": true
-        }
+        },
+        "controller": {
+          "type": "io.github.glynch.doomed-corridors/doom-player-controller",
+          "typeVersion": 1,
+          "properties": {
+            "camera-node": "camera",
+            "pointer-sensitivity": 0.002
+          }
+        },
+        "children": [
+          {
+            "id": "camera",
+            "name": "Player Camera",
+            "type": "io.github.glynch.jscene3d/perspective-camera-3d",
+            "typeVersion": 1,
+            "properties": {
+              "position": [0, 0, 0],
+              "target": [1, 0, 0],
+              "near": 0.05,
+              "far": 256,
+              "active": true
+            }
+          }
+        ]
       }
     ]
   }

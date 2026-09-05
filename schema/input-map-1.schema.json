@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/input-map-1.json",
+  "title": "JScene3D Input Map version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "actions"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "actions": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "oneOf": [
+            {"$ref": "#/$defs/keyboardBinding"},
+            {"$ref": "#/$defs/mouseBinding"}
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "keyboardBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device", "key"],
+      "properties": {
+        "device": {"const": "keyboard"},
+        "key": {"type": "string", "minLength": 1}
+      }
+    },
+    "mouseBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device", "button"],
+      "properties": {
+        "device": {"const": "mouse"},
+        "button": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

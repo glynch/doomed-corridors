@@ -28,5 +28,7 @@ public final class DoomedCorridorsRuntimeExtension implements ProjectRuntimeExte
                 DoomedCorridorsTypes.MAP_MATERIALS,
                 DoomMapMaterialsResourceDecoder::decode);
         validRegistry.registerSceneNode(DoomedCorridorsTypes.DOOM_LEVEL_3D, DoomLevel3d::create);
+        validRegistry.registerNodeController(
+                DoomedCorridorsTypes.DOOM_PLAYER_CONTROLLER, DoomPlayerController::create);
     }
 }
