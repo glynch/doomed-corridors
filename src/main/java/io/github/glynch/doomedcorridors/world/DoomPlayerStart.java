@@ -4,15 +4,15 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+
 /** Player-one camera start expressed in JScene3D world coordinates. */
 public record DoomPlayerStart(float x, float eyeHeight, float z, float yawRadians) {
     /** Creates a finite player start. */
     public DoomPlayerStart {
-        if (!Float.isFinite(x)
-                || !Float.isFinite(eyeHeight)
-                || !Float.isFinite(z)
-                || !Float.isFinite(yawRadians)) {
-            throw new IllegalArgumentException("player start values must be finite");
-        }
+        requireFinite(x, "x");
+        requireFinite(eyeHeight, "eyeHeight");
+        requireFinite(z, "z");
+        requireFinite(yawRadians, "yawRadians");
     }
 }

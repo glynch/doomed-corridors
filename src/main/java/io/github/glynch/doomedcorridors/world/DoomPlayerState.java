@@ -4,17 +4,17 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+
 /** Immutable observable player position and view orientation in JScene3D world coordinates. */
 public record DoomPlayerState(
         float x, float eyeHeight, float z, float yawRadians, float pitchRadians) {
     /** Creates a finite player state. */
     public DoomPlayerState {
-        if (!Float.isFinite(x)
-                || !Float.isFinite(eyeHeight)
-                || !Float.isFinite(z)
-                || !Float.isFinite(yawRadians)
-                || !Float.isFinite(pitchRadians)) {
-            throw new IllegalArgumentException("player state values must be finite");
-        }
+        requireFinite(x, "x");
+        requireFinite(eyeHeight, "eyeHeight");
+        requireFinite(z, "z");
+        requireFinite(yawRadians, "yawRadians");
+        requireFinite(pitchRadians, "pitchRadians");
     }
 }

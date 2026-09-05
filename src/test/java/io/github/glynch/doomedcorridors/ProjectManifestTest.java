@@ -115,10 +115,15 @@ final class ProjectManifestTest {
         assertThat(level.properties().get("materials"))
                 .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.imported(
                         "freedoom-map-materials/materials/MAP01")));
-        assertThat(levelDefinition.controller()).isPresent();
-        assertThat(levelDefinition.children()).singleElement()
-                .extracting(SceneNodeDefinition::id)
-                .isEqualTo("camera");
+        assertThat(levelDefinition.controller()).isEmpty();
+        assertThat(levelDefinition.children()).singleElement().satisfies(player -> {
+            assertThat(player.id()).isEqualTo("player");
+            assertThat(player.controller()).isPresent();
+            assertThat(player.children())
+                    .singleElement()
+                    .extracting(SceneNodeDefinition::id)
+                    .isEqualTo("camera");
+        });
 
         ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
                 .load(project, ProjectManifestTest.class.getClassLoader());
@@ -154,7 +159,8 @@ final class ProjectManifestTest {
                         "strafe-left",
                         "strafe-right",
                         "turn-left",
-                        "turn-right");
+                        "turn-right",
+                        "interact");
     }
 
     /** Keeps the editor-facing input-map schema copy identical to the engine contract. */

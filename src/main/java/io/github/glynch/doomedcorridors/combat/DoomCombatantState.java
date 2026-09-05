@@ -4,6 +4,10 @@
  */
 package io.github.glynch.doomedcorridors.combat;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireInRange;
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requirePositive;
+
 import io.github.glynch.doomedcorridors.actor.DoomActor;
 import java.util.Objects;
 
@@ -23,15 +27,9 @@ public final class DoomCombatantState {
     /** Creates one validated combatant snapshot. */
     DoomCombatantState(DoomActor actor, float radius, float height, int maximumHealth) {
         DoomActor validActor = Objects.requireNonNull(actor, "actor");
-        if (!Float.isFinite(radius)
-                || !Float.isFinite(height)
-                || radius <= 0.0F
-                || height <= 0.0F) {
-            throw new IllegalArgumentException("combatant dimensions must be finite and positive");
-        }
-        if (maximumHealth <= 0) {
-            throw new IllegalArgumentException("maximumHealth must be positive");
-        }
+        requirePositive(radius, "radius");
+        requirePositive(height, "height");
+        requirePositive(maximumHealth, "maximumHealth");
         thingIndex = validActor.thingIndex();
         actorId = validActor.definition().id();
         x = validActor.x();
@@ -52,9 +50,7 @@ public final class DoomCombatantState {
             float z,
             int health,
             DoomCombatantActivity activity) {
-        if (health < 0 || health > source.maximumHealth) {
-            throw new IllegalArgumentException("combatant health is outside its valid range");
-        }
+        requireInRange(health, 0, source.maximumHealth, "health");
         requireFinite(x, "x");
         requireFinite(floorHeight, "floorHeight");
         requireFinite(z, "z");
@@ -153,10 +149,4 @@ public final class DoomCombatantState {
         return withPose(x, floorHeight, z, newActivity);
     }
 
-    /** Requires one finite coordinate. */
-    private static void requireFinite(float value, String name) {
-        if (!Float.isFinite(value)) {
-            throw new IllegalArgumentException(name + " must be finite");
-        }
-    }
 }

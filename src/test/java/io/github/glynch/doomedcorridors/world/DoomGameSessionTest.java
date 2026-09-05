@@ -143,6 +143,67 @@ final class DoomGameSessionTest {
         assertThat(position.floorHeight()).isZero();
     }
 
+    /** Opens a nearby special-31 door and uses its live ceiling for later collision queries. */
+    @Test
+    void opensManualDoorAndCrossesItsPortal() {
+        DoomGameSession session = DoomGameSession.create(
+                manualDoor(), new DoomPlayerStart(2.0F, 41.0F / 32.0F, -2.0F, 0.0F));
+
+        assertThat(session.doors()).singleElement().satisfies(door -> {
+            assertThat(door.sectorIndex()).isEqualTo(1);
+            assertThat(door.phase()).isEqualTo(DoomDoorState.Phase.CLOSED);
+            assertThat(door.currentCeilingHeight()).isZero();
+        });
+
+        session.advance(
+                new DoomPlayerCommand(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, true),
+                Duration.ofSeconds(2));
+        DoomDoorState opened = session.doors().getFirst();
+        DoomPlayerState player = session.advance(
+                new DoomPlayerCommand(1.0F, 0.0F, 0.0F, 0.0F, 0.0F),
+                Duration.ofMillis(300));
+
+        assertThat(opened.phase()).isEqualTo(DoomDoorState.Phase.OPEN);
+        assertThat(opened.currentCeilingHeight()).isEqualTo(124.0F / 32.0F);
+        assertThat(player.x()).isGreaterThan(4.0F);
+    }
+
+    /** Runs a special-117 door through its fast open, wait, and close phases. */
+    @Test
+    void cyclesManualBlazeDoor() {
+        DoomGameSession session = DoomGameSession.create(
+                blazeDoor(), new DoomPlayerStart(2.0F, 41.0F / 32.0F, -2.0F, 0.0F));
+
+        session.advance(
+                new DoomPlayerCommand(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, true),
+                Duration.ofMillis(600));
+        DoomDoorState waiting = session.doors().getFirst();
+        session.advance(DoomPlayerCommand.idle(), Duration.ofSeconds(5));
+        DoomDoorState closed = session.doors().getFirst();
+
+        assertThat(waiting.phase()).isEqualTo(DoomDoorState.Phase.WAITING);
+        assertThat(waiting.currentCeilingHeight()).isEqualTo(124.0F / 32.0F);
+        assertThat(closed.phase()).isEqualTo(DoomDoorState.Phase.CLOSED);
+        assertThat(closed.currentCeilingHeight()).isZero();
+    }
+
+    /** Prevents an interaction request from operating a door through a nearer solid wall. */
+    @Test
+    void blocksDoorInteractionThroughWall() {
+        DoomGameSession session = DoomGameSession.create(
+                manualDoorBehindWall(),
+                new DoomPlayerStart(2.0F, 41.0F / 32.0F, -2.0F, 0.0F));
+
+        session.advance(
+                new DoomPlayerCommand(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, true),
+                Duration.ofSeconds(2));
+
+        assertThat(session.doors())
+                .singleElement()
+                .extracting(DoomDoorState::phase)
+                .isEqualTo(DoomDoorState.Phase.CLOSED);
+    }
+
     private static DoomMap room(int size, int playerX, int playerY) {
         List<DoomMap.Vertex> vertices = List.of(
                 new DoomMap.Vertex(0, 0),
@@ -161,6 +222,40 @@ final class DoomGameSessionTest {
     }
 
     private static DoomMap twoRooms(int destinationFloor, int destinationCeiling) {
+        return twoRooms(destinationFloor, destinationCeiling, 0);
+    }
+
+    private static DoomMap manualDoor() {
+        return twoRooms(0, 0, 31);
+    }
+
+    private static DoomMap blazeDoor() {
+        return twoRooms(0, 0, 117);
+    }
+
+    private static DoomMap manualDoorBehindWall() {
+        DoomMap source = manualDoor();
+        List<DoomMap.Vertex> vertices = new ArrayList<>(source.vertices());
+        int firstVertex = vertices.size();
+        vertices.add(new DoomMap.Vertex(96, 0));
+        vertices.add(new DoomMap.Vertex(96, 128));
+        List<DoomMap.Sidedef> sidedefs = new ArrayList<>(source.sidedefs());
+        int blockingSide = sidedefs.size();
+        sidedefs.add(side(0));
+        List<DoomMap.Linedef> linedefs = new ArrayList<>(source.linedefs());
+        linedefs.add(new DoomMap.Linedef(
+                firstVertex, firstVertex + 1, 1, 0, 0, blockingSide, -1));
+        return new DoomMap(
+                source.name(),
+                source.things(),
+                new DoomMap.Geometry(vertices, linedefs, sidedefs, source.sectors()),
+                new DoomMap.Bsp(source.segs(), source.subsectors(), source.nodes()),
+                source.rejectBytes(),
+                source.blockmap());
+    }
+
+    private static DoomMap twoRooms(
+            int destinationFloor, int destinationCeiling, int portalSpecial) {
         List<DoomMap.Vertex> vertices = List.of(
                 new DoomMap.Vertex(0, 0),
                 new DoomMap.Vertex(0, 128),
@@ -175,7 +270,14 @@ final class DoomGameSessionTest {
                 line(3, 4, 3, -1),
                 line(4, 5, 4, -1),
                 line(5, 0, 5, -1),
-                new DoomMap.Linedef(5, 2, 4, 0, 0, 6, 7));
+                new DoomMap.Linedef(
+                        5,
+                        2,
+                        4,
+                        portalSpecial,
+                        0,
+                        portalSpecial == 0 ? 6 : 7,
+                        portalSpecial == 0 ? 7 : 6));
         List<DoomMap.Sidedef> sides = new ArrayList<>();
         sides.add(side(0));
         sides.add(side(0));

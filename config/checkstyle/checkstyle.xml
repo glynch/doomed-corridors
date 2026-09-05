@@ -4,6 +4,10 @@
     <property name="charset" value="UTF-8" />
     <property name="severity" value="error" />
     <module name="TreeWalker">
+        <module name="ParameterNumber">
+            <property name="max" value="7" />
+            <property name="ignoreOverriddenMethods" value="true" />
+        </module>
         <module name="MatchXpath">
             <property name="query" value="//LAMBDA[ancestor::METHOD_CALL[descendant::IDENT[@text='assertThatThrownBy' or @text='assertThrows']]][count(.//METHOD_CALL | .//LITERAL_NEW) &gt; 1]" />
             <message key="matchxpath.match" value="Prepare arguments before an exception assertion so its lambda contains only the invocation under test." />

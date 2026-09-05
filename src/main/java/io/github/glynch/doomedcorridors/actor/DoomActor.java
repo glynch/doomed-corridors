@@ -4,6 +4,9 @@
  */
 package io.github.glynch.doomedcorridors.actor;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireNonNegative;
+
 import java.util.Objects;
 
 /** One visible, difficulty-filtered map actor in renderer-independent world coordinates. */
@@ -11,9 +14,7 @@ public record DoomActor(
         int thingIndex, DoomActorDefinition definition, float x, float floorHeight, float z, float yawRadians) {
     /** Creates one finite resolved actor placement. */
     public DoomActor {
-        if (thingIndex < 0) {
-            throw new IllegalArgumentException("thingIndex must not be negative");
-        }
+        requireNonNegative(thingIndex, "thingIndex");
         Objects.requireNonNull(definition, "definition");
         requireFinite(x, "x");
         requireFinite(floorHeight, "floorHeight");
@@ -24,10 +25,4 @@ public record DoomActor(
         }
     }
 
-    /** Requires one finite coordinate or angle. */
-    private static void requireFinite(float value, String name) {
-        if (!Float.isFinite(value)) {
-            throw new IllegalArgumentException(name + " must be finite");
-        }
-    }
 }

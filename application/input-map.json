@@ -13,6 +13,10 @@
     "strafe-left": [{"device": "keyboard", "key": "A"}],
     "strafe-right": [{"device": "keyboard", "key": "D"}],
     "turn-left": [{"device": "keyboard", "key": "LEFT"}],
-    "turn-right": [{"device": "keyboard", "key": "RIGHT"}]
+    "turn-right": [{"device": "keyboard", "key": "RIGHT"}],
+    "interact": [
+      {"device": "keyboard", "key": "E"},
+      {"device": "keyboard", "key": "SPACE"}
+    ]
   }
 }

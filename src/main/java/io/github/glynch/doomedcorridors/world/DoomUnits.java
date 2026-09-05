@@ -33,6 +33,11 @@ public final class DoomUnits {
         return worldUnits * UNITS_PER_WORLD_UNIT;
     }
 
+    /** Returns an application measurement in source Doom map units without widening it. */
+    public static float fromWorldFloat(float worldUnits) {
+        return worldUnits * UNITS_PER_WORLD_UNIT;
+    }
+
     /** Maps an application world z-coordinate onto the Doom map y-axis. */
     public static double worldZToY(float worldZ) {
         return -fromWorld(worldZ);

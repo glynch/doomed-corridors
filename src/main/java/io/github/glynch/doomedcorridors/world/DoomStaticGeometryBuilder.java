@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
@@ -96,7 +97,11 @@ public final class DoomStaticGeometryBuilder {
         int[] indices = planeIndices(vertices, floor);
         DoomSurface.Type type = floor ? DoomSurface.Type.FLOOR : DoomSurface.Type.CEILING;
         state.surfaces.add(new DoomSurface(
-                type, materialName, sectorIndex, new DoomMeshData(positions, normals, textureCoordinates, indices)));
+                type,
+                materialName,
+                sectorIndex,
+                new DoomMeshData(positions, normals, textureCoordinates, indices),
+                floor ? OptionalInt.empty() : OptionalInt.of(sectorIndex)));
     }
 
     /** Triangulates one convex polygon while preserving the requested visible face. */
@@ -117,21 +122,21 @@ public final class DoomStaticGeometryBuilder {
     private static void addWalls(BuildState state) {
         for (int linedefIndex = 0; linedefIndex < state.map.linedefs().size(); linedefIndex++) {
             DoomMap.Linedef linedef = state.map.linedefs().get(linedefIndex);
-            addWallSide(state, linedefIndex, linedef, true);
+            addWallSide(state, linedefIndex, linedef, WallSide.RIGHT);
             if (linedef.leftSidedef() >= 0) {
-                addWallSide(state, linedefIndex, linedef, false);
+                addWallSide(state, linedefIndex, linedef, WallSide.LEFT);
             }
         }
     }
 
     /** Adds the opaque or portal wall spans visible from one linedef side. */
     private static void addWallSide(
-            BuildState state, int linedefIndex, DoomMap.Linedef linedef, boolean rightSide) {
-        int sidedefIndex = rightSide ? linedef.rightSidedef() : linedef.leftSidedef();
-        int neighborIndex = rightSide ? linedef.leftSidedef() : linedef.rightSidedef();
+            BuildState state, int linedefIndex, DoomMap.Linedef linedef, WallSide side) {
+        int sidedefIndex = side.sidedefIndex(linedef);
+        int neighborIndex = side.neighborSidedefIndex(linedef);
         DoomMap.Sidedef sidedef = state.map.sidedefs().get(sidedefIndex);
         DoomMap.Sector sector = state.map.sectors().get(sidedef.sector());
-        String sideLocation = "/linedefs/" + linedefIndex + (rightSide ? "/right" : "/left");
+        String sideLocation = "/linedefs/" + linedefIndex + '/' + side.locationSegment();
         if (neighborIndex < 0) {
             addWallSpan(
                     state,
@@ -139,27 +144,34 @@ public final class DoomStaticGeometryBuilder {
                             linedef,
                             sidedef,
                             sideLocation,
-                            rightSide,
+                            side,
                             new WallRange(
                                     sector.floorHeight(), sector.ceilingHeight(), sector.ceilingHeight()),
                             new WallAppearance(
-                                    sidedef.middleTexture(), DoomSurface.Type.MIDDLE_WALL)),
+                                    sidedef.middleTexture(), DoomSurface.Type.MIDDLE_WALL),
+                            OptionalInt.empty()),
                     sidedef.sector());
             return;
         }
-        DoomMap.Sector neighbor = state.map.sectors().get(state.map.sidedefs().get(neighborIndex).sector());
-        addPortalSpans(state, linedef, sidedef, sector, neighbor, sideLocation, rightSide);
+        int neighborSectorIndex = state.map.sidedefs().get(neighborIndex).sector();
+        DoomMap.Sector neighbor = state.map.sectors().get(neighborSectorIndex);
+        addPortalSpans(
+                state,
+                new PortalWallSide(
+                        linedef,
+                        sidedef,
+                        new SectorReference(sidedef.sector(), sector),
+                        new SectorReference(neighborSectorIndex, neighbor),
+                        sideLocation,
+                        side));
     }
 
     /** Selects upper, lower, and masked-middle spans for a two-sided portal. */
-    private static void addPortalSpans(
-            BuildState state,
-            DoomMap.Linedef linedef,
-            DoomMap.Sidedef sidedef,
-            DoomMap.Sector sector,
-            DoomMap.Sector neighbor,
-            String location,
-            boolean rightSide) {
+    private static void addPortalSpans(BuildState state, PortalWallSide wall) {
+        DoomMap.Linedef linedef = wall.linedef();
+        DoomMap.Sidedef sidedef = wall.sidedef();
+        DoomMap.Sector sector = wall.sector().value();
+        DoomMap.Sector neighbor = wall.neighbor().value();
         if (neighbor.ceilingHeight() < sector.ceilingHeight()) {
             int textureTop = (linedef.flags() & DONT_PEG_TOP) != 0
                     ? sector.ceilingHeight()
@@ -169,13 +181,14 @@ public final class DoomStaticGeometryBuilder {
                     new WallSpan(
                             linedef,
                             sidedef,
-                            location,
-                            rightSide,
+                            wall.location(),
+                            wall.side(),
                             new WallRange(
                                     neighbor.ceilingHeight(), sector.ceilingHeight(), textureTop),
                             new WallAppearance(
-                                    sidedef.upperTexture(), DoomSurface.Type.UPPER_WALL)),
-                    sidedef.sector());
+                                    sidedef.upperTexture(), DoomSurface.Type.UPPER_WALL),
+                            OptionalInt.of(wall.neighbor().index())),
+                    wall.sector().index());
         }
         if (neighbor.floorHeight() > sector.floorHeight()) {
             int textureTop = (linedef.flags() & DONT_PEG_BOTTOM) != 0
@@ -186,13 +199,14 @@ public final class DoomStaticGeometryBuilder {
                     new WallSpan(
                             linedef,
                             sidedef,
-                            location,
-                            rightSide,
+                            wall.location(),
+                            wall.side(),
                             new WallRange(
                                     sector.floorHeight(), neighbor.floorHeight(), textureTop),
                             new WallAppearance(
-                                    sidedef.lowerTexture(), DoomSurface.Type.LOWER_WALL)),
-                    sidedef.sector());
+                                    sidedef.lowerTexture(), DoomSurface.Type.LOWER_WALL),
+                            OptionalInt.empty()),
+                    wall.sector().index());
         }
         int openingBottom = Math.max(sector.floorHeight(), neighbor.floorHeight());
         int openingTop = Math.min(sector.ceilingHeight(), neighbor.ceilingHeight());
@@ -205,12 +219,13 @@ public final class DoomStaticGeometryBuilder {
                     new WallSpan(
                             linedef,
                             sidedef,
-                            location,
-                            rightSide,
+                            wall.location(),
+                            wall.side(),
                             new WallRange(openingBottom, openingTop, textureTop),
                             new WallAppearance(
-                                    sidedef.middleTexture(), DoomSurface.Type.MASKED_MIDDLE_WALL)),
-                    sidedef.sector());
+                                    sidedef.middleTexture(), DoomSurface.Type.MASKED_MIDDLE_WALL),
+                            OptionalInt.empty()),
+                    wall.sector().index());
         }
     }
 
@@ -232,7 +247,7 @@ public final class DoomStaticGeometryBuilder {
         }
         DoomMap.Vertex first = state.map.vertices().get(span.linedef.startVertex());
         DoomMap.Vertex second = state.map.vertices().get(span.linedef.endVertex());
-        if (!span.rightSide) {
+        if (span.side == WallSide.LEFT) {
             DoomMap.Vertex replacement = first;
             first = second;
             second = replacement;
@@ -252,7 +267,8 @@ public final class DoomStaticGeometryBuilder {
                 span.appearance.type,
                 span.appearance.materialName,
                 sectorIndex,
-                new DoomMeshData(positions, normals, textureCoordinates, new int[] {0, 1, 2, 0, 2, 3})));
+                new DoomMeshData(positions, normals, textureCoordinates, new int[] {0, 1, 2, 0, 2, 3}),
+                span.movingCeilingSector));
     }
 
     /** Builds the four bottom-to-top wall vertices. */
@@ -490,28 +506,67 @@ public final class DoomStaticGeometryBuilder {
     /** One renderer-independent point used only while recovering BSP polygons. */
     private record PlanarPoint(double x, double y) {}
 
+    /** Identifies one directed linedef side without an ambiguous boolean argument. */
+    private enum WallSide {
+        RIGHT("right"),
+        LEFT("left");
+
+        private final String locationSegment;
+
+        WallSide(String locationSegment) {
+            this.locationSegment = locationSegment;
+        }
+
+        private int sidedefIndex(DoomMap.Linedef linedef) {
+            return this == RIGHT ? linedef.rightSidedef() : linedef.leftSidedef();
+        }
+
+        private int neighborSidedefIndex(DoomMap.Linedef linedef) {
+            return this == RIGHT ? linedef.leftSidedef() : linedef.rightSidedef();
+        }
+
+        private String locationSegment() {
+            return locationSegment;
+        }
+    }
+
+    /** One indexed sector selected while interpreting a directed wall side. */
+    private record SectorReference(int index, DoomMap.Sector value) {}
+
+    /** Related inputs needed to select the visible spans of one portal wall side. */
+    private record PortalWallSide(
+            DoomMap.Linedef linedef,
+            DoomMap.Sidedef sidedef,
+            SectorReference sector,
+            SectorReference neighbor,
+            String location,
+            WallSide side) {}
+
     /** Parameters describing one selected wall span before it becomes a quad. */
     private static final class WallSpan {
         private final DoomMap.Linedef linedef;
         private final DoomMap.Sidedef sidedef;
         private final String location;
-        private final boolean rightSide;
+        private final WallSide side;
         private final WallRange range;
         private final WallAppearance appearance;
+        private final OptionalInt movingCeilingSector;
 
         private WallSpan(
                 DoomMap.Linedef linedef,
                 DoomMap.Sidedef sidedef,
                 String location,
-                boolean rightSide,
+                WallSide side,
                 WallRange range,
-                WallAppearance appearance) {
+                WallAppearance appearance,
+                OptionalInt movingCeilingSector) {
             this.linedef = linedef;
             this.sidedef = sidedef;
             this.location = location;
-            this.rightSide = rightSide;
+            this.side = side;
             this.range = range;
             this.appearance = appearance;
+            this.movingCeilingSector = movingCeilingSector;
         }
     }
 

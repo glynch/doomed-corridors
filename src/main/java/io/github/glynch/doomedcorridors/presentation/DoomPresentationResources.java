@@ -9,7 +9,9 @@ import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
 import io.github.glynch.doomedcorridors.world.DoomMeshData;
 import io.github.glynch.doomedcorridors.world.DoomSurface;
+import io.github.glynch.jscene3d.geometries.BufferAttribute;
 import io.github.glynch.jscene3d.geometries.BufferGeometry;
+import io.github.glynch.jscene3d.geometries.BufferUsage;
 import io.github.glynch.jscene3d.materials.AlphaMode;
 import io.github.glynch.jscene3d.materials.BasicMaterial;
 import io.github.glynch.jscene3d.textures.Texture;
@@ -33,12 +35,21 @@ final class DoomPresentationResources implements AutoCloseable {
     }
 
     /** Copies and retains one renderer-independent mesh. */
-    BufferGeometry createGeometry(DoomMeshData mesh) {
+    BufferGeometry createGeometry(DoomSurface surface) {
         requireOpen();
+        DoomMeshData mesh = surface.mesh();
+        BufferAttribute positions = BufferAttribute.of(
+                mesh.positions(),
+                3,
+                surface.movingCeilingSector().isPresent() ? BufferUsage.DYNAMIC : BufferUsage.STATIC);
+        BufferAttribute textureCoordinates = BufferAttribute.of(
+                mesh.textureCoordinates(),
+                2,
+                surface.movingCeilingSector().isPresent() ? BufferUsage.DYNAMIC : BufferUsage.STATIC);
         BufferGeometry geometry = BufferGeometry.builder()
-                .positions(mesh.positions())
+                .attribute(BufferGeometry.POSITION, positions)
                 .normals(mesh.normals())
-                .uvs(mesh.textureCoordinates())
+                .attribute(BufferGeometry.UV, textureCoordinates)
                 .indices(mesh.indices())
                 .build();
         geometries.add(geometry);

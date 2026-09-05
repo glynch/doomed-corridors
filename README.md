@@ -101,11 +101,15 @@ Render the same declarative scene through the graphical project runtime with:
 ./mvnw -Prun-project-runtime compile
 ```
 
-This preview renders the imported static MAP01 geometry from the native import
-cache. It intentionally does not yet include movement, actors, combat, doors,
-switches, or the HUD; those remain available through the playable launcher
-while they are migrated onto the project runtime. Press Escape or close the
-window to stop the preview.
+This preview renders MAP01 from the native import cache and drives the authored
+`Player` scene node through the declarative input map. Click the viewport to
+capture the pointer; use WASD to move, the arrow keys or mouse to turn, and E or
+Space to operate supported doors. The first door slice recognizes classic
+manual open-and-stay and fast raise doors (linedef specials 31 and 117), updates
+their geometry and collision together, and derives each door from imported map
+data. Actors, combat, other door and switch behaviors, and the HUD remain to be
+moved onto the project runtime. Escape releases the pointer; press it again or
+close the window to stop the preview.
 
 ## Development
 

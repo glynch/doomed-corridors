@@ -126,7 +126,7 @@ public final class DoomMapPresentation implements AutoCloseable {
         Map<DoomPresentationResources.MapMaterialKey, BasicMaterial> materialCache =
                 new LinkedHashMap<>();
         for (DoomSurface surface : validGeometry.surfaces()) {
-            var bufferGeometry = resources.createGeometry(surface.mesh());
+            var bufferGeometry = resources.createGeometry(surface);
             BasicMaterial material = materialCache.computeIfAbsent(
                     DoomPresentationResources.materialKey(surface),
                     key -> resources.createMapMaterial(key, validMaterials));

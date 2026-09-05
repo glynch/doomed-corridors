@@ -22,6 +22,7 @@ import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -122,9 +123,11 @@ final class DoomedCorridorsRuntimeExtensionTest {
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.isOpen()).isTrue();
         ProjectRuntime projectRuntime = result.runtime().orElseThrow();
-        DoomLevel3d level = (DoomLevel3d) projectRuntime.root().children().getFirst().object();
+        var levelNode = projectRuntime.root().children().getFirst();
+        DoomLevel3d level = (DoomLevel3d) levelNode.object();
+        var playerNode = levelNode.children().getFirst();
         DoomPlayerController controller =
-                (DoomPlayerController) projectRuntime.root().children().getFirst().controller().orElseThrow();
+                (DoomPlayerController) playerNode.controller().orElseThrow();
         float initialX = controller.player().x();
         try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
             assertThat(level.isStarted()).isFalse();
@@ -132,6 +135,9 @@ final class DoomedCorridorsRuntimeExtensionTest {
             assertThat(level.map()).isInstanceOf(DoomMap.class);
             assertThat(level.surfaceCount()).isEqualTo(6);
             assertThat(level.object3d().children()).hasSize(7);
+            assertThat(playerNode.definition().id()).isEqualTo("player");
+            assertThat(playerNode.children()).singleElement().satisfies(camera ->
+                    assertThat(camera.definition().id()).isEqualTo("camera"));
 
             runtime.start();
             runtime.advance(
@@ -142,6 +148,8 @@ final class DoomedCorridorsRuntimeExtensionTest {
 
             assertThat(level.isStarted()).isTrue();
             assertThat(controller.player().x()).isGreaterThan(initialX);
+            Scene3dRuntimeObject playerObject = (Scene3dRuntimeObject) playerNode.object();
+            assertThat(playerObject.object3d().position().x()).isEqualTo(controller.player().x());
         }
     }
 

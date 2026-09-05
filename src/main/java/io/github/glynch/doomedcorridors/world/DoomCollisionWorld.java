@@ -4,8 +4,13 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireNonNegative;
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requirePositive;
+
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.Objects;
+import java.util.function.IntToDoubleFunction;
 
 /** Circle-versus-linedef movement shared by player and actor simulation. */
 public final class DoomCollisionWorld {
@@ -24,6 +29,7 @@ public final class DoomCollisionWorld {
     private static final float COLLISION_TOLERANCE = 0.000_01F;
 
     private final DoomMap map;
+    private final IntToDoubleFunction ceilingHeights;
 
     /**
      * Retains validated decoded map records.
@@ -31,7 +37,13 @@ public final class DoomCollisionWorld {
      * @param map decoded classic map used for movement queries
      */
     public DoomCollisionWorld(DoomMap map) {
+        this(map, sectorIndex -> DoomUnits.toWorld(map.sectors().get(sectorIndex).ceilingHeight()));
+    }
+
+    /** Retains map records and a mutable ceiling-height view owned by the game session. */
+    DoomCollisionWorld(DoomMap map, IntToDoubleFunction ceilingHeights) {
         this.map = Objects.requireNonNull(map, "map");
+        this.ceilingHeights = Objects.requireNonNull(ceilingHeights, "ceilingHeights");
     }
 
     /** Moves a player circle as far as possible and slides the remainder along the first wall. */
@@ -147,10 +159,13 @@ public final class DoomCollisionWorld {
         if (linedef.leftSidedef() < 0 || (linedef.flags() & BLOCKING_LINE) != 0) {
             return true;
         }
-        DoomMap.Sector right = sectorForSide(linedef.rightSidedef());
-        DoomMap.Sector left = sectorForSide(linedef.leftSidedef());
+        int rightSector = sectorIndexForSide(linedef.rightSidedef());
+        int leftSector = sectorIndexForSide(linedef.leftSidedef());
+        DoomMap.Sector right = map.sectors().get(rightSector);
+        DoomMap.Sector left = map.sectors().get(leftSector);
         float openingBottom = DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
-        float openingTop = DoomUnits.toWorld(Math.min(right.ceilingHeight(), left.ceilingHeight()));
+        float openingTop = (float)
+                Math.min(ceilingHeights.applyAsDouble(rightSector), ceilingHeights.applyAsDouble(leftSector));
         return openingTop - openingBottom < body.height()
                 || openingTop - currentFloor < body.height()
                 || openingBottom - currentFloor > body.maximumStep();
@@ -197,8 +212,8 @@ public final class DoomCollisionWorld {
     }
 
     /** Returns the sector referenced by one sidedef. */
-    private DoomMap.Sector sectorForSide(int sidedefIndex) {
-        return map.sectors().get(map.sidedefs().get(sidedefIndex).sector());
+    private int sectorIndexForSide(int sidedefIndex) {
+        return map.sidedefs().get(sidedefIndex).sector();
     }
 
     /** Locates the BSP subsector containing one engine-coordinate point. */
@@ -225,7 +240,7 @@ public final class DoomCollisionWorld {
         DoomMap.Seg seg = map.segs().get(subsector.firstSeg());
         DoomMap.Linedef linedef = map.linedefs().get(seg.linedef());
         int side = seg.direction() == 0 ? linedef.rightSidedef() : linedef.leftSidedef();
-        return map.sidedefs().get(side).sector();
+        return sectorIndexForSide(side);
     }
 
     /** Accepted position and its supporting floor. */
@@ -234,14 +249,11 @@ public final class DoomCollisionWorld {
     /** Validated circle and vertical-clearance dimensions used by one movement operation. */
     private record BodyDimensions(float radius, float height, float maximumStep) {
         private BodyDimensions {
-            if (!Float.isFinite(radius)
-                    || !Float.isFinite(height)
-                    || !Float.isFinite(maximumStep)
-                    || radius <= COLLISION_TOLERANCE
-                    || height <= 0.0F
-                    || maximumStep < 0.0F) {
-                throw new IllegalArgumentException(
-                        "collision dimensions must be finite with positive radius and height");
+            radius = requireFinite(radius, "radius");
+            height = requirePositive(height, "height");
+            maximumStep = requireNonNegative(maximumStep, "maximumStep");
+            if (radius <= COLLISION_TOLERANCE) {
+                throw new IllegalArgumentException("radius must exceed the collision tolerance: " + radius);
             }
         }
     }

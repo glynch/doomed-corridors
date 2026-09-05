@@ -4,20 +4,24 @@
  */
 package io.github.glynch.doomedcorridors.runtime;
 
+import io.github.glynch.doomedcorridors.presentation.DoomPlayerCamera;
+import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
+import io.github.glynch.doomedcorridors.world.DoomDoorState;
 import io.github.glynch.doomedcorridors.world.DoomGameSession;
 import io.github.glynch.doomedcorridors.world.DoomPlayerCommand;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
-import io.github.glynch.doomedcorridors.presentation.DoomPlayerCamera;
 import io.github.glynch.jscene3d.cameras.PerspectiveCamera;
 import io.github.glynch.jscene3d.game.FrameUpdate;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
+import io.github.glynch.jscene3d.objects.Object3D;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateParticipant;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeObject;
 import io.github.glynch.jscene3d.project.runtime.RuntimeNode;
 import io.github.glynch.jscene3d.project.runtime.extension.NodeControllerContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
+import java.util.List;
 import java.util.Objects;
 
 /** Game-owned player movement controller driven exclusively by semantic project input. */
@@ -28,8 +32,11 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
     private static final InputAction STRAFE_RIGHT = new InputAction("strafe-right");
     private static final InputAction TURN_LEFT = new InputAction("turn-left");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
+    private static final InputAction INTERACT = new InputAction("interact");
 
     private final RuntimeNode node;
+    private final DoomLevel3d level;
+    private final Object3D playerObject;
     private final String cameraNodeId;
     private final float pointerSensitivity;
     private final DoomGameSession session;
@@ -40,20 +47,30 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
     /** Stores the authored controller configuration and creates its headless player session. */
     private DoomPlayerController(
             RuntimeNode node,
+            DoomLevel3d level,
+            Object3D playerObject,
             String cameraNodeId,
             float pointerSensitivity,
             DoomGameSession session) {
         this.node = node;
+        this.level = level;
+        this.playerObject = playerObject;
         this.cameraNodeId = cameraNodeId;
         this.pointerSensitivity = pointerSensitivity;
         this.session = session;
     }
 
-    /** Creates one controller for a Doom level and its declared camera child. */
+    /** Creates one controller for a player group nested directly below a Doom level. */
     static DoomPlayerController create(NodeControllerContext context) {
         RuntimeNode node = context.node();
-        if (!(node.object() instanceof DoomLevel3d level)) {
-            throw new IllegalArgumentException("doom-player-controller requires a doom-level-3d node");
+        DoomLevel3d level = node.parent()
+                .map(RuntimeNode::object)
+                .filter(DoomLevel3d.class::isInstance)
+                .map(DoomLevel3d.class::cast)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "doom-player-controller requires a player node directly below doom-level-3d"));
+        if (!(node.object() instanceof Scene3dRuntimeObject spatialPlayer)) {
+            throw new IllegalArgumentException("doom-player-controller requires a spatial 3d player node");
         }
         String cameraNode = ProjectValues.text(context.properties(), "camera-node");
         float sensitivity = ProjectValues.finiteFloat(context.properties(), "pointer-sensitivity");
@@ -61,7 +78,8 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
             throw new IllegalArgumentException("pointer-sensitivity must be greater than zero");
         }
         DoomGameSession session = DoomGameSession.create(level.map(), level.playerStart());
-        return new DoomPlayerController(node, cameraNode, sensitivity, session);
+        return new DoomPlayerController(
+                node, level, spatialPlayer.object3d(), cameraNode, sensitivity, session);
     }
 
     @Override
@@ -71,7 +89,8 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
             throw new IllegalStateException("Doom player controller has already started");
         }
         camera = findCamera();
-        DoomPlayerCamera.apply(camera, session.player());
+        applyPlayer(session.player());
+        level.applyDoorStates(session.doors());
         started = true;
     }
 
@@ -85,8 +104,10 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
                 input.axis(STRAFE_LEFT, STRAFE_RIGHT),
                 input.axis(TURN_RIGHT, TURN_LEFT),
                 -(float) input.pointerDeltaX() * pointerSensitivity,
-                -(float) input.pointerDeltaY() * pointerSensitivity);
-        DoomPlayerCamera.apply(camera, session.advance(command, update.elapsed()));
+                -(float) input.pointerDeltaY() * pointerSensitivity,
+                input.wasPressed(INTERACT));
+        applyPlayer(session.advance(command, update.elapsed()));
+        level.applyDoorStates(session.doors());
     }
 
     @Override
@@ -99,6 +120,28 @@ final class DoomPlayerController implements ProjectRuntimeObject, FrameUpdatePar
     DoomPlayerState player() {
         requireOpen();
         return session.player();
+    }
+
+    /** Returns immutable door snapshots for headless inspection and later play-debug tooling. */
+    List<DoomDoorState> doors() {
+        requireOpen();
+        return session.doors();
+    }
+
+    /** Maps world player state onto the authored player transform and its local camera. */
+    private void applyPlayer(DoomPlayerState player) {
+        playerObject.setPosition(
+                player.x(),
+                player.eyeHeight() - DoomCollisionWorld.PLAYER_EYE_HEIGHT,
+                player.z());
+        DoomPlayerCamera.apply(
+                camera,
+                new DoomPlayerState(
+                        0.0F,
+                        DoomCollisionWorld.PLAYER_EYE_HEIGHT,
+                        0.0F,
+                        player.yawRadians(),
+                        player.pitchRadians()));
     }
 
     /** Finds the declared camera among the controlled node's authored children. */

@@ -68,7 +68,7 @@
       "typeVersion": 1,
       "scope": "node-controller",
       "displayName": "Doom Player Controller",
-      "description": "Moves a Doom player from semantic input and updates its declared camera.",
+      "description": "Moves a Doom player nested directly below a Doom level, updates its declared camera, and submits interaction commands to that level.",
       "properties": [
         {
           "id": "camera-node",

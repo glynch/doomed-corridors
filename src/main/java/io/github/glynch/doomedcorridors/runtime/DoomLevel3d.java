@@ -6,6 +6,7 @@ package io.github.glynch.doomedcorridors.runtime;
 
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.presentation.DoomStaticMapPresentation;
+import io.github.glynch.doomedcorridors.world.DoomDoorState;
 import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
 import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
@@ -16,6 +17,7 @@ import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
 import io.github.glynch.jscene3d.project.runtime.extension.SceneNodeContext;
 import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
+import java.util.List;
 
 /** Runtime scene node presenting one declaratively selected imported Doom map. */
 final class DoomLevel3d implements Scene3dRuntimeObject {
@@ -67,6 +69,14 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
     int surfaceCount() {
         requireOpen();
         return presentation.surfaceCount();
+    }
+
+    /** Applies immutable headless door snapshots to the derived map presentation. */
+    void applyDoorStates(List<DoomDoorState> doors) {
+        requireOpen();
+        for (DoomDoorState door : List.copyOf(doors)) {
+            presentation.setSectorCeilingHeight(door.sectorIndex(), door.currentCeilingHeight());
+        }
     }
 
     @Override

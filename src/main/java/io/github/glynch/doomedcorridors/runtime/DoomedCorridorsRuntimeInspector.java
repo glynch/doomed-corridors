@@ -31,14 +31,24 @@ public final class DoomedCorridorsRuntimeInspector {
                 throw new IllegalStateException("entry scene does not contain a Doom level");
             }
             DoomMap map = level.map();
+            if (!(runtime.root()
+                    .children()
+                    .getFirst()
+                    .children()
+                    .getFirst()
+                    .controller()
+                    .orElseThrow() instanceof DoomPlayerController player)) {
+                throw new IllegalStateException("Doom level does not contain its player controller");
+            }
             System.out.printf(
                     "Resolved imported %s through the project runtime: %,d things, %,d linedefs, "
-                            + "%,d sectors, and %,d graphical surfaces%n",
+                            + "%,d sectors, %,d graphical surfaces, and %,d supported doors%n",
                     map.name(),
                     map.things().size(),
                     map.linedefs().size(),
                     map.sectors().size(),
-                    level.surfaceCount());
+                    level.surfaceCount(),
+                    player.doors().size());
         }
     }
 }

@@ -16,13 +16,15 @@ public final class DoomGameSession {
     private static final float TURN_SPEED = (float) Math.PI;
     private static final float MAXIMUM_PITCH = (float) Math.toRadians(85.0);
 
+    private final DoomDoorMechanisms doors;
     private final DoomCollisionWorld collision;
     private DoomPlayerState player;
     private long accumulatedNanos;
 
     /** Creates a session at the WAD-defined player start. */
     private DoomGameSession(DoomMap map, DoomPlayerStart start) {
-        collision = new DoomCollisionWorld(map);
+        doors = new DoomDoorMechanisms(map);
+        collision = new DoomCollisionWorld(map, doors::ceilingHeight);
         float eyeHeight = collision.floorHeight(start.x(), start.z()) + DoomCollisionWorld.PLAYER_EYE_HEIGHT;
         player = new DoomPlayerState(start.x(), eyeHeight, start.z(), start.yawRadians(), 0.0F);
     }
@@ -44,6 +46,11 @@ public final class DoomGameSession {
         return player;
     }
 
+    /** Returns immutable door snapshots in source-sector discovery order. */
+    public java.util.List<DoomDoorState> doors() {
+        return doors.states();
+    }
+
     /**
      * Applies one frame command and advances whole 35 Hz simulation steps from elapsed time.
      *
@@ -61,10 +68,14 @@ public final class DoomGameSession {
         if (validElapsed.isNegative()) {
             throw new IllegalArgumentException("elapsed must not be negative");
         }
+        if (validCommand.interact()) {
+            doors.interact(player.x(), player.z(), player.yawRadians());
+        }
         applyView(validCommand);
         accumulatedNanos = Math.addExact(accumulatedNanos, validElapsed.toNanos());
         while (accumulatedNanos >= FIXED_STEP_NANOS) {
             turnPlayer(validCommand);
+            doors.advanceFixedStep();
             movePlayer(validCommand);
             accumulatedNanos -= FIXED_STEP_NANOS;
         }
