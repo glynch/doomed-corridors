@@ -26,17 +26,35 @@
           {
             "id": "player",
             "name": "Player",
-            "type": "io.github.glynch.jscene3d/group-3d",
+            "type": "io.github.glynch.jscene3d/character-body-3d",
             "typeVersion": 1,
+            "properties": {
+              "gravity": 18,
+              "jump-speed": 0,
+              "maximum-step-height": 0.75,
+              "ground-snap-distance": 0.25
+            },
             "controller": {
               "type": "io.github.glynch.doomed-corridors/doom-player-controller",
               "typeVersion": 1,
               "properties": {
                 "camera-node": "camera",
-                "pointer-sensitivity": 0.002
+                "pointer-sensitivity": 0.002,
+                "move-speed": 8,
+                "turn-speed-degrees": 180,
+                "maximum-pitch-degrees": 85
               }
             },
             "children": [
+              {
+                "id": "player-shape",
+                "name": "Player Collision",
+                "type": "io.github.glynch.jscene3d/collision-shape-3d",
+                "typeVersion": 1,
+                "properties": {
+                  "shape": {"$ref": "project:application/player.shape.json"}
+                }
+              },
               {
                 "id": "camera",
                 "name": "Player Camera",

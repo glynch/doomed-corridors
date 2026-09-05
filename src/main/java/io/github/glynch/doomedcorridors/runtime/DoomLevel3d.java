@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors.runtime;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.presentation.DoomStaticMapPresentation;
 import io.github.glynch.doomedcorridors.world.DoomDoorState;
+import io.github.glynch.doomedcorridors.world.DoomDoorSystem;
 import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
 import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
 import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
@@ -24,14 +25,20 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
     private final DoomMap map;
     private final DoomPlayerStart playerStart;
     private final DoomStaticMapPresentation presentation;
+    private final DoomDoorSystem doors;
     private boolean started;
     private boolean closed;
 
     /** Stores one typed map and its deterministic derived presentation. */
-    private DoomLevel3d(DoomMap map, DoomPlayerStart playerStart, DoomStaticMapPresentation presentation) {
+    private DoomLevel3d(
+            DoomMap map,
+            DoomPlayerStart playerStart,
+            DoomStaticMapPresentation presentation,
+            DoomDoorSystem doors) {
         this.map = map;
         this.playerStart = playerStart;
         this.presentation = presentation;
+        this.doors = doors;
     }
 
     /** Resolves authored imports and constructs the derived spatial subtree. */
@@ -50,7 +57,7 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
         DoomStaticMapPresentation presentation =
                 DoomStaticMapPresentation.create(geometry, materials);
         attach(context, presentation.root());
-        return new DoomLevel3d(map, geometry.playerStart(), presentation);
+        return new DoomLevel3d(map, geometry.playerStart(), presentation, DoomDoorSystem.create(map));
     }
 
     /** Returns the imported runtime map after confirming this node remains open. */
@@ -77,6 +84,25 @@ final class DoomLevel3d implements Scene3dRuntimeObject {
         for (DoomDoorState door : List.copyOf(doors)) {
             presentation.setSectorCeilingHeight(door.sectorIndex(), door.currentCeilingHeight());
         }
+    }
+
+    /** Submits a Doom-style use action from the current player view. */
+    void interact(float x, float z, float yawRadians) {
+        requireOpen();
+        doors.interact(x, z, yawRadians);
+    }
+
+    /** Advances and presents the level-owned door system by one fixed step. */
+    void advanceDoors() {
+        requireOpen();
+        doors.advanceFixedStep();
+        applyDoorStates(doors.states());
+    }
+
+    /** Returns immutable door snapshots for inspection and play-debug tooling. */
+    List<DoomDoorState> doors() {
+        requireOpen();
+        return doors.states();
     }
 
     @Override

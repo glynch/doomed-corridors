@@ -84,6 +84,30 @@
           "defaultValue": 0.002,
           "displayName": "Pointer Sensitivity",
           "description": "Radians of view rotation applied per pointer-motion unit."
+        },
+        {
+          "id": "move-speed",
+          "valueKind": "number",
+          "defaultValue": 8,
+          "displayName": "Move Speed",
+          "description": "Maximum planar movement speed in world units per second.",
+          "editor": {"section": "Movement", "minimumExclusive": 0}
+        },
+        {
+          "id": "turn-speed-degrees",
+          "valueKind": "number",
+          "defaultValue": 180,
+          "displayName": "Turn Speed",
+          "description": "Keyboard turning speed in degrees per second.",
+          "editor": {"section": "View", "minimumExclusive": 0, "unit": "degrees-per-second"}
+        },
+        {
+          "id": "maximum-pitch-degrees",
+          "valueKind": "number",
+          "defaultValue": 85,
+          "displayName": "Maximum Pitch",
+          "description": "Maximum upward and downward camera angle in degrees.",
+          "editor": {"section": "View", "minimumExclusive": 0, "maximum": 89, "unit": "degrees"}
         }
       ]
     }

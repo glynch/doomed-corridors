@@ -7,7 +7,9 @@ package io.github.glynch.doomedcorridors.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import io.github.glynch.jscene3d.cameras.PerspectiveCamera;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
+import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.jscene3d.game.GameRuntime;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
@@ -24,16 +26,20 @@ import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
 import io.github.glynch.jscene3d.project.runtime.scene3d.JScene3dRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.scene3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dRuntimeObject;
 import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dTypes;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 /** Exercises imported map presentation through the generic project loader. */
@@ -99,8 +105,20 @@ final class DoomedCorridorsRuntimeExtensionTest {
               "type": "io.github.glynch.jscene3d/triangle-mesh-shape-3d",
               "typeVersion": 1,
               "properties": {
-                "positions": [0, 0, 0, 4, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 4, 0],
-                "indices": [0, 1, 2, 3, 4, 5]
+                "positions": [
+                  0, 0, 0, 4, 0, 0, 4, 0, -4, 0, 0, -4,
+                  0, 0, 0, 0, 4, 0, 0, 4, -4, 0, 0, -4,
+                  4, 0, 0, 4, 0, -4, 4, 4, -4, 4, 4, 0,
+                  0, 0, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0,
+                  0, 0, -4, 0, 4, -4, 4, 4, -4, 4, 0, -4
+                ],
+                "indices": [
+                  0, 1, 2, 0, 2, 3,
+                  4, 5, 6, 4, 6, 7,
+                  8, 9, 10, 8, 10, 11,
+                  12, 13, 14, 12, 14, 15,
+                  16, 17, 18, 16, 18, 19
+                ]
               }
             }
             """;
@@ -146,7 +164,9 @@ final class DoomedCorridorsRuntimeExtensionTest {
         var playerNode = levelNode.children().getFirst();
         DoomPlayerController controller =
                 (DoomPlayerController) playerNode.controller().orElseThrow();
-        float initialX = controller.player().x();
+        ActionSnapshot moveForward = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .build();
         try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
             assertThat(level.isStarted()).isFalse();
             assertThat(level.map().name()).isEqualTo("MAP01");
@@ -154,30 +174,300 @@ final class DoomedCorridorsRuntimeExtensionTest {
             assertThat(level.surfaceCount()).isEqualTo(6);
             assertThat(level.object3d().children()).hasSize(8);
             assertThat(playerNode.definition().id()).isEqualTo("player");
-            assertThat(playerNode.children()).singleElement().satisfies(camera ->
-                    assertThat(camera.definition().id()).isEqualTo("camera"));
+            assertThat(playerNode.children())
+                    .extracting(child -> child.definition().id())
+                    .containsExactly("player-shape", "camera");
+            assertThat(playerNode.object()).isInstanceOf(CharacterBody3d.class);
 
             runtime.start();
-            runtime.advance(
-                    Duration.ofMillis(30),
-                    ActionSnapshot.builder()
-                            .down(new InputAction("move-forward"))
-                            .build());
+            float initialX = controller.player().x();
+            float initialZ = controller.player().z();
+            float initialYaw = controller.player().yawRadians();
+            runtime.advance(Duration.ofMillis(30), moveForward);
 
             assertThat(level.isStarted()).isTrue();
             assertThat(controller.player().x()).isGreaterThan(initialX);
-            assertThat(physicsWorld.collisionObjectCount()).isOne();
-            assertThat(physicsWorld.colliderCount()).isOne();
+            assertThat(physicsWorld.collisionObjectCount()).isEqualTo(2);
+            assertThat(physicsWorld.colliderCount()).isEqualTo(2);
             assertThat(physicsWorld
                             .raycast(new Vector3f(2, 2, -2), new Vector3f(0, 0, 1), 4)
                             .orElseThrow()
                             .distance())
                     .isCloseTo(2.0F, within(0.0001F));
             Scene3dRuntimeObject playerObject = (Scene3dRuntimeObject) playerNode.object();
-            assertThat(playerObject.object3d().position().x()).isEqualTo(controller.player().x());
+            assertThat(playerObject.object3d().position().x()).isGreaterThan(initialX);
+            for (int frame = 0; frame < 120; frame++) {
+                runtime.advance(Duration.ofMillis(30), moveForward);
+            }
+            assertThat(controller.player().x()).isCloseTo(3.499F, within(0.01F));
+            assertThat(controller.player().z()).isCloseTo(initialZ, within(0.01F));
+            assertThat(controller.player().yawRadians()).isEqualTo(initialYaw);
+            assertThat(controller.player().eyeHeight()).isCloseTo(1.28125F, within(0.01F));
         }
         assertThat(physicsWorld.collisionObjectCount()).isZero();
         assertThat(physicsWorld.colliderCount()).isZero();
+    }
+
+    /** Keeps semantic movement aligned with the direction rendered by the player camera. */
+    @Test
+    void alignsMovementAndTurningWithRenderedView() {
+        GameProject project = new ProjectLoader("0.1.0-SNAPSHOT")
+                .load(Path.of("."))
+                .project()
+                .orElseThrow();
+        JScene3dRuntimeExtension scene3d = JScene3dRuntimeExtension.headless();
+        ProjectRuntimeLoadResult result = new ProjectRuntimeLoader("0.1.0-SNAPSHOT")
+                .load(
+                        project,
+                        getClass().getClassLoader(),
+                        List.of(scene3d),
+                        new ResourceArtifactLookup());
+        ProjectRuntime projectRuntime = result.runtime().orElseThrow();
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        Scene3dRuntimeObject cameraObject =
+                (Scene3dRuntimeObject) playerNode.children().get(1).object();
+        PerspectiveCamera camera = (PerspectiveCamera) cameraObject.object3d();
+        ActionSnapshot moveForward = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .build();
+        ActionSnapshot moveBackward = ActionSnapshot.builder()
+                .down(new InputAction("move-backward"))
+                .build();
+        ActionSnapshot strafeLeft = ActionSnapshot.builder()
+                .down(new InputAction("strafe-left"))
+                .build();
+        ActionSnapshot strafeRight = ActionSnapshot.builder()
+                .down(new InputAction("strafe-right"))
+                .build();
+        ActionSnapshot turnLeft = ActionSnapshot.builder()
+                .down(new InputAction("turn-left"))
+                .build();
+        ActionSnapshot turnRight = ActionSnapshot.builder()
+                .down(new InputAction("turn-right"))
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            assertCameraDirectionMatchesYaw(camera, controller.player().yawRadians());
+
+            assertMovement(runtime, controller, moveForward, 1.0F, 0.0F);
+            assertMovement(runtime, controller, moveBackward, -1.0F, 0.0F);
+            assertMovement(runtime, controller, strafeLeft, 0.0F, -1.0F);
+            assertMovement(runtime, controller, strafeRight, 0.0F, 1.0F);
+
+            runtime.advance(Duration.ofMillis(300), turnLeft);
+            assertThat(controller.player().yawRadians()).isPositive();
+            assertThat(cameraDirection(camera).z).isNegative();
+            assertCameraDirectionMatchesYaw(camera, controller.player().yawRadians());
+
+            DoomPlayerState turned = controller.player();
+            runtime.advance(Duration.ofMillis(30), moveForward);
+            assertForwardMovementMatchesCamera(camera, turned, controller.player());
+
+            runtime.advance(Duration.ofMillis(300), turnRight);
+            assertThat(controller.player().yawRadians()).isCloseTo(0.0F, within(0.0001F));
+            assertCameraDirectionMatchesYaw(camera, controller.player().yawRadians());
+        }
+    }
+
+    /** Traverses the real MAP01 staircase down and back up without becoming blocked. */
+    @Test
+    void traversesMap01StaircaseInBothDirections() {
+        Assumptions.assumeTrue(
+                Files.isRegularFile(Path.of("assets/freedoom2.wad")),
+                "pinned Freedoom WAD is not installed");
+        ProjectRuntime projectRuntime = DoomedCorridorsRuntimeLoader.load(Path.of("."));
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        ActionSnapshot moveForward = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .build();
+        ActionSnapshot moveBackward = ActionSnapshot.builder()
+                .down(new InputAction("move-backward"))
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            DoomPlayerState initial = controller.player();
+            advance(runtime, moveForward, 50);
+            DoomPlayerState bottom = controller.player();
+            advance(runtime, moveBackward, 50);
+            DoomPlayerState returned = controller.player();
+
+            assertThat(bottom.x()).isGreaterThan(initial.x() + 8.0F);
+            assertThat(bottom.eyeHeight()).isLessThan(initial.eyeHeight() - 1.0F);
+            assertThat(returned.x()).isCloseTo(initial.x(), within(0.25F));
+            assertThat(returned.eyeHeight()).isCloseTo(initial.eyeHeight(), within(0.1F));
+        }
+    }
+
+    /** Does not promote the player onto MAP01's blue 56-unit display ledge. */
+    @Test
+    void doesNotClimbMap01BlueDisplayLedge() {
+        Assumptions.assumeTrue(
+                Files.isRegularFile(Path.of("assets/freedoom2.wad")),
+                "pinned Freedoom WAD is not installed");
+        ProjectRuntime projectRuntime = DoomedCorridorsRuntimeLoader.load(Path.of("."));
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        ActionSnapshot moveBackward = ActionSnapshot.builder()
+                .down(new InputAction("move-backward"))
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            DoomPlayerState initial = controller.player();
+            advance(runtime, moveBackward, 40);
+            DoomPlayerState blocked = controller.player();
+
+            assertThat(blocked.x()).isGreaterThan(-7.5F);
+            assertThat(blocked.eyeHeight()).isCloseTo(initial.eyeHeight(), within(0.1F));
+        }
+    }
+
+    /** Traverses one staircase side and recovers immediately from its solid opposite corner. */
+    @Test
+    void navigatesMap01StaircaseCorners() {
+        Assumptions.assumeTrue(
+                Files.isRegularFile(Path.of("assets/freedoom2.wad")),
+                "pinned Freedoom WAD is not installed");
+
+        assertDiagonalStairTraversal(new InputAction("strafe-left"));
+        assertSolidCornerRecovery();
+    }
+
+    /** Keeps diagonal approaches below MAP01's blue display ledge. */
+    @Test
+    void doesNotClimbMap01BlueDisplayLedgeAtItsCorners() {
+        Assumptions.assumeTrue(
+                Files.isRegularFile(Path.of("assets/freedoom2.wad")),
+                "pinned Freedoom WAD is not installed");
+
+        assertBlueLedgeBlocks(new InputAction("strafe-left"));
+        assertBlueLedgeBlocks(new InputAction("strafe-right"));
+    }
+
+    /** Advances a held action through a deterministic number of rendered frames. */
+    private static void advance(GameRuntime runtime, ActionSnapshot input, int frames) {
+        for (int frame = 0; frame < frames; frame++) {
+            runtime.advance(Duration.ofMillis(30), input);
+        }
+    }
+
+    /** Verifies forward progress while the character slides along one staircase side. */
+    private static void assertDiagonalStairTraversal(InputAction strafe) {
+        ProjectRuntime projectRuntime = DoomedCorridorsRuntimeLoader.load(Path.of("."));
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        ActionSnapshot input = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .down(strafe)
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            DoomPlayerState initial = controller.player();
+            advance(runtime, input, 70);
+            DoomPlayerState bottom = controller.player();
+
+            assertThat(bottom.x()).isGreaterThan(initial.x() + 8.0F);
+            assertThat(bottom.eyeHeight()).isLessThan(initial.eyeHeight() - 1.0F);
+        }
+    }
+
+    /** Verifies that steering away releases both simultaneous solid-corner contacts. */
+    private static void assertSolidCornerRecovery() {
+        ProjectRuntime projectRuntime = DoomedCorridorsRuntimeLoader.load(Path.of("."));
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        ActionSnapshot intoCorner = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .down(new InputAction("strafe-right"))
+                .build();
+        ActionSnapshot awayFromCorner = ActionSnapshot.builder()
+                .down(new InputAction("strafe-left"))
+                .build();
+        ActionSnapshot downStairs = ActionSnapshot.builder()
+                .down(new InputAction("move-forward"))
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            DoomPlayerState initial = controller.player();
+            advance(runtime, intoCorner, 70);
+            advance(runtime, awayFromCorner, 20);
+            advance(runtime, downStairs, 70);
+            DoomPlayerState bottom = controller.player();
+
+            assertThat(bottom.x()).isGreaterThan(initial.x() + 8.0F);
+            assertThat(bottom.eyeHeight()).isLessThan(initial.eyeHeight() - 1.0F);
+        }
+    }
+
+    /** Verifies one diagonal approach cannot promote the character onto the blue ledge. */
+    private static void assertBlueLedgeBlocks(InputAction strafe) {
+        ProjectRuntime projectRuntime = DoomedCorridorsRuntimeLoader.load(Path.of("."));
+        var playerNode = projectRuntime.root().children().getFirst().children().getFirst();
+        DoomPlayerController controller =
+                (DoomPlayerController) playerNode.controller().orElseThrow();
+        ActionSnapshot input = ActionSnapshot.builder()
+                .down(new InputAction("move-backward"))
+                .down(strafe)
+                .build();
+
+        try (GameRuntime runtime = new GameRuntime(projectRuntime)) {
+            runtime.start();
+            DoomPlayerState initial = controller.player();
+            advance(runtime, input, 40);
+            DoomPlayerState blocked = controller.player();
+
+            assertThat(blocked.x()).isGreaterThan(-7.5F);
+            assertThat(blocked.eyeHeight()).isCloseTo(initial.eyeHeight(), within(0.1F));
+        }
+    }
+
+    /** Verifies the rendered camera heading against the controller's authoritative yaw. */
+    private static void assertCameraDirectionMatchesYaw(PerspectiveCamera camera, float yaw) {
+        Vector3f direction = cameraDirection(camera);
+        Vector3f expected = new Vector3f((float) Math.cos(yaw), 0.0F, -(float) Math.sin(yaw));
+        assertThat(direction.dot(expected)).isGreaterThan(0.999F);
+    }
+
+    /** Advances one movement action and verifies its Doom-relative planar direction. */
+    private static void assertMovement(
+            GameRuntime runtime,
+            DoomPlayerController controller,
+            ActionSnapshot input,
+            float expectedX,
+            float expectedZ) {
+        DoomPlayerState before = controller.player();
+        runtime.advance(Duration.ofMillis(30), input);
+        DoomPlayerState after = controller.player();
+        Vector3f displacement = new Vector3f(after.x() - before.x(), 0.0F, after.z() - before.z()).normalize();
+        assertThat(displacement.dot(expectedX, 0.0F, expectedZ))
+                .isCloseTo(1.0F, within(0.0001F));
+    }
+
+    /** Verifies that a forward action displaces the player along the rendered camera heading. */
+    private static void assertForwardMovementMatchesCamera(
+            PerspectiveCamera camera, DoomPlayerState before, DoomPlayerState after) {
+        Vector3f direction = cameraDirection(camera);
+        Vector3f displacement = new Vector3f(after.x() - before.x(), 0.0F, after.z() - before.z()).normalize();
+        assertThat(displacement.dot(direction.x, 0.0F, direction.z))
+                .isGreaterThan(0.999F);
+    }
+
+    /** Returns the camera's rendered world-space forward direction. */
+    private static Vector3f cameraDirection(PerspectiveCamera camera) {
+        return new Vector3f(0.0F, 0.0F, -1.0F)
+                .rotate(camera.worldQuaternion(new Quaternionf()))
+                .normalize();
     }
 
     /** Supplies both expected native resources without the ignored Freedoom installation. */

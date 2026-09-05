@@ -8,6 +8,7 @@ import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
 import io.github.glynch.jscene3d.project.imports.ImportDefinition;
 import io.github.glynch.jscene3d.project.imports.ImportLoadResult;
 import io.github.glynch.jscene3d.project.imports.ImportLoader;
+import io.github.glynch.jscene3d.project.input.InputBinding;
 import io.github.glynch.jscene3d.project.input.InputMapLoadResult;
 import io.github.glynch.jscene3d.project.input.InputMapLoader;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
@@ -122,9 +123,8 @@ final class ProjectManifestTest {
         SceneNodeDefinition player = levelDefinition.children().getFirst();
         assertThat(player.controller()).isPresent();
         assertThat(player.children())
-                .singleElement()
                 .extracting(SceneNodeDefinition::id)
-                .isEqualTo("camera");
+                .containsExactly("player-shape", "camera");
         SceneNodeDefinition staticCollision = levelDefinition.children().get(1);
         assertThat(staticCollision.source())
                 .extracting(SceneNodeDefinition.TypedNode.class::cast)
@@ -174,6 +174,15 @@ final class ProjectManifestTest {
                         "turn-left",
                         "turn-right",
                         "interact");
+        var actions = result.definition().orElseThrow().actions();
+        assertThat(actions.get("move-forward"))
+                .containsExactly(key("W"), key("UP"));
+        assertThat(actions.get("move-backward"))
+                .containsExactly(key("S"), key("DOWN"));
+        assertThat(actions.get("strafe-left")).containsExactly(key("A"));
+        assertThat(actions.get("strafe-right")).containsExactly(key("D"));
+        assertThat(actions.get("turn-left")).containsExactly(key("LEFT"));
+        assertThat(actions.get("turn-right")).containsExactly(key("RIGHT"));
     }
 
     /** Keeps the editor-facing input-map schema copy identical to the engine contract. */
@@ -234,5 +243,10 @@ final class ProjectManifestTest {
     /** Loads the repository's project manifest. */
     private static ProjectLoadResult loadProject() {
         return new ProjectLoader(ENGINE_VERSION).load(Path.of("."));
+    }
+
+    /** Creates one portable keyboard binding for concise exact-map assertions. */
+    private static InputBinding key(String control) {
+        return new InputBinding(InputBinding.Device.KEYBOARD, control);
     }
 }

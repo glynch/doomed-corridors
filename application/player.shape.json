@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "type": "io.github.glynch.jscene3d/capsule-shape-3d",
+  "typeVersion": 1,
+  "properties": {
+    "radius": 0.5,
+    "segment-length": 0.75
+  }
+}

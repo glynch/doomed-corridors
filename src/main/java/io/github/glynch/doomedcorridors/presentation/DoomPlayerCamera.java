@@ -4,9 +4,12 @@
  */
 package io.github.glynch.doomedcorridors.presentation;
 
+import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
+
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.jscene3d.cameras.PerspectiveCamera;
 import java.util.Objects;
+import org.joml.Quaternionf;
 
 /** Maps headless Doom player state onto a JScene3D perspective camera. */
 public final class DoomPlayerCamera {
@@ -33,5 +36,25 @@ public final class DoomPlayerCamera {
                 validPlayer.x() + directionX,
                 validPlayer.eyeHeight() + directionY,
                 validPlayer.z() + directionZ);
+    }
+
+    /**
+     * Applies an eye offset and pitch to a camera whose parent supplies world position and yaw.
+     *
+     * <p>The resulting local camera direction is positive X when pitch is zero, matching Doom's
+     * authored heading convention. Parent rotation then supplies the player's world-space yaw.
+     *
+     * @param camera child camera receiving the local view transform
+     * @param eyeHeight local eye height above the character-body origin
+     * @param pitchRadians local view pitch in radians
+     */
+    public static void applyLocalView(PerspectiveCamera camera, float eyeHeight, float pitchRadians) {
+        PerspectiveCamera validCamera = Objects.requireNonNull(camera, "camera");
+        float validEyeHeight = requireFinite(eyeHeight, "eyeHeight");
+        float validPitch = requireFinite(pitchRadians, "pitchRadians");
+        validCamera.setPosition(0.0F, validEyeHeight, 0.0F);
+        validCamera.setQuaternion(new Quaternionf()
+                .rotationY(-(float) Math.PI / 2.0F)
+                .rotateX(validPitch));
     }
 }
