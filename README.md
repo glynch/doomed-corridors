@@ -93,7 +93,9 @@ This updates the disposable import cache when required; resolves the scene's map
 and material references; creates typed runtime resources; and supplies them to
 the application extension's `doom-level-3d` factory. That factory derives the
 static floors, ceilings, and walls without reopening the WAD. The console
-summary reports the imported map counts and number of graphical surfaces.
+summary reports the imported map counts, graphical surfaces, and generic static
+collision bodies and colliders instantiated from the derived collision
+resource.
 
 Render the same declarative scene through the graphical project runtime with:
 

@@ -5,11 +5,13 @@
 package io.github.glynch.doomedcorridors.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.jscene3d.game.GameRuntime;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
+import io.github.glynch.jscene3d.physics.PhysicsWorld;
 import io.github.glynch.jscene3d.project.extension.RegisteredType;
 import io.github.glynch.jscene3d.project.importing.ImportArtifactDescriptor;
 import io.github.glynch.jscene3d.project.importing.ImportedArtifact;
@@ -23,6 +25,7 @@ import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
 import io.github.glynch.jscene3d.project.runtime.scene3d.JScene3dRuntimeExtension;
 import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dRuntimeObject;
+import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dTypes;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +33,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 
 /** Exercises imported map presentation through the generic project loader. */
@@ -38,6 +42,7 @@ final class DoomedCorridorsRuntimeExtensionTest {
             new RegisteredType("io.github.glynch.jscene3d.doom/map", 1);
     private static final RegisteredType MATERIALS_TYPE =
             new RegisteredType("io.github.glynch.doomed-corridors/map-materials", 1);
+    private static final RegisteredType STATIC_COLLISION_TYPE = Scene3dTypes.TRIANGLE_MESH_SHAPE_3D;
     private static final String MAP_RESOURCE = """
             {
               "schemaVersion": 1,
@@ -88,6 +93,17 @@ final class DoomedCorridorsRuntimeExtensionTest {
               }
             }
             """;
+    private static final String STATIC_COLLISION_RESOURCE = """
+            {
+              "schemaVersion": 1,
+              "type": "io.github.glynch.jscene3d/triangle-mesh-shape-3d",
+              "typeVersion": 1,
+              "properties": {
+                "positions": [0, 0, 0, 4, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 4, 0],
+                "indices": [0, 1, 2, 3, 4, 5]
+              }
+            }
+            """;
     private static final String MATERIALS_RESOURCE = """
             {
               "schemaVersion": 1,
@@ -113,11 +129,13 @@ final class DoomedCorridorsRuntimeExtensionTest {
                 .load(Path.of("."))
                 .project()
                 .orElseThrow();
+        JScene3dRuntimeExtension scene3d = JScene3dRuntimeExtension.headless();
+        PhysicsWorld physicsWorld = scene3d.physicsWorld();
         ProjectRuntimeLoadResult result = new ProjectRuntimeLoader("0.1.0-SNAPSHOT")
                 .load(
                         project,
                         getClass().getClassLoader(),
-                        List.of(JScene3dRuntimeExtension.headless()),
+                        List.of(scene3d),
                         new ResourceArtifactLookup());
 
         assertThat(result.diagnostics()).isEmpty();
@@ -134,7 +152,7 @@ final class DoomedCorridorsRuntimeExtensionTest {
             assertThat(level.map().name()).isEqualTo("MAP01");
             assertThat(level.map()).isInstanceOf(DoomMap.class);
             assertThat(level.surfaceCount()).isEqualTo(6);
-            assertThat(level.object3d().children()).hasSize(7);
+            assertThat(level.object3d().children()).hasSize(8);
             assertThat(playerNode.definition().id()).isEqualTo("player");
             assertThat(playerNode.children()).singleElement().satisfies(camera ->
                     assertThat(camera.definition().id()).isEqualTo("camera"));
@@ -148,9 +166,18 @@ final class DoomedCorridorsRuntimeExtensionTest {
 
             assertThat(level.isStarted()).isTrue();
             assertThat(controller.player().x()).isGreaterThan(initialX);
+            assertThat(physicsWorld.collisionObjectCount()).isOne();
+            assertThat(physicsWorld.colliderCount()).isOne();
+            assertThat(physicsWorld
+                            .raycast(new Vector3f(2, 2, -2), new Vector3f(0, 0, 1), 4)
+                            .orElseThrow()
+                            .distance())
+                    .isCloseTo(2.0F, within(0.0001F));
             Scene3dRuntimeObject playerObject = (Scene3dRuntimeObject) playerNode.object();
             assertThat(playerObject.object3d().position().x()).isEqualTo(controller.player().x());
         }
+        assertThat(physicsWorld.collisionObjectCount()).isZero();
+        assertThat(physicsWorld.colliderCount()).isZero();
     }
 
     /** Supplies both expected native resources without the ignored Freedoom installation. */
@@ -164,6 +191,11 @@ final class DoomedCorridorsRuntimeExtensionTest {
             if (definition.id().equals("freedoom-map-materials")
                     && identity.equals("materials/MAP01")) {
                 return Optional.of(new TestArtifact(identity, MATERIALS_TYPE, MATERIALS_RESOURCE));
+            }
+            if (definition.id().equals("freedoom-maps")
+                    && identity.equals("maps/MAP01/static-collision")) {
+                return Optional.of(new TestArtifact(
+                        identity, STATIC_COLLISION_TYPE, STATIC_COLLISION_RESOURCE));
             }
             return Optional.empty();
         }

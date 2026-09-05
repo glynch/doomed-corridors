@@ -116,14 +116,27 @@ final class ProjectManifestTest {
                 .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.imported(
                         "freedoom-map-materials/materials/MAP01")));
         assertThat(levelDefinition.controller()).isEmpty();
-        assertThat(levelDefinition.children()).singleElement().satisfies(player -> {
-            assertThat(player.id()).isEqualTo("player");
-            assertThat(player.controller()).isPresent();
-            assertThat(player.children())
-                    .singleElement()
-                    .extracting(SceneNodeDefinition::id)
-                    .isEqualTo("camera");
-        });
+        assertThat(levelDefinition.children())
+                .extracting(SceneNodeDefinition::id)
+                .containsExactly("player", "static-collision");
+        SceneNodeDefinition player = levelDefinition.children().getFirst();
+        assertThat(player.controller()).isPresent();
+        assertThat(player.children())
+                .singleElement()
+                .extracting(SceneNodeDefinition::id)
+                .isEqualTo("camera");
+        SceneNodeDefinition staticCollision = levelDefinition.children().get(1);
+        assertThat(staticCollision.source())
+                .extracting(SceneNodeDefinition.TypedNode.class::cast)
+                .extracting(typed -> typed.type().id())
+                .isEqualTo("io.github.glynch.jscene3d/static-body-3d");
+        assertThat(staticCollision.children())
+                .singleElement()
+                .satisfies(shape -> assertThat(((SceneNodeDefinition.TypedNode) shape.source())
+                                .properties()
+                                .get("shape"))
+                        .isEqualTo(new ProjectValue.ReferenceValue(ResourceReference.imported(
+                                "freedoom-maps/maps/MAP01/static-collision"))));
 
         ExtensionCatalogLoadResult catalogResult = new ExtensionCatalogLoader(ENGINE_VERSION)
                 .load(project, ProjectManifestTest.class.getClassLoader());

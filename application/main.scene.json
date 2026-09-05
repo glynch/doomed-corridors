@@ -51,6 +51,25 @@
                 }
               }
             ]
+          },
+          {
+            "id": "static-collision",
+            "name": "Static Collision",
+            "type": "io.github.glynch.jscene3d/static-body-3d",
+            "typeVersion": 1,
+            "children": [
+              {
+                "id": "level-shape",
+                "name": "Level Shape",
+                "type": "io.github.glynch.jscene3d/collision-shape-3d",
+                "typeVersion": 1,
+                "properties": {
+                  "shape": {
+                    "$ref": "import:freedoom-maps/maps/MAP01/static-collision"
+                  }
+                }
+              }
+            ]
           }
         ]
       }
