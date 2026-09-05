@@ -13,7 +13,8 @@ import io.github.glynch.jscene3d.platform.Key;
 import io.github.glynch.jscene3d.platform.MouseButton;
 import io.github.glynch.jscene3d.platform.Window;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntime;
-import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.lwjgl.LwjglScene3dRenderHost;
+import io.github.glynch.jscene3d.project.runtime.scene3d.JScene3dRuntimeExtension;
 import io.github.glynch.jscene3d.render.Renderer;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -49,7 +50,8 @@ public final class DoomedCorridorsRuntimePreview {
     /** Composes and owns the project runtime for one graphical session. */
     private static void runProject(Window window, Renderer renderer, Path projectDirectory) {
         try (ProjectRuntime project = DoomedCorridorsRuntimeLoader.load(
-                projectDirectory, List.of(new JScene3dRuntimeExtension(window, renderer)))) {
+                projectDirectory,
+                List.of(new JScene3dRuntimeExtension(new LwjglScene3dRenderHost(window, renderer))))) {
             runGame(window, project);
         }
     }

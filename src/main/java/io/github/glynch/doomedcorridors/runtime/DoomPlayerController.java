@@ -20,7 +20,7 @@ import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeObject;
 import io.github.glynch.jscene3d.project.runtime.RuntimeNode;
 import io.github.glynch.jscene3d.project.runtime.extension.NodeControllerContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
-import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
+import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dRuntimeObject;
 import java.util.List;
 import java.util.Objects;
 

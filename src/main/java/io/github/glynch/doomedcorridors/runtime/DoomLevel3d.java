@@ -15,7 +15,7 @@ import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.jscene3d.objects.Object3D;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectValues;
 import io.github.glynch.jscene3d.project.runtime.extension.SceneNodeContext;
-import io.github.glynch.jscene3d.project.runtime.lwjgl.Scene3dRuntimeObject;
+import io.github.glynch.jscene3d.project.runtime.scene3d.Scene3dRuntimeObject;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.util.List;
 

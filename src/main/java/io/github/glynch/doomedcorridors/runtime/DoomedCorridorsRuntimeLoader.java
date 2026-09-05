@@ -25,7 +25,7 @@ import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoadResult;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeLoader;
 import io.github.glynch.jscene3d.project.runtime.ProjectInputMaps;
 import io.github.glynch.jscene3d.project.runtime.extension.ProjectRuntimeExtension;
-import io.github.glynch.jscene3d.project.runtime.lwjgl.JScene3dRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.scene3d.JScene3dRuntimeExtension;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
