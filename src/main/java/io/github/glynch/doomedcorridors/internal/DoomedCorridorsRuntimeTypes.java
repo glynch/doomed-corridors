@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.internal;
 
+import io.github.glynch.jscene3d.project.component.CapabilityId;
 import io.github.glynch.jscene3d.project.component.ComponentType;
 import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.component.PropertyId;
@@ -24,6 +25,9 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Runtime type for one collectable actor. */
     public static final ComponentType PICKUP_TYPE = ComponentType.of(EXTENSION_ID + "/pickup", 1);
+
+    /** Semantic capability exposing mutable player resources on the exact player entity. */
+    public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
     /** Player-state reference to the authoritative actor catalog. */
     public static final PropertyId ACTOR_CATALOG_PROPERTY = new PropertyId("actor-catalog");

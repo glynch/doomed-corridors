@@ -5,14 +5,11 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
-import io.github.glynch.jscene3d.project.component.ComponentId;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.util.Objects;
 
 /** Mutable project-runtime health and ammunition state for one player entity. */
 final class DoomPlayerState {
-    static final ComponentId COMPONENT_ID = ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434");
-
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private int health;

@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
@@ -172,6 +173,11 @@ final class ProjectManifestTest {
         assertThat(result.catalog().componentTypes())
                 .extracting(type -> type.type().id().value())
                 .containsExactly(EXTENSION_ID + "/player-state", EXTENSION_ID + "/pickup");
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
+                        .orElseThrow()
+                        .providedCapabilities())
+                .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
     }
 
     /** Loads the repository's project manifest. */

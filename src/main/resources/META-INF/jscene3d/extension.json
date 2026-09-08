@@ -20,6 +20,7 @@
       "typeVersion": 1,
       "displayName": "Doom Player State",
       "description": "Holds mutable player health and ammunition initialized from provider rules.",
+      "providedCapabilities": ["io.github.glynch.doomed-corridors/player-resources"],
       "properties": [
         {
           "id": "actor-catalog",

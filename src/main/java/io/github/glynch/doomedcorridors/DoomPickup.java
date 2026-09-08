@@ -13,7 +13,6 @@ import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBind
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
 
 /** Collects one imported pickup when its authored sensor overlaps the player character. */
 final class DoomPickup implements ComponentEndpointBinder {
@@ -57,9 +56,11 @@ final class DoomPickup implements ComponentEndpointBinder {
         if (collected) {
             return;
         }
-        Optional<DoomPlayerState> player =
-                overlap.other().owner().component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class);
-        if (player.isPresent() && player.orElseThrow().collect(resource, amount, limit) > 0) {
+        DoomPlayerState player = overlap.other()
+                .owner()
+                .capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .orElse(null);
+        if (player != null && player.collect(resource, amount, limit) > 0) {
             collect();
         }
     }

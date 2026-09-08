@@ -95,6 +95,13 @@ MAP01 tests exercise publication, composition, physical overlap, signal
 delivery, state mutation, and deferred destruction without the standalone
 combat session.
 
+The player-state descriptor declares a stable player-resource capability.
+Startup preparation and pickup behavior query that capability on the exact
+entity they are processing, so neither depends on the authored UUID of a
+particular player-state component. The capability is safe descriptor metadata
+which a future editor can inspect; the Java runtime extension supplies its
+implementation.
+
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's
 range and discrete damage values, and the zombieman's health, collision cylinder,

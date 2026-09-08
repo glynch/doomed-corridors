@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
@@ -178,7 +179,8 @@ final class ProjectHostIntegrationTest {
 
         try (HostedProject loaded = load(cache)) {
             Entity player = root(loaded, PLAYER_ENTITY);
-            DoomPlayerState state = player.component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class)
+            DoomPlayerState state = player.capability(
+                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
             Transform3d playerTransform =
                     player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
@@ -214,7 +216,8 @@ final class ProjectHostIntegrationTest {
 
         try (HostedProject loaded = load(cache)) {
             Entity player = root(loaded, PLAYER_ENTITY);
-            DoomPlayerState state = player.component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class)
+            DoomPlayerState state = player.capability(
+                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
             Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
             Entity stimpack = actor(actors, "Stimpack 86");

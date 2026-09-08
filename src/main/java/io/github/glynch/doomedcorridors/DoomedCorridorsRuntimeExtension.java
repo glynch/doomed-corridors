@@ -75,7 +75,8 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
 
     /** Collects player-state components throughout one owned entity subtree. */
     private static void collectPlayers(Entity entity, List<DoomPlayerState> destination) {
-        entity.component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class).ifPresent(destination::add);
+        entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .ifPresent(destination::add);
         entity.children().forEach(child -> collectPlayers(child, destination));
     }
 

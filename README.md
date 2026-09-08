@@ -67,11 +67,13 @@ desktop launcher with:
 
 The current migration slice renders textured static MAP01 geometry from the
 WAD-defined player-one start, registers its generated static collision mesh
-with the world physics module, and displays 119 inert item, enemy, corpse, and
+with the world physics module, and displays 119 item, enemy, corpse, and
 decoration actors. Authored `move` and `look` actions drive the
 descriptor-declared player controller, which moves the capsule through the
 engine character-body API, resolves floor and wall collision, slides along
-obstacles, and keeps the child camera attached. Actor behavior, doors, combat,
+obstacles, and keeps the child camera attached. Health and bullet pickups use
+authored sensors and signal connections to update the player-resource
+capability and disappear only when useful. Enemy behavior, doors, combat,
 audio, and the HUD have not yet been connected to the new entity-component
 runtime.
 
