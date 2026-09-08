@@ -116,6 +116,16 @@
         "assetId": "15a64477-b57f-3ae3-bf65-33cd6baab7b6"
       },
       "arguments": {}
+    },
+    {
+      "entryType": "placement",
+      "entityId": "cff5c049-16fb-488f-aeb7-caad1843211f",
+      "name": "MAP01 Actors",
+      "enabled": true,
+      "definition": {
+        "assetId": "d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe"
+      },
+      "arguments": {}
     }
   ]
 }

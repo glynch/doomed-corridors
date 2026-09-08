@@ -21,6 +21,7 @@ import io.github.glynch.jscene3d.project.input.InputValueType;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoadResult;
 import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
+import io.github.glynch.jscene3d.project.value.ProjectValue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,10 @@ final class ProjectManifestTest {
         assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("worlds/map01.world.json"));
         assertThat(project.runtime().inputMap()).contains(project.root().resolve("application/input-map.json"));
-        assertThat(project.imports()).containsExactly(project.root().resolve("imports/freedoom-map01.import.json"));
+        assertThat(project.imports())
+                .containsExactly(
+                        project.root().resolve("imports/freedoom-map01.import.json"),
+                        project.root().resolve("imports/freedoom-map01-actors.import.json"));
     }
 
     /** Loads declared assets with or without the ignored local WAD installation. */
@@ -95,6 +99,23 @@ final class ProjectManifestTest {
         assertThat(definition.selection()).containsExactly("maps/MAP01");
     }
 
+    /** Loads the game-owned MAP01 actor publication recipe and its actor-catalog dependency. */
+    @Test
+    void loadsFreedoomMapActorImport() {
+        GameProject project = loadProject().project().orElseThrow();
+        ImportLoadResult result =
+                new ImportLoader().load(project, project.imports().get(1));
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        ImportDefinition definition = result.definition().orElseThrow();
+        assertThat(definition.id()).isEqualTo("freedoom-map01-actors");
+        assertThat(definition.asset().id()).isEqualTo("freedoom");
+        assertThat(definition.importer()).isEqualTo(EXTENSION_ID + "/actors");
+        assertThat(definition.selection()).containsExactly("maps/MAP01");
+        assertThat(definition.settings()).containsEntry("actor-catalog", new ProjectValue.TextValue("actors"));
+    }
+
     /** Loads the semantic input map independently of platform controls. */
     @Test
     void loadsProjectInputMap() {
@@ -145,7 +166,7 @@ final class ProjectManifestTest {
                 .containsExactly("io.github.glynch.jscene3d.wad", "io.github.glynch.jscene3d.doom", EXTENSION_ID);
         assertThat(result.catalog().types())
                 .extracting(type -> type.type().id())
-                .contains("io.github.glynch.jscene3d.doom/maps");
+                .contains("io.github.glynch.jscene3d.doom/maps", EXTENSION_ID + "/actors");
         assertThat(result.catalog().componentTypes()).isEmpty();
     }
 

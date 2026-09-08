@@ -72,15 +72,16 @@ camera attachment. This replaces the earlier standalone movement runtime; the
 older headless Doom models remain domain prototypes for later gameplay migration,
 not an alternative game host.
 
-The visible-actor slice is also complete. The project declares a provider-owned,
-versioned actor catalog that assigns stable identities, categories, and initial
-sprite frames to every classic thing type used by MAP01. The headless resolver
-applies normal-skill and single-player placement flags, reports unsupported
-selected types explicitly, and grounds visible actors through the map BSP. The
-WAD adapter imports the 21 unique spawn frames used by the resulting 119 actors,
-preserving palette and lump provenance plus classic patch offsets. The
-presentation adapter displays these inert actors as alpha-masked cylindrical
-billboards with WAD-derived anchors and pixel scale.
+The visible-actor project-runtime slice is also complete. The project declares a
+provider-owned, versioned actor catalog that assigns stable identities,
+categories, and initial sprite frames to every classic thing type used by
+MAP01. A game-owned project importer composes the generic WAD and map decoders
+with that catalog, applies normal-skill and single-player placement flags, and
+grounds visible actors through the map BSP. It publishes the 21 shared spawn
+frames and reusable actor definitions plus an aggregate definition containing
+the resulting 119 placements. The entry world places that definition, and the
+generic 3D runtime displays the inert actors through alpha-masked cylindrical
+billboard components with WAD-derived anchors and scale.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

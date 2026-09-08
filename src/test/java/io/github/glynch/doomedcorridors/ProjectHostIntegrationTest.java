@@ -11,6 +11,7 @@ import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.game.input.ProjectInput;
+import io.github.glynch.jscene3d.objects.BillboardAlignment;
 import io.github.glynch.jscene3d.project.asset.AssetId;
 import io.github.glynch.jscene3d.project.component.ComponentId;
 import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
@@ -23,6 +24,7 @@ import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
 import io.github.glynch.jscene3d.project.runtime.ProjectHost;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeHost;
+import io.github.glynch.jscene3d.project.spatial3d.BillboardRenderer3d;
 import io.github.glynch.jscene3d.project.spatial3d.Material3dResource;
 import io.github.glynch.jscene3d.project.spatial3d.Mesh3dResource;
 import io.github.glynch.jscene3d.project.spatial3d.MeshRenderer3d;
@@ -40,14 +42,21 @@ import org.junit.jupiter.api.io.TempDir;
 final class ProjectHostIntegrationTest {
     private static final String ENGINE_VERSION = "0.1.0-SNAPSHOT";
     private static final String IMPORT_ID = "freedoom-map01";
+    private static final String ACTOR_IMPORT_ID = "freedoom-map01-actors";
     private static final AssetId MAP_DEFINITION = AssetId.from("15a64477-b57f-3ae3-bf65-33cd6baab7b6");
+    private static final AssetId ACTOR_MAP_DEFINITION = AssetId.from("d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe");
     private static final EntityId PLAYER_ENTITY = EntityId.from("0b295328-b5a3-4f41-9f34-e9b4abc430a7");
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
+    private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
     private static final ComponentId PLAYER_TRANSFORM = ComponentId.from("3e940be7-e58d-4f3a-8b5e-e61c99c00904");
     private static final ComponentId PLAYER_BODY = ComponentId.from("4d8cae80-322d-4bdf-b8c0-5703699de177");
     private static final ComponentId VIEW_TRANSFORM = ComponentId.from("82b8ae6d-47e9-4df6-9d85-01a6fca09dc6");
     private static final ComponentId FIRST_RENDERER = componentId("maps/MAP01/root/mesh-renderers/00000");
     private static final ComponentId STATIC_COLLISION_SHAPE = componentId("maps/MAP01/root/collision/static-shape");
+    private static final ComponentId ZOMBIEMAN_TRANSFORM =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/transform");
+    private static final ComponentId ZOMBIEMAN_BILLBOARD =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/billboard");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
@@ -85,7 +94,7 @@ final class ProjectHostIntegrationTest {
             assertThat(loaded.project().identity().id()).isEqualTo("io.github.glynch.doomed-corridors");
             assertThat(loaded.world().roots())
                     .extracting(entity -> entity.name().orElseThrow())
-                    .containsExactly("Player", "MAP01 Geometry");
+                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors");
             assertThat(character.isClosed()).isFalse();
             assertThat(player.componentIds()).contains(PLAYER_CONTROLLER);
             assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
@@ -121,6 +130,42 @@ final class ProjectHostIntegrationTest {
         assertThat(renderer.isClosed()).isTrue();
         assertThat(mesh.isClosed()).isTrue();
         assertThat(material.isClosed()).isTrue();
+    }
+
+    /** Composes all visible MAP01 things as placements of reusable generic billboard definitions. */
+    @Test
+    void composesPublishedActorDefinitions() {
+        Path cache = temporaryDirectory.resolve("actor-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        BillboardRenderer3d billboard;
+
+        try (HostedProject loaded = load(cache)) {
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            Entity zombieman = actors.children().stream()
+                    .filter(entity -> entity.name().orElseThrow().startsWith("Zombieman "))
+                    .findFirst()
+                    .orElseThrow();
+            Transform3d actorTransform =
+                    zombieman.component(ZOMBIEMAN_TRANSFORM, Transform3d.class).orElseThrow();
+            billboard = zombieman
+                    .component(ZOMBIEMAN_BILLBOARD, BillboardRenderer3d.class)
+                    .orElseThrow();
+
+            assertThat(actors.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
+            assertThat(actors.instantiatedDefinition()).contains(ACTOR_MAP_DEFINITION);
+            assertThat(actors.children()).hasSize(119);
+            assertThat(zombieman.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
+            assertThat(zombieman.componentIds()).containsExactly(ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD);
+            assertThat(actorTransform.position().x()).isFinite();
+            assertThat(actorTransform.position().y()).isFinite();
+            assertThat(actorTransform.position().z()).isFinite();
+            assertThat(billboard.alignment()).isEqualTo(BillboardAlignment.CYLINDRICAL);
+            assertThat(billboard.size().x()).isPositive();
+            assertThat(billboard.size().y()).isPositive();
+            assertThat(billboard.isVisible()).isTrue();
+        }
+
+        assertThat(billboard.isClosed()).isTrue();
     }
 
     /** Moves the composed player from semantic input while its child camera follows the resolved body pose. */
@@ -237,6 +282,12 @@ final class ProjectHostIntegrationTest {
     /** Reproduces the importer's stable source-derived component identity contract. */
     private static ComponentId componentId(String locator) {
         UUID id = UUID.nameUUIDFromBytes((IMPORT_ID + ':' + locator).getBytes(StandardCharsets.UTF_8));
+        return new ComponentId(id);
+    }
+
+    /** Reproduces the actor importer's stable source-derived component identity contract. */
+    private static ComponentId actorComponentId(String locator) {
+        UUID id = UUID.nameUUIDFromBytes((ACTOR_IMPORT_ID + ':' + locator).getBytes(StandardCharsets.UTF_8));
         return new ComponentId(id);
     }
 }

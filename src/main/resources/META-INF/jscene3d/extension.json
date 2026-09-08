@@ -5,6 +5,13 @@
   "version": "0.1.0-SNAPSHOT",
   "engineRequires": ">=0.1.0-SNAPSHOT <0.2.0",
   "displayName": "Doomed Corridors",
-  "description": "Doomed Corridors runtime integration.",
-  "types": []
+  "description": "Doomed Corridors runtime and content integration.",
+  "types": [
+    {
+      "id": "io.github.glynch.doomed-corridors/actors",
+      "typeVersion": 1,
+      "scope": "importer",
+      "displayName": "Doomed Corridors actors"
+    }
+  ]
 }

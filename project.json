@@ -69,7 +69,8 @@
     }
   ],
   "imports": [
-    "imports/freedoom-map01.import.json"
+    "imports/freedoom-map01.import.json",
+    "imports/freedoom-map01-actors.import.json"
   ],
   "catalog": {
     "genres": ["first-person shooter"],

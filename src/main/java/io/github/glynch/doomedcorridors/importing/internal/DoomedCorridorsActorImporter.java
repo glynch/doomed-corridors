@@ -1,0 +1,566 @@
+/*
+ * Copyright 2026 Graham Lynch
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package io.github.glynch.doomedcorridors.importing.internal;
+
+import io.github.glynch.doomedcorridors.actor.DoomActor;
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalog;
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoadResult;
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
+import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
+import io.github.glynch.doomedcorridors.actor.DoomActorDiagnostic;
+import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
+import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
+import io.github.glynch.doomedcorridors.world.DoomActorResolver;
+import io.github.glynch.jscene3d.diagnostic.DiagnosticCode;
+import io.github.glynch.jscene3d.doom.diagnostic.DoomDiagnostic;
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
+import io.github.glynch.jscene3d.doom.map.DoomMapDecodeResult;
+import io.github.glynch.jscene3d.doom.map.DoomMapDecoder;
+import io.github.glynch.jscene3d.doom.material.DoomPatchDataException;
+import io.github.glynch.jscene3d.doom.material.DoomPatchDecoder;
+import io.github.glynch.jscene3d.doom.material.DoomPatchImage;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
+import io.github.glynch.jscene3d.materials.AlphaMode;
+import io.github.glynch.jscene3d.materials.BasicMaterial;
+import io.github.glynch.jscene3d.project.asset.AssetId;
+import io.github.glynch.jscene3d.project.asset.AssetRef;
+import io.github.glynch.jscene3d.project.asset.DefinitionWriter;
+import io.github.glynch.jscene3d.project.component.ComponentDefinition;
+import io.github.glynch.jscene3d.project.component.ComponentId;
+import io.github.glynch.jscene3d.project.component.ComponentType;
+import io.github.glynch.jscene3d.project.component.PropertyId;
+import io.github.glynch.jscene3d.project.contract.EntityContract;
+import io.github.glynch.jscene3d.project.entity.EntityDefinition;
+import io.github.glynch.jscene3d.project.entity.EntityEntry;
+import io.github.glynch.jscene3d.project.entity.EntityId;
+import io.github.glynch.jscene3d.project.entity.EntityPlacement;
+import io.github.glynch.jscene3d.project.entity.LocalEntity;
+import io.github.glynch.jscene3d.project.entity.PropertyTarget;
+import io.github.glynch.jscene3d.project.extension.ProjectValueKind;
+import io.github.glynch.jscene3d.project.importing.ImportArtifactDescriptor;
+import io.github.glynch.jscene3d.project.importing.SourceItem;
+import io.github.glynch.jscene3d.project.importing.extension.ImportInspectionContext;
+import io.github.glynch.jscene3d.project.importing.extension.ImportPreparationContext;
+import io.github.glynch.jscene3d.project.importing.extension.ProjectImporter;
+import io.github.glynch.jscene3d.project.manifest.GameProject;
+import io.github.glynch.jscene3d.project.spatial3d.Spatial3dDescriptors;
+import io.github.glynch.jscene3d.project.spatial3d.Spatial3dResourceWriter;
+import io.github.glynch.jscene3d.project.value.ProjectValue;
+import io.github.glynch.jscene3d.project.value.ResourceReference;
+import io.github.glynch.jscene3d.textures.Texture;
+import io.github.glynch.jscene3d.textures.TextureCoordinateOrigin;
+import io.github.glynch.jscene3d.textures.TextureFilter;
+import io.github.glynch.jscene3d.textures.TextureWrap;
+import io.github.glynch.jscene3d.wad.WadArchive;
+import io.github.glynch.jscene3d.wad.WadDiagnostic;
+import io.github.glynch.jscene3d.wad.WadLoadResult;
+import io.github.glynch.jscene3d.wad.WadLoader;
+import io.github.glynch.jscene3d.wad.WadLump;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+
+/** Publishes game-owned actor definitions and MAP actor placements from generic decoded Doom content. */
+final class DoomedCorridorsActorImporter implements ProjectImporter {
+    private static final String ITEM_KIND = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-map";
+    private static final String ACTOR_CATALOG_TYPE = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-catalog";
+    private static final String ACTOR_CATALOG_SETTING = "actor-catalog";
+    private static final String TEXTURE_MEDIA_TYPE = "application/vnd.jscene3d.rgba8-v1";
+    private static final int PALETTE_SIZE = 256 * 3;
+    private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
+    private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
+    private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
+
+    @Override
+    public void inspect(ImportInspectionContext context) {
+        loadArchive(context).ifPresent(archive -> describeMaps(context, archive));
+    }
+
+    @Override
+    public void prepare(ImportPreparationContext context) throws IOException {
+        Optional<WadArchive> loadedArchive = loadArchive(context);
+        loadedArchive.ifPresent(archive -> describeMaps(context, archive));
+        Optional<DoomActorCatalog> loadedCatalog = loadCatalog(context);
+        if (loadedArchive.isEmpty() || loadedCatalog.isEmpty()) {
+            return;
+        }
+        WadArchive archive = loadedArchive.orElseThrow();
+        DoomActorCatalog catalog = loadedCatalog.orElseThrow();
+        Set<String> selection = Set.copyOf(context.definition().selection());
+        for (String mapName : new DoomMapDecoder().discover(archive)) {
+            String identity = mapIdentity(mapName);
+            if (selection.contains(identity)) {
+                prepareMap(context, archive, catalog, mapName, identity);
+            }
+        }
+    }
+
+    /** Declares selectable actor publications for every classic map marker. */
+    private static void describeMaps(ImportInspectionContext context, WadArchive archive) {
+        for (String mapName : new DoomMapDecoder().discover(archive)) {
+            context.sourceItem(new SourceItem(
+                    mapIdentity(mapName),
+                    ITEM_KIND,
+                    mapName + " actors",
+                    true,
+                    Map.of("map", new ProjectValue.TextValue(mapName)),
+                    List.of()));
+        }
+    }
+
+    /** Loads and verifies the authoritative WAD source. */
+    private static Optional<WadArchive> loadArchive(ImportInspectionContext context) {
+        context.checkCancelled();
+        WadLoadResult result = context.asset().sha256().isPresent()
+                ? WadLoader.load(
+                        context.asset().path(), context.asset().sha256().orElseThrow())
+                : WadLoader.load(context.asset().path());
+        result.diagnostics().forEach(diagnostic -> report(context, diagnostic));
+        return result.isValid() ? result.archive() : Optional.empty();
+    }
+
+    /** Resolves and loads the provider-owned actor catalog selected by the import recipe. */
+    private static Optional<DoomActorCatalog> loadCatalog(ImportPreparationContext context) {
+        ProjectValue setting = context.definition().settings().get(ACTOR_CATALOG_SETTING);
+        if (!(setting instanceof ProjectValue.TextValue(String assetId))) {
+            context.error(
+                    ActorImportDiagnosticCode.CATALOG_SETTING_INVALID,
+                    "/settings/" + ACTOR_CATALOG_SETTING,
+                    Map.of("expected", "declared actor-catalog asset id"));
+            return Optional.empty();
+        }
+        Optional<GameProject.AssetSource> selected = context.project().assets().stream()
+                .filter(asset -> asset.id().equals(assetId))
+                .findFirst();
+        if (selected.isEmpty() || !selected.orElseThrow().type().equals(ACTOR_CATALOG_TYPE)) {
+            context.error(
+                    ActorImportDiagnosticCode.CATALOG_SETTING_INVALID,
+                    "/settings/" + ACTOR_CATALOG_SETTING,
+                    Map.of("asset", assetId, "expectedType", ACTOR_CATALOG_TYPE));
+            return Optional.empty();
+        }
+        GameProject.AssetSource source = selected.orElseThrow();
+        context.dependency(source.path());
+        DoomActorCatalogLoadResult result = new DoomActorCatalogLoader().load(source.path());
+        result.diagnostics().forEach(diagnostic -> report(context, diagnostic));
+        return result.isValid() ? result.catalog() : Optional.empty();
+    }
+
+    /** Decodes, resolves, and publishes one selected map's visible normal-skill actors. */
+    private static void prepareMap(
+            ImportPreparationContext context,
+            WadArchive archive,
+            DoomActorCatalog catalog,
+            String mapName,
+            String prefix)
+            throws IOException {
+        DoomMapDecodeResult decoded = new DoomMapDecoder().decode(archive, mapName);
+        decoded.diagnostics().forEach(diagnostic -> report(context, diagnostic));
+        if (!decoded.isValid()) {
+            return;
+        }
+        DoomActorResolution resolution = new DoomActorResolver()
+                .resolve(context.asset().path(), decoded.map().orElseThrow(), catalog, DoomSkillLevel.NORMAL);
+        resolution.diagnostics().forEach(diagnostic -> report(context, diagnostic));
+        Optional<Map<String, ImportedSprite>> imported = importSprites(context, archive, resolution.actors());
+        if (imported.isEmpty()) {
+            return;
+        }
+        publishMap(context, prefix, resolution.actors(), imported.orElseThrow());
+    }
+
+    /** Imports every unique selected spawn frame while preserving classic patch origin metadata. */
+    private static Optional<Map<String, ImportedSprite>> importSprites(
+            ImportPreparationContext context, WadArchive archive, List<DoomActor> actors) {
+        WadLump paletteLump = archive.lastLumpNamed("PLAYPAL").orElse(null);
+        if (paletteLump == null) {
+            context.error(ActorImportDiagnosticCode.PALETTE_MISSING, "/sprites/palette", Map.of());
+            return Optional.empty();
+        }
+        try {
+            byte[] palette = archive.readAllBytes(paletteLump, paletteLump.size());
+            if (palette.length < PALETTE_SIZE) {
+                context.error(
+                        ActorImportDiagnosticCode.PALETTE_INVALID,
+                        "/sprites/palette",
+                        Map.of("actualBytes", Integer.toString(palette.length)));
+                return Optional.empty();
+            }
+            Map<String, WadLump> namespace = spriteLumps(archive);
+            Map<String, ImportedSprite> result = new LinkedHashMap<>();
+            for (String frame : requiredFrames(actors)) {
+                WadLump lump = frameLump(namespace, frame);
+                if (lump == null) {
+                    context.warning(
+                            ActorImportDiagnosticCode.SPRITE_MISSING, "/sprites/" + frame, Map.of("frame", frame));
+                    continue;
+                }
+                DoomPatchImage patch =
+                        DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name());
+                result.put(frame, new ImportedSprite(frame, patch.image(), patch.leftOffset(), patch.topOffset()));
+            }
+            return Optional.of(Collections.unmodifiableMap(result));
+        } catch (IOException | DoomPatchDataException exception) {
+            context.error(
+                    ActorImportDiagnosticCode.SPRITE_INVALID,
+                    "/sprites",
+                    Map.of("message", String.valueOf(exception.getMessage())));
+            return Optional.empty();
+        }
+    }
+
+    /** Publishes shared sprite resources, reusable actor definitions, and one aggregate placement definition. */
+    private static void publishMap(
+            ImportPreparationContext context,
+            String prefix,
+            List<DoomActor> actors,
+            Map<String, ImportedSprite> sprites)
+            throws IOException {
+        for (ImportedSprite sprite : sprites.values()) {
+            publishSprite(context, prefix, sprite);
+        }
+        Map<String, DoomActorDefinition> definitions = selectedDefinitions(actors, sprites);
+        for (DoomActorDefinition definition : definitions.values()) {
+            publishActorDefinition(
+                    context,
+                    prefix,
+                    definition,
+                    sprites.get(definition.spriteFrame().orElseThrow()));
+        }
+        publishActorPlacements(context, prefix, actors, definitions);
+    }
+
+    /** Publishes one nearest-filtered alpha-masked sprite texture and material. */
+    private static void publishSprite(ImportPreparationContext context, String prefix, ImportedSprite sprite)
+            throws IOException {
+        String textureIdentity = textureIdentity(prefix, sprite.frame());
+        String payloadIdentity = textureIdentity + ".rgba8";
+        String materialIdentity = materialIdentity(prefix, sprite.frame());
+        try (Texture texture = createTexture(sprite.image())) {
+            context.artifact(
+                    ImportArtifactDescriptor.payload(payloadIdentity, TEXTURE_MEDIA_TYPE),
+                    output -> Spatial3dResourceWriter.writeTexturePayload(output, texture));
+            ResourceReference payload = imported(context, payloadIdentity);
+            context.artifact(
+                    ImportArtifactDescriptor.resource(
+                            textureIdentity, Spatial3dDescriptors.textureResourceType(), List.of(payloadIdentity)),
+                    output -> Spatial3dResourceWriter.writeTextureDefinition(output, texture, payload));
+            publishMaterial(context, texture, textureIdentity, materialIdentity);
+        }
+    }
+
+    /** Publishes one shared unlit alpha-masked material for an imported sprite texture. */
+    private static void publishMaterial(
+            ImportPreparationContext context, Texture texture, String textureIdentity, String materialIdentity)
+            throws IOException {
+        try (BasicMaterial material = new BasicMaterial()) {
+            material.setColorMap(texture);
+            material.setAlphaMode(AlphaMode.MASK);
+            material.setAlphaCutoff(0.5F);
+            ResourceReference colorMap = imported(context, textureIdentity);
+            context.artifact(
+                    ImportArtifactDescriptor.resource(
+                            materialIdentity,
+                            Spatial3dDescriptors.basicMaterialResourceType(),
+                            List.of(textureIdentity)),
+                    output -> Spatial3dResourceWriter.writeBasicMaterial(output, material, colorMap));
+        }
+    }
+
+    /** Publishes one reusable provider actor definition backed by its shared idle-frame material. */
+    private static void publishActorDefinition(
+            ImportPreparationContext context, String prefix, DoomActorDefinition actor, ImportedSprite sprite)
+            throws IOException {
+        String definitionIdentity = actorDefinitionIdentity(prefix, actor.id());
+        AssetId definitionId = assetId(context.definition().id(), definitionIdentity);
+        String rootLocator = definitionIdentity + "/root";
+        EntityId rootId = entityId(context.definition().id(), rootLocator);
+        ComponentId transformId = componentId(context.definition().id(), rootLocator + "/transform");
+        ComponentDefinition transform = new ComponentDefinition(
+                transformId,
+                Spatial3dDescriptors.transformType().id(),
+                Spatial3dDescriptors.transformType().version(),
+                Map.of());
+        ComponentDefinition billboard = component(
+                context.definition().id(),
+                rootLocator + "/billboard",
+                Spatial3dDescriptors.billboardRendererType(),
+                Map.of(
+                        Spatial3dDescriptors.materialProperty(),
+                                reference(context.definition().id(), materialIdentity(prefix, sprite.frame())),
+                        Spatial3dDescriptors.sizeProperty(),
+                                numbers(
+                                        DoomUnits.toWorld(sprite.image().width()),
+                                        DoomUnits.toWorld(sprite.image().height())),
+                        Spatial3dDescriptors.anchorProperty(),
+                                numbers(
+                                        sprite.leftOffset()
+                                                / (float) sprite.image().width(),
+                                        (sprite.image().height() - sprite.topOffset())
+                                                / (float) sprite.image().height()),
+                        Spatial3dDescriptors.alignmentProperty(), new ProjectValue.TextValue("cylindrical")));
+        EntityContract contract = new EntityContract(
+                List.of(new EntityContract.Parameter(
+                        POSITION_ARGUMENT,
+                        ProjectValueKind.ARRAY,
+                        EntityContract.Requirement.REQUIRED,
+                        PropertyTarget.component(rootId, transformId, Spatial3dDescriptors.positionProperty()))),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+        LocalEntity root = new LocalEntity(rootId, actor.name(), true, List.of(transform, billboard), List.of());
+        EntityDefinition definition = new EntityDefinition(definitionId, actor.name(), contract, List.of(), root);
+        String materialIdentity = materialIdentity(prefix, sprite.frame());
+        context.artifact(
+                ImportArtifactDescriptor.entityDefinition(definitionIdentity, definitionId, List.of(materialIdentity)),
+                output -> DefinitionWriter.write(output, definition));
+    }
+
+    /** Publishes one hierarchy whose children place shared actor definitions at resolved WAD thing positions. */
+    private static void publishActorPlacements(
+            ImportPreparationContext context,
+            String prefix,
+            List<DoomActor> actors,
+            Map<String, DoomActorDefinition> definitions)
+            throws IOException {
+        List<EntityEntry> placements = new ArrayList<>();
+        for (DoomActor actor : actors) {
+            DoomActorDefinition definition = definitions.get(actor.definition().id());
+            if (definition == null) {
+                continue;
+            }
+            String definitionIdentity = actorDefinitionIdentity(prefix, definition.id());
+            placements.add(new EntityPlacement(
+                    entityId(context.definition().id(), prefix + "/actors/placements/" + formatted(actor.thingIndex())),
+                    definition.name() + " " + actor.thingIndex(),
+                    true,
+                    AssetRef.to(assetId(context.definition().id(), definitionIdentity)),
+                    Map.of(POSITION_ARGUMENT, numbers(actor.x(), actor.floorHeight(), actor.z()))));
+        }
+        String definitionIdentity = actorMapDefinitionIdentity(prefix);
+        LocalEntity root = new LocalEntity(
+                entityId(context.definition().id(), prefix + "/actors/root"),
+                "Actors",
+                true,
+                List.of(component(
+                        context.definition().id(),
+                        prefix + "/actors/root/transform",
+                        Spatial3dDescriptors.transformType(),
+                        Map.of())),
+                placements);
+        EntityDefinition definition =
+                new EntityDefinition(assetId(context.definition().id(), definitionIdentity), prefix + " actors", root);
+        List<String> references = definitions.values().stream()
+                .map(actor -> actorDefinitionIdentity(prefix, actor.id()))
+                .toList();
+        context.artifact(
+                ImportArtifactDescriptor.entityDefinition(definitionIdentity, definition.id(), references),
+                output -> DefinitionWriter.write(output, definition));
+    }
+
+    /** Returns unique visible definitions with an imported frame in catalog encounter order. */
+    private static Map<String, DoomActorDefinition> selectedDefinitions(
+            List<DoomActor> actors, Map<String, ImportedSprite> sprites) {
+        Map<String, DoomActorDefinition> result = new LinkedHashMap<>();
+        for (DoomActor actor : actors) {
+            DoomActorDefinition definition = actor.definition();
+            if (sprites.containsKey(definition.spriteFrame().orElseThrow())) {
+                result.putIfAbsent(definition.id(), definition);
+            }
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    /** Collects required provider frame identifiers in deterministic order. */
+    private static Set<String> requiredFrames(List<DoomActor> actors) {
+        Set<String> frames = new TreeSet<>();
+        for (DoomActor actor : actors) {
+            frames.add(actor.definition().spriteFrame().orElseThrow());
+        }
+        return frames;
+    }
+
+    /** Indexes sprite lumps only while inside standard Doom sprite namespaces. */
+    private static Map<String, WadLump> spriteLumps(WadArchive archive) {
+        Map<String, WadLump> result = new LinkedHashMap<>();
+        boolean inNamespace = false;
+        for (WadLump lump : archive.lumps()) {
+            if (START_MARKERS.contains(lump.name())) {
+                inNamespace = true;
+            } else if (END_MARKERS.contains(lump.name())) {
+                inNamespace = false;
+            } else if (inNamespace) {
+                result.put(lump.name(), lump);
+            }
+        }
+        return result;
+    }
+
+    /** Selects a non-directional frame or the forward-facing rotation-one frame. */
+    private static WadLump frameLump(Map<String, WadLump> namespace, String frame) {
+        WadLump nonDirectional = namespace.get(frame + '0');
+        return nonDirectional == null ? namespace.get(frame + '1') : nonDirectional;
+    }
+
+    /** Creates one sprite texture with classic nearest filtering and edge clamping. */
+    private static Texture createTexture(RgbaImage image) {
+        Texture texture = Texture.baseColor(image.width(), image.height(), image.pixels());
+        texture.setCoordinateOrigin(TextureCoordinateOrigin.BOTTOM_LEFT);
+        texture.setHorizontalWrap(TextureWrap.CLAMP_TO_EDGE);
+        texture.setVerticalWrap(TextureWrap.CLAMP_TO_EDGE);
+        texture.setMinificationFilter(TextureFilter.NEAREST_MIPMAP_NEAREST);
+        texture.setMagnificationFilter(TextureFilter.NEAREST);
+        return texture;
+    }
+
+    /** Creates one typed component with deterministic source-derived identity. */
+    private static ComponentDefinition component(
+            String importId, String locator, ComponentType type, Map<PropertyId, ProjectValue> properties) {
+        return new ComponentDefinition(componentId(importId, locator), type.id(), type.version(), properties);
+    }
+
+    /** Creates one imported resource property. */
+    private static ProjectValue.ReferenceValue reference(String importId, String identity) {
+        return new ProjectValue.ReferenceValue(ResourceReference.imported(importId + '/' + identity));
+    }
+
+    /** Creates one imported resource reference for the active recipe. */
+    private static ResourceReference imported(ImportPreparationContext context, String identity) {
+        return ResourceReference.imported(context.definition().id() + '/' + identity);
+    }
+
+    /** Creates one portable numeric array. */
+    private static ProjectValue.ArrayValue numbers(float... values) {
+        List<ProjectValue> result = new ArrayList<>(values.length);
+        for (float value : values) {
+            result.add(new ProjectValue.NumberValue(new BigDecimal(Float.toString(value))));
+        }
+        return new ProjectValue.ArrayValue(result);
+    }
+
+    /** Returns the stable source-item prefix for one map. */
+    private static String mapIdentity(String mapName) {
+        return "maps/" + mapName;
+    }
+
+    /** Returns one reusable actor-definition output identity. */
+    private static String actorDefinitionIdentity(String prefix, String actorId) {
+        return prefix + "/actors/definitions/" + actorId;
+    }
+
+    /** Returns the aggregate actor-placement definition identity. */
+    private static String actorMapDefinitionIdentity(String prefix) {
+        return prefix + "/actors/definition";
+    }
+
+    /** Returns one shared sprite-texture output identity. */
+    private static String textureIdentity(String prefix, String frame) {
+        return prefix + "/actors/resources/textures/" + frame.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one shared sprite-material output identity. */
+    private static String materialIdentity(String prefix, String frame) {
+        return prefix + "/actors/resources/materials/" + frame.toLowerCase(Locale.ROOT);
+    }
+
+    /** Formats source thing indices so lexical and source order agree. */
+    private static String formatted(int index) {
+        return String.format(Locale.ROOT, "%05d", index);
+    }
+
+    /** Creates one deterministic source-derived component identity. */
+    private static ComponentId componentId(String importId, String locator) {
+        return new ComponentId(stableId(importId, locator));
+    }
+
+    /** Creates one deterministic source-derived entity identity. */
+    private static EntityId entityId(String importId, String locator) {
+        return new EntityId(stableId(importId, locator));
+    }
+
+    /** Creates one deterministic source-derived definition identity. */
+    private static AssetId assetId(String importId, String locator) {
+        return new AssetId(stableId(importId, locator));
+    }
+
+    /** Uses standard name UUIDs so reimport preserves identity for unchanged source locators. */
+    private static UUID stableId(String importId, String locator) {
+        return UUID.nameUUIDFromBytes((importId + ':' + locator).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Forwards one WAD diagnostic without replacing its feature-owned identity. */
+    private static void report(ImportInspectionContext context, WadDiagnostic diagnostic) {
+        if (diagnostic.severity() == WadDiagnostic.Severity.ERROR) {
+            context.error(diagnostic.code(), diagnostic.location(), diagnostic.details());
+        } else {
+            context.warning(diagnostic.code(), diagnostic.location(), diagnostic.details());
+        }
+    }
+
+    /** Forwards one decoded-map diagnostic without replacing its feature-owned identity. */
+    private static void report(ImportInspectionContext context, DoomDiagnostic diagnostic) {
+        if (diagnostic.severity() == DoomDiagnostic.Severity.ERROR) {
+            context.error(diagnostic.code(), diagnostic.location(), diagnostic.details());
+        } else {
+            context.warning(diagnostic.code(), diagnostic.location(), diagnostic.details());
+        }
+    }
+
+    /** Forwards one provider diagnostic through a stable actor-import code. */
+    private static void report(ImportInspectionContext context, DoomActorDiagnostic diagnostic) {
+        Map<String, String> details = Map.of(
+                "sourceCode", diagnostic.code(),
+                "message", diagnostic.message());
+        if (diagnostic.severity() == DoomActorDiagnostic.Severity.ERROR) {
+            context.error(ActorImportDiagnosticCode.ACTOR_INVALID, diagnostic.location(), details);
+        } else {
+            context.warning(ActorImportDiagnosticCode.ACTOR_INVALID, diagnostic.location(), details);
+        }
+    }
+
+    /** One decoded actor frame retained only while artifacts are being published. */
+    private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}
+
+    /** Stable game-owned actor-import diagnostics. */
+    private enum ActorImportDiagnosticCode implements DiagnosticCode {
+        CATALOG_SETTING_INVALID(
+                "doomed-corridors.actor-import.catalog-setting", "The actor import requires an actor catalog asset"),
+        ACTOR_INVALID("doomed-corridors.actor-import.actor", "An actor catalog or placement is invalid"),
+        PALETTE_MISSING("doomed-corridors.actor-import.palette-missing", "The WAD has no PLAYPAL palette"),
+        PALETTE_INVALID("doomed-corridors.actor-import.palette-invalid", "The WAD PLAYPAL palette is incomplete"),
+        SPRITE_MISSING("doomed-corridors.actor-import.sprite-missing", "A selected actor sprite frame is missing"),
+        SPRITE_INVALID("doomed-corridors.actor-import.sprite-invalid", "An actor sprite could not be decoded");
+
+        private final String code;
+        private final String message;
+
+        ActorImportDiagnosticCode(String code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+
+        @Override
+        public String defaultMessage() {
+            return message;
+        }
+    }
+}
