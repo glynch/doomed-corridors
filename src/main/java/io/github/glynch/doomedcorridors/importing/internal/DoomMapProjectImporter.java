@@ -33,6 +33,7 @@ import io.github.glynch.jscene3d.project.component.ComponentDefinition;
 import io.github.glynch.jscene3d.project.component.ComponentId;
 import io.github.glynch.jscene3d.project.component.ComponentType;
 import io.github.glynch.jscene3d.project.component.PropertyId;
+import io.github.glynch.jscene3d.project.entity.ComponentTarget;
 import io.github.glynch.jscene3d.project.entity.EntityDefinition;
 import io.github.glynch.jscene3d.project.entity.EntityId;
 import io.github.glynch.jscene3d.project.entity.LocalEntity;
@@ -41,6 +42,8 @@ import io.github.glynch.jscene3d.project.importing.SourceItem;
 import io.github.glynch.jscene3d.project.importing.extension.ImportInspectionContext;
 import io.github.glynch.jscene3d.project.importing.extension.ImportPreparationContext;
 import io.github.glynch.jscene3d.project.importing.extension.ProjectImporter;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dDescriptors;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dResourceWriter;
 import io.github.glynch.jscene3d.project.spatial3d.Spatial3dDescriptors;
 import io.github.glynch.jscene3d.project.spatial3d.Spatial3dResourceWriter;
 import io.github.glynch.jscene3d.project.value.ProjectValue;
@@ -52,6 +55,7 @@ import io.github.glynch.jscene3d.textures.TextureWrap;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -62,9 +66,11 @@ import java.util.UUID;
 
 /** Publishes selected Doom maps as generated project-native entity definitions and spatial resources. */
 public final class DoomMapProjectImporter implements ProjectImporter {
+    private static final float MINIMUM_COLLISION_NORMAL_LENGTH_SQUARED = 1.0E-12F;
     private static final String ITEM_KIND = "io.github.glynch.doomed-corridors/map-presentation";
     private static final String MESH_MEDIA_TYPE = "application/vnd.jscene3d.mesh-v1";
     private static final String TEXTURE_MEDIA_TYPE = "application/vnd.jscene3d.rgba8-v1";
+    private static final String COLLISION_MEDIA_TYPE = "application/vnd.jscene3d.triangle-mesh-collision-v1";
 
     @Override
     public void inspect(ImportInspectionContext context) {
@@ -165,6 +171,12 @@ public final class DoomMapProjectImporter implements ProjectImporter {
         List<ComponentDefinition> components = new ArrayList<>();
         components.add(component(
                 context.definition().id(), prefix + "/root/transform", Spatial3dDescriptors.transformType(), Map.of()));
+        publishCollision(context, prefix, staticCollisionMesh(geometry));
+        String collisionIdentity = collisionIdentity(prefix);
+        references.add(collisionIdentity);
+        ComponentId collisionShape = componentId(context.definition().id(), prefix + "/root/collision/static-shape");
+        components.add(collisionShape(context.definition().id(), prefix, collisionShape));
+        components.add(staticBody(context.definition().id(), prefix, collisionShape));
         for (int index = 0; index < batches.size(); index++) {
             RenderBatch batch = batches.get(index);
             String meshIdentity = meshIdentity(prefix, index);
@@ -187,6 +199,41 @@ public final class DoomMapProjectImporter implements ProjectImporter {
         context.artifact(
                 ImportArtifactDescriptor.entityDefinition(definitionIdentity, definitionId, references),
                 output -> DefinitionWriter.write(output, definition));
+    }
+
+    /** Publishes the static map boundary as collision-specific data distinct from every rendered mesh. */
+    private static void publishCollision(ImportPreparationContext context, String prefix, DoomMeshData collision)
+            throws IOException {
+        String resourceIdentity = collisionIdentity(prefix);
+        String payloadIdentity = prefix + "/payloads/collision/static.mesh";
+        context.artifact(
+                ImportArtifactDescriptor.payload(payloadIdentity, COLLISION_MEDIA_TYPE),
+                output -> Physics3dResourceWriter.writeTriangleMeshPayload(
+                        output, collision.positions(), collision.indices()));
+        ResourceReference payload = imported(context, payloadIdentity);
+        context.artifact(
+                ImportArtifactDescriptor.resource(
+                        resourceIdentity, Physics3dDescriptors.triangleMeshResourceType(), List.of(payloadIdentity)),
+                output -> Physics3dResourceWriter.writeTriangleMeshDefinition(output, payload));
+    }
+
+    /** Creates one shape component retaining the generated static collision resource. */
+    private static ComponentDefinition collisionShape(String importId, String prefix, ComponentId shapeId) {
+        return new ComponentDefinition(
+                shapeId,
+                Physics3dDescriptors.collisionShapeType().id(),
+                Physics3dDescriptors.collisionShapeType().version(),
+                Map.of(Physics3dDescriptors.shapeProperty(), reference(importId, collisionIdentity(prefix))));
+    }
+
+    /** Creates one static body with explicit sibling membership rather than hierarchy inference. */
+    private static ComponentDefinition staticBody(String importId, String prefix, ComponentId shapeId) {
+        ProjectValue.ComponentTargetValue target = new ProjectValue.ComponentTargetValue(
+                new ComponentTarget(entityId(importId, prefix + "/root"), shapeId));
+        Map<PropertyId, ProjectValue> properties =
+                Map.of(Physics3dDescriptors.shapesProperty(), new ProjectValue.ArrayValue(List.of(target)));
+        return component(
+                importId, prefix + "/root/collision/static-body", Physics3dDescriptors.staticBodyType(), properties);
     }
 
     /** Publishes one shared image, texture resource, and unlit material resource. */
@@ -257,6 +304,55 @@ public final class DoomMapProjectImporter implements ProjectImporter {
         return meshesByMaterial.entrySet().stream()
                 .map(entry -> new RenderBatch(entry.getKey(), combine(entry.getValue())))
                 .toList();
+    }
+
+    /** Combines solid map surfaces into one independently published static collision mesh. */
+    private static DoomMeshData staticCollisionMesh(DoomStaticGeometry geometry) {
+        List<DoomMeshData> collisionSurfaces = geometry.surfaces().stream()
+                .filter(surface -> surface.type() != DoomSurface.Type.MASKED_MIDDLE_WALL)
+                .map(DoomSurface::mesh)
+                .toList();
+        if (collisionSurfaces.isEmpty()) {
+            throw new IllegalArgumentException("Doom map has no static collision surfaces");
+        }
+        return withoutDegenerateTriangles(combine(collisionSurfaces));
+    }
+
+    /** Removes presentation triangles that do not define a stable collision plane. */
+    private static DoomMeshData withoutDegenerateTriangles(DoomMeshData mesh) {
+        float[] positions = mesh.positions();
+        int[] sourceIndices = mesh.indices();
+        int[] retainedIndices = new int[sourceIndices.length];
+        int retainedCount = 0;
+        for (int offset = 0; offset < sourceIndices.length; offset += 3) {
+            if (definesCollisionPlane(positions, sourceIndices, offset)) {
+                System.arraycopy(sourceIndices, offset, retainedIndices, retainedCount, 3);
+                retainedCount += 3;
+            }
+        }
+        if (retainedCount == 0) {
+            throw new IllegalArgumentException("Doom map has no non-degenerate static collision triangles");
+        }
+        return new DoomMeshData(
+                positions, mesh.normals(), mesh.textureCoordinates(), Arrays.copyOf(retainedIndices, retainedCount));
+    }
+
+    /** Returns whether one indexed triangle has enough area to define a collision plane. */
+    private static boolean definesCollisionPlane(float[] positions, int[] indices, int offset) {
+        int first = indices[offset] * 3;
+        int second = indices[offset + 1] * 3;
+        int third = indices[offset + 2] * 3;
+        float firstEdgeX = positions[second] - positions[first];
+        float firstEdgeY = positions[second + 1] - positions[first + 1];
+        float firstEdgeZ = positions[second + 2] - positions[first + 2];
+        float secondEdgeX = positions[third] - positions[first];
+        float secondEdgeY = positions[third + 1] - positions[first + 1];
+        float secondEdgeZ = positions[third + 2] - positions[first + 2];
+        float normalX = firstEdgeY * secondEdgeZ - firstEdgeZ * secondEdgeY;
+        float normalY = firstEdgeZ * secondEdgeX - firstEdgeX * secondEdgeZ;
+        float normalZ = firstEdgeX * secondEdgeY - firstEdgeY * secondEdgeX;
+        float normalLengthSquared = normalX * normalX + normalY * normalY + normalZ * normalZ;
+        return normalLengthSquared >= MINIMUM_COLLISION_NORMAL_LENGTH_SQUARED;
     }
 
     /** Combines compatible indexed meshes while preserving their vertex and triangle order. */
@@ -351,6 +447,11 @@ public final class DoomMapProjectImporter implements ProjectImporter {
                 new ComponentId(stableId(importId, locator)), type.id(), type.version(), properties);
     }
 
+    /** Creates one deterministic source-derived component identity. */
+    private static ComponentId componentId(String importId, String locator) {
+        return new ComponentId(stableId(importId, locator));
+    }
+
     /** Creates one imported resource property. */
     private static ProjectValue.ReferenceValue reference(String importId, String identity) {
         return new ProjectValue.ReferenceValue(ResourceReference.imported(importId + '/' + identity));
@@ -428,6 +529,11 @@ public final class DoomMapProjectImporter implements ProjectImporter {
     /** Returns one deterministic shared-material identity. */
     private static String materialIdentity(String prefix, MaterialKey key) {
         return prefix + "/resources/materials/" + key.path();
+    }
+
+    /** Returns the independent static collision-resource identity. */
+    private static String collisionIdentity(String prefix) {
+        return prefix + "/resources/collision/static";
     }
 
     /** Formats stable surface indices for lexical and source ordering to agree. */

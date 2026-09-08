@@ -5,11 +5,14 @@
 package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import io.github.glynch.jscene3d.project.asset.AssetId;
 import io.github.glynch.jscene3d.project.component.ComponentId;
 import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
 import io.github.glynch.jscene3d.project.entity.EntityId;
+import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
@@ -22,6 +25,7 @@ import io.github.glynch.jscene3d.project.spatial3d.Spatial3dWorldModule;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.UUID;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -32,6 +36,7 @@ final class ProjectHostIntegrationTest {
     private static final AssetId MAP_DEFINITION = AssetId.from("15a64477-b57f-3ae3-bf65-33cd6baab7b6");
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final ComponentId FIRST_RENDERER = componentId("maps/MAP01/root/mesh-renderers/00000");
+    private static final ComponentId STATIC_COLLISION_SHAPE = componentId("maps/MAP01/root/collision/static-shape");
     private static final Path PROJECT_ROOT = Path.of(".").toAbsolutePath().normalize();
 
     @TempDir
@@ -59,10 +64,14 @@ final class ProjectHostIntegrationTest {
                     .containsExactly("Player Camera", "MAP01 Geometry");
             assertThat(placement.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(placement.instantiatedDefinition()).contains(MAP_DEFINITION);
-            assertThat(placement.componentIds()).hasSize(80);
+            assertThat(placement.componentIds()).hasSize(82);
             assertThat(renderer.isVisible()).isTrue();
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
+            assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
+                    .isOne();
+            assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
+                    .isOne();
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -70,6 +79,13 @@ final class ProjectHostIntegrationTest {
 
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isTrue();
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+            CollisionRaycastHit3d floor = physics.raycast(
+                            new Vector3f(-6.0F, 1.28125F, 6.0F), new Vector3f(0.0F, -1.0F, 0.0F), 4.0F)
+                    .orElseThrow();
+            assertThat(floor.shape().componentId()).isEqualTo(STATIC_COLLISION_SHAPE);
+            assertThat(floor.distance()).isCloseTo(1.28125F, within(1.0E-5F));
+            assertThat(floor.point(new Vector3f()).y).isCloseTo(0.0F, within(1.0E-5F));
         }
 
         assertThat(renderer.isClosed()).isTrue();
