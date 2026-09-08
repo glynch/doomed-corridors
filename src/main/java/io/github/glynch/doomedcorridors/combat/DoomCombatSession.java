@@ -7,7 +7,7 @@ package io.github.glynch.doomedcorridors.combat;
 import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
-import io.github.glynch.doomedcorridors.world.DoomUnits;
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.time.Duration;
 import java.util.ArrayList;

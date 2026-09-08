@@ -6,13 +6,13 @@ package io.github.glynch.doomedcorridors.presentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
-import io.github.glynch.doomedcorridors.material.DoomMaterial;
-import io.github.glynch.doomedcorridors.material.RgbaImage;
-import io.github.glynch.doomedcorridors.world.DoomMeshData;
-import io.github.glynch.doomedcorridors.world.DoomPlayerStart;
-import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
-import io.github.glynch.doomedcorridors.world.DoomSurface;
+import io.github.glynch.jscene3d.doom.geometry.DoomMeshData;
+import io.github.glynch.jscene3d.doom.geometry.DoomPlayerStart;
+import io.github.glynch.jscene3d.doom.geometry.DoomStaticGeometry;
+import io.github.glynch.jscene3d.doom.geometry.DoomSurface;
+import io.github.glynch.jscene3d.doom.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.material.DoomMaterial;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
 import io.github.glynch.jscene3d.geometries.BufferGeometry;
 import io.github.glynch.jscene3d.objects.Mesh;
 import java.util.List;

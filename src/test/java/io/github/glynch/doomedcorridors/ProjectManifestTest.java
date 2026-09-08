@@ -6,6 +6,8 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
@@ -77,7 +79,7 @@ final class ProjectManifestTest {
         }
     }
 
-    /** Loads the single MAP01 publication recipe through the application-owned importer. */
+    /** Loads the single MAP01 publication recipe through the engine Doom importer. */
     @Test
     void loadsFreedoomMapImport() {
         GameProject project = loadProject().project().orElseThrow();
@@ -89,7 +91,7 @@ final class ProjectManifestTest {
         ImportDefinition definition = result.definition().orElseThrow();
         assertThat(definition.id()).isEqualTo("freedoom-map01");
         assertThat(definition.asset().id()).isEqualTo("freedoom");
-        assertThat(definition.importer()).isEqualTo(EXTENSION_ID + "/map-importer");
+        assertThat(definition.importer()).isEqualTo("io.github.glynch.jscene3d.doom/maps");
         assertThat(definition.selection()).containsExactly("maps/MAP01");
     }
 
@@ -111,7 +113,7 @@ final class ProjectManifestTest {
                         new InputBinding.GamepadStick("left-stick", 0.15F, true));
         assertThat(actions.get("look").bindings())
                 .containsExactly(
-                        new InputBinding.MouseDelta(0.002F, -0.002F),
+                        new InputBinding.MouseDelta(1.0F, -1.0F),
                         new InputBinding.GamepadStick("right-stick", 0.15F, true));
         assertThat(actions.get("turn-left").bindings()).containsExactly(new InputBinding.KeyboardKey("LEFT"));
         assertThat(actions.get("turn-right").bindings()).containsExactly(new InputBinding.KeyboardKey("RIGHT"));
@@ -119,7 +121,18 @@ final class ProjectManifestTest {
                 .containsExactly(new InputBinding.KeyboardKey("E"), new InputBinding.GamepadButton("button-west"));
     }
 
-    /** Loads the application descriptor with its importer and player-controller declarations. */
+    /** Keeps collision tolerance above MAP01's 16-unit stairs and below its 24-unit low ledges. */
+    @Test
+    void configuresDoomStairAllowanceWithoutClimbingLowLedges() throws Exception {
+        JsonNode world =
+                new ObjectMapper().readTree(Path.of("worlds/map01.world.json").toFile());
+        float maximumStepHeight =
+                world.at("/roots/0/components/2/properties/maximum-step-height").floatValue();
+
+        assertThat(maximumStepHeight).isGreaterThan(16.0F / 32.0F).isLessThan(24.0F / 32.0F);
+    }
+
+    /** Loads the application descriptor alongside its engine-owned Doom importer declaration. */
     @Test
     void loadsDoomedCorridorsExtension() {
         GameProject project = loadProject().project().orElseThrow();
@@ -129,13 +142,11 @@ final class ProjectManifestTest {
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.catalog().extensions())
                 .extracting(descriptor -> descriptor.id())
-                .containsExactly("io.github.glynch.jscene3d.wad", EXTENSION_ID);
+                .containsExactly("io.github.glynch.jscene3d.wad", "io.github.glynch.jscene3d.doom", EXTENSION_ID);
         assertThat(result.catalog().types())
                 .extracting(type -> type.type().id())
-                .contains(EXTENSION_ID + "/map-importer");
-        assertThat(result.catalog().componentTypes())
-                .extracting(component -> component.type().id().value())
-                .contains(EXTENSION_ID + "/player-controller");
+                .contains("io.github.glynch.jscene3d.doom/maps");
+        assertThat(result.catalog().componentTypes()).isEmpty();
     }
 
     /** Loads the repository's project manifest. */

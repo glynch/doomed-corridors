@@ -5,6 +5,7 @@
 package io.github.glynch.doomedcorridors.wad;
 
 import io.github.glynch.jscene3d.audio.PcmAudio;
+import io.github.glynch.jscene3d.doom.material.DoomPatchDataException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 

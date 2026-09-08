@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.material;
 
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;

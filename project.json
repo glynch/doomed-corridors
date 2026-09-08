@@ -32,6 +32,10 @@
       "requires": ">=0.1.0-SNAPSHOT <0.2.0"
     },
     {
+      "id": "io.github.glynch.jscene3d.doom",
+      "requires": ">=0.1.0-SNAPSHOT <0.2.0"
+    },
+    {
       "id": "io.github.glynch.doomed-corridors",
       "requires": ">=0.1.0-SNAPSHOT <0.2.0"
     }

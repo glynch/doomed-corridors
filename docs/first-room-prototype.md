@@ -56,13 +56,13 @@ writes a deterministic contact sheet under `target/smoke/` for manual inspection
 without initializing windowing or native rendering.
 
 The MAP01 project-runtime geometry and player slices are complete. The
-application importer publishes textured mesh resources and independently
+engine Doom importer publishes textured mesh resources and independently
 authored static collision behind the generic importer interface. The entry
 world places that generated definition alongside a composed Player entity with
-a transform, capsule, character body, application controller, and child camera
+a transform, capsule, character body, generic first-person controller, and child camera
 view. The generic project host constructs this graph and owns its resources.
 
-The player controller is safe descriptor metadata paired with application-owned
+The player controller is engine-owned safe descriptor metadata paired with reusable
 Java behavior. Stable component targets bind it explicitly to the character body
 and child view transform. During the declared before-physics phase it reads the
 authored `move` and `look` actions, submits planar velocity to the engine-owned

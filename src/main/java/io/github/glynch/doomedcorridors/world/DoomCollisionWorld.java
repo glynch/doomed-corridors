@@ -8,6 +8,7 @@ import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFin
 import static io.github.glynch.doomedcorridors.internal.Preconditions.requireNonNegative;
 import static io.github.glynch.doomedcorridors.internal.Preconditions.requirePositive;
 
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.Objects;
 import java.util.function.IntToDoubleFunction;

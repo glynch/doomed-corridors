@@ -7,10 +7,10 @@ package io.github.glynch.doomedcorridors.presentation;
 import static io.github.glynch.doomedcorridors.internal.Preconditions.requireFinite;
 import static io.github.glynch.doomedcorridors.internal.Preconditions.requireNonNegative;
 
-import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
-import io.github.glynch.doomedcorridors.world.DoomStaticGeometry;
-import io.github.glynch.doomedcorridors.world.DoomSurface;
-import io.github.glynch.doomedcorridors.world.DoomUnits;
+import io.github.glynch.jscene3d.doom.geometry.DoomStaticGeometry;
+import io.github.glynch.jscene3d.doom.geometry.DoomSurface;
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
+import io.github.glynch.jscene3d.doom.material.DoomMapMaterials;
 import io.github.glynch.jscene3d.geometries.BufferAttribute;
 import io.github.glynch.jscene3d.geometries.BufferGeometry;
 import io.github.glynch.jscene3d.materials.BasicMaterial;

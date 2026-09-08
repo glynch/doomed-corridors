@@ -3,6 +3,6 @@
   "schemaVersion": 1,
   "id": "freedoom-map01",
   "source": "asset:freedoom",
-  "importer": "io.github.glynch.doomed-corridors/map-importer",
+  "importer": "io.github.glynch.jscene3d.doom/maps",
   "selection": ["maps/MAP01"]
 }

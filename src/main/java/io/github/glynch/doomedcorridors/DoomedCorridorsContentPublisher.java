@@ -4,7 +4,6 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.importing.DoomedCorridorsImportExtension;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
 import io.github.glynch.jscene3d.project.importing.ImportManager;
@@ -52,7 +51,8 @@ public final class DoomedCorridorsContentPublisher {
                 project,
                 loadedTypes.catalog(),
                 cacheRoot.toAbsolutePath().normalize(),
-                List.of(new DoomedCorridorsImportExtension()));
+                DoomedCorridorsContentPublisher.class.getClassLoader(),
+                List.of());
         ImportLoader definitionLoader = new ImportLoader();
         for (Path definitionPath : project.imports()) {
             ImportLoadResult result = definitionLoader.load(project, definitionPath);

@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.glynch.doomedcorridors.actor.DoomActorSprite;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
-import io.github.glynch.doomedcorridors.wad.WadLump;
+import io.github.glynch.jscene3d.doom.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.material.DoomMaterial;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
+import io.github.glynch.jscene3d.wad.WadLump;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;

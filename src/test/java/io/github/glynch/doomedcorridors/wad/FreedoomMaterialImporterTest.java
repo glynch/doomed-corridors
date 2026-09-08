@@ -2,11 +2,15 @@ package io.github.glynch.doomedcorridors.wad;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
+import io.github.glynch.jscene3d.doom.map.DoomMapDecoder;
+import io.github.glynch.jscene3d.doom.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.material.DoomMaterialImportResult;
+import io.github.glynch.jscene3d.doom.material.DoomMaterialImporter;
+import io.github.glynch.jscene3d.wad.WadArchive;
+import io.github.glynch.jscene3d.wad.WadLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -19,10 +23,7 @@ final class FreedoomMaterialImporterTest {
     void importsPinnedMap01Materials() {
         Path source = Path.of("assets/freedoom2.wad");
         Assumptions.assumeTrue(Files.isRegularFile(source), "pinned Freedoom WAD is not installed");
-        WadArchive archive = new WadLoader()
-                .load(source, Optional.of(FREEDOOM_SHA256))
-                .archive()
-                .orElseThrow();
+        WadArchive archive = WadLoader.load(source, FREEDOOM_SHA256).archive().orElseThrow();
         DoomMap map = new DoomMapDecoder().decode(archive, "MAP01").map().orElseThrow();
 
         DoomMaterialImportResult result = new DoomMaterialImporter().importMap(archive, map);

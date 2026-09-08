@@ -48,6 +48,7 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId VIEW_TRANSFORM = ComponentId.from("82b8ae6d-47e9-4df6-9d85-01a6fca09dc6");
     private static final ComponentId FIRST_RENDERER = componentId("maps/MAP01/root/mesh-renderers/00000");
     private static final ComponentId STATIC_COLLISION_SHAPE = componentId("maps/MAP01/root/collision/static-shape");
+    private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
@@ -86,7 +87,7 @@ final class ProjectHostIntegrationTest {
                     .extracting(entity -> entity.name().orElseThrow())
                     .containsExactly("Player", "MAP01 Geometry");
             assertThat(character.isClosed()).isFalse();
-            assertThat(player.componentIds()).contains(DoomPlayerController.COMPONENT_ID);
+            assertThat(player.componentIds()).contains(PLAYER_CONTROLLER);
             assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
             assertThat(playerTransform.position().y()).isEqualTo(0.875F);
             assertThat(playerTransform.position().z()).isEqualTo(6.0F);
@@ -163,7 +164,7 @@ final class ProjectHostIntegrationTest {
             loaded.world().advanceFixed(Duration.ofMillis(25));
 
             float pointerYaw = viewTransform.orientation().getEulerAnglesYXZ(new Vector3f()).y;
-            assertThat(pointerYaw).isCloseTo(startingYaw - 0.2F, within(0.0001F));
+            assertThat(pointerYaw).isCloseTo(startingYaw - 0.15F, within(0.0001F));
 
             input.publish(ActionSnapshot.builder().down(TURN_RIGHT).build());
             loaded.world().advanceFixed(Duration.ofMillis(100));
@@ -193,7 +194,7 @@ final class ProjectHostIntegrationTest {
                             new Vector3f(-5.4F, 0.875F, 6.0F), new Vector3f(1.0F, 0.0F, 0.0F), 64.0F)
                     .orElseThrow();
             assertThat(wall.shape().componentId()).isEqualTo(STATIC_COLLISION_SHAPE);
-            float wallLimit = wall.point(new Vector3f()).x - 0.5F;
+            float wallLimit = wall.point(new Vector3f()).x - 0.4375F;
 
             input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
             advanceFixed(loaded, 160);

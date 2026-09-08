@@ -13,11 +13,11 @@ Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest declares the source
 asset and selects [`worlds/map01.world.json`](worlds/map01.world.json) as its
 entry world. [`imports/freedoom-map01.import.json`](imports/freedoom-map01.import.json)
-selects `MAP01` from the WAD. The application importer publishes the selection
+selects `MAP01` from the WAD. The engine Doom importer publishes the selection
 as a generated, read-only entity definition backed by generic JScene3D mesh,
 material, texture, and independently published collision resources. The
 authored world places that definition alongside a composed Player entity. The
-Player owns its transform, capsule shape, character body, application controller,
+Player owns its transform, capsule shape, character body, generic first-person controller,
 and a child view containing the primary camera; the generic desktop project host
 resolves and composes the complete world.
 

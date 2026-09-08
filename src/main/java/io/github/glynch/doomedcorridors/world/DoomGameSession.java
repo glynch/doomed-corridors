@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import io.github.glynch.jscene3d.doom.geometry.DoomPlayerStart;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.time.Duration;
 import java.util.Objects;

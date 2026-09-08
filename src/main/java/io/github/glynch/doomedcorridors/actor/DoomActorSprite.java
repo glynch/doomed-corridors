@@ -4,8 +4,8 @@
  */
 package io.github.glynch.doomedcorridors.actor;
 
-import io.github.glynch.doomedcorridors.material.RgbaImage;
 import io.github.glynch.doomedcorridors.wad.WadLump;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
 import java.util.List;
 import java.util.Objects;
 

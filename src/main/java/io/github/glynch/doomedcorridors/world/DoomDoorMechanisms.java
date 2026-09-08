@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.LinkedHashMap;
 import java.util.List;

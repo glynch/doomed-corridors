@@ -43,14 +43,14 @@
             ],
             "gravity": 18,
             "jump-speed": 0,
-            "maximum-step-height": 0.75,
+            "maximum-step-height": 0.53125,
             "ground-snap-distance": 0.25
           }
         },
         {
           "componentId": "486f49a3-fe97-4a6c-b92d-533a1995493c",
-          "type": "io.github.glynch.doomed-corridors/player-controller",
-          "typeVersion": 2,
+          "type": "io.github.glynch.jscene3d.game3d/first-person-character-controller-3d",
+          "typeVersion": 1,
           "properties": {
             "body": {
               "$target": {
@@ -70,7 +70,7 @@
             "turn-right-action": "turn-right",
             "move-speed": 8,
             "turn-speed-degrees": 180,
-            "pointer-sensitivity": 0.002,
+            "pointer-sensitivity": 0.0015,
             "maximum-pitch-degrees": 85
           }
         }

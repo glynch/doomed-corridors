@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors.world;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import io.github.glynch.jscene3d.doom.geometry.DoomPlayerStart;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.time.Duration;
 import java.util.ArrayList;

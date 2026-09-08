@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.presentation;
 
-import io.github.glynch.doomedcorridors.material.RgbaImage;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
 import io.github.glynch.jscene3d.math.Color;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.OverlayCanvas;

@@ -4,7 +4,7 @@
   "type": "io.github.glynch.jscene3d.physics3d/capsule-collision-shape-3d",
   "typeVersion": 1,
   "properties": {
-    "radius": 0.5,
+    "radius": 0.4375,
     "segment-length": 0.75
   }
 }

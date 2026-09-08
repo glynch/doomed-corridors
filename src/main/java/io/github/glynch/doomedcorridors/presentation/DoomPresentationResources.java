@@ -4,11 +4,11 @@
  */
 package io.github.glynch.doomedcorridors.presentation;
 
-import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
-import io.github.glynch.doomedcorridors.material.DoomMaterial;
-import io.github.glynch.doomedcorridors.material.RgbaImage;
-import io.github.glynch.doomedcorridors.world.DoomMeshData;
-import io.github.glynch.doomedcorridors.world.DoomSurface;
+import io.github.glynch.jscene3d.doom.geometry.DoomMeshData;
+import io.github.glynch.jscene3d.doom.geometry.DoomSurface;
+import io.github.glynch.jscene3d.doom.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.material.DoomMaterial;
+import io.github.glynch.jscene3d.doom.material.RgbaImage;
 import io.github.glynch.jscene3d.geometries.BufferAttribute;
 import io.github.glynch.jscene3d.geometries.BufferGeometry;
 import io.github.glynch.jscene3d.geometries.BufferUsage;

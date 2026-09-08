@@ -19,7 +19,7 @@
     "look": {
       "valueType": "axis-2d",
       "bindings": [
-        {"device": "mouse", "control": "delta", "scaleX": 0.002, "scaleY": -0.002},
+        {"device": "mouse", "control": "delta", "scaleX": 1, "scaleY": -1},
         {"device": "gamepad", "control": "right-stick", "deadZone": 0.15, "invertY": true}
       ]
     },
