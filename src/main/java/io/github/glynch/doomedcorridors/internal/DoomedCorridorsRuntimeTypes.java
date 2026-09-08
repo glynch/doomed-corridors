@@ -26,14 +26,38 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type for one collectable actor. */
     public static final ComponentType PICKUP_TYPE = ComponentType.of(EXTENSION_ID + "/pickup", 1);
 
+    /** Runtime type for mutable combatant health. */
+    public static final ComponentType COMBATANT_STATE_TYPE = ComponentType.of(EXTENSION_ID + "/combatant-state", 1);
+
+    /** Runtime type for one input-driven hitscan weapon. */
+    public static final ComponentType HITSCAN_WEAPON_TYPE = ComponentType.of(EXTENSION_ID + "/hitscan-weapon", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
+
+    /** Semantic capability exposing mutable damage state on the exact target entity. */
+    public static final CapabilityId DAMAGEABLE_CAPABILITY = new CapabilityId(EXTENSION_ID + "/damageable");
+
+    /** Semantic capability identifying the exact player weapon component. */
+    public static final CapabilityId WEAPON_CAPABILITY = new CapabilityId(EXTENSION_ID + "/weapon");
 
     /** Player-state reference to the authoritative actor catalog. */
     public static final PropertyId ACTOR_CATALOG_PROPERTY = new PropertyId("actor-catalog");
 
     /** Player-state reference to the authoritative combat rules. */
     public static final PropertyId COMBAT_RULES_PROPERTY = new PropertyId("combat-rules");
+
+    /** Provider actor identity used to initialize one combatant. */
+    public static final PropertyId ACTOR_ID_PROPERTY = new PropertyId("actor-id");
+
+    /** Provider weapon identity used to configure one weapon component. */
+    public static final PropertyId WEAPON_ID_PROPERTY = new PropertyId("weapon-id");
+
+    /** Explicit component target supplying the weapon's world-space origin and direction. */
+    public static final PropertyId VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
+
+    /** Semantic input action which fires the weapon. */
+    public static final PropertyId FIRE_ACTION_PROPERTY = new PropertyId("fire-action");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");

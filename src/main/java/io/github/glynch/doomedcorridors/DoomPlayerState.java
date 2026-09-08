@@ -9,7 +9,7 @@ import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.util.Objects;
 
 /** Mutable project-runtime health and ammunition state for one player entity. */
-final class DoomPlayerState {
+final class DoomPlayerState implements DoomRuleConsumer {
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private int health;
@@ -25,17 +25,20 @@ final class DoomPlayerState {
     }
 
     /** Returns the actor-catalog source selected by the authored player component. */
-    ResourceReference actorCatalog() {
+    @Override
+    public ResourceReference actorCatalog() {
         return actorCatalog;
     }
 
     /** Returns the combat-rules source selected by the authored player component. */
-    ResourceReference combatRules() {
+    @Override
+    public ResourceReference combatRules() {
         return combatRules;
     }
 
     /** Initializes resources exactly once from validated provider rules before world activation. */
-    void configure(DoomCombatRules rules) {
+    @Override
+    public void configure(DoomCombatRules rules) {
         DoomCombatRules validRules = Objects.requireNonNull(rules, "rules");
         if (configured) {
             throw new IllegalStateException("player state is already configured");
@@ -57,6 +60,19 @@ final class DoomPlayerState {
     int bullets() {
         requireConfigured();
         return bullets;
+    }
+
+    /** Spends the requested positive bullet amount when available. */
+    boolean spendBullets(int amount) {
+        requireConfigured();
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (bullets < amount) {
+            return false;
+        }
+        bullets -= amount;
+        return true;
     }
 
     /** Applies positive incoming damage without reducing health below zero. */

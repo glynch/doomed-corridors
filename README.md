@@ -75,15 +75,18 @@ descriptor-declared player controller, which moves the capsule through the
 engine character-body API, resolves floor and wall collision, slides along
 obstacles, and keeps the child camera attached. Health and bullet pickups use
 authored sensors and signal connections to update the player-resource
-capability and disappear only when useful. Solid enemies block player movement;
-enemy behavior, doors, combat,
-audio, and the HUD have not yet been connected to the new entity-component
-runtime.
+capability and disappear only when useful. Solid enemies own descriptor-declared
+damageable state as well as collision. The player's authored hitscan-weapon
+component consumes the configured bullet cost, traces from its explicit view
+transform, applies the configured discrete pistol damage to the first unobstructed
+damageable entity, and destroys an enemy when its health reaches zero. Enemy
+behavior, doors, weapon presentation, audio, and the HUD have not yet been
+connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the
-left/right arrow keys turn. Close the application with the native window close
-control.
+left/right arrow keys turn. The left mouse button fires while the pointer is
+captured. Close the application with the native window close control.
 
 ## Development
 

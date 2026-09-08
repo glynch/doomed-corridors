@@ -287,6 +287,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             Map<String, ImportedSprite> sprites,
             DoomCombatRules rules)
             throws IOException {
+        RuleReferences ruleReferences = ruleReferences(context);
         for (ImportedSprite sprite : sprites.values()) {
             publishSprite(context, prefix, sprite);
         }
@@ -306,7 +307,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                     definition,
                     sprites.get(definition.spriteFrame().orElseThrow()),
                     pickup,
-                    combatant);
+                    combatant,
+                    ruleReferences);
         }
         publishActorPlacements(context, prefix, actors, definitions);
     }
@@ -383,7 +385,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             DoomActorDefinition actor,
             ImportedSprite sprite,
             Optional<DoomCombatRules.PickupDefinition> pickup,
-            Optional<DoomCombatRules.CombatantBounds> combatant)
+            Optional<DoomCombatRules.CombatantBounds> combatant,
+            RuleReferences ruleReferences)
             throws IOException {
         String definitionIdentity = actorDefinitionIdentity(prefix, actor.id());
         AssetId definitionId = assetId(context.definition().id(), definitionIdentity);
@@ -429,6 +432,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         combatant.ifPresent(bounds -> addCombatantComponents(
                 new CombatantPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
                 bounds,
+                ruleReferences,
                 components,
                 references));
         EntityContract contract = new EntityContract(
@@ -497,6 +501,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static void addCombatantComponents(
             CombatantPublication publication,
             DoomCombatRules.CombatantBounds bounds,
+            RuleReferences ruleReferences,
             List<ComponentDefinition> components,
             List<String> references) {
         String importId = publication.importId();
@@ -504,6 +509,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         ComponentId shapeId = componentId(importId, rootLocator + "/combatant-shape");
         String shapeIdentity =
                 collisionShapeIdentity(publication.prefix(), publication.actor().id());
+        components.add(component(
+                importId,
+                rootLocator + "/combatant-state",
+                DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE,
+                Map.of(
+                        DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
+                        DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
+                        DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY,
+                                new ProjectValue.TextValue(publication.actor().id()))));
         components.add(component(
                 importId,
                 rootLocator + "/combatant-shape",
@@ -518,6 +532,23 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 Physics3dDescriptors.characterBodyType(),
                 Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
         references.add(shapeIdentity);
+    }
+
+    /** Converts validated recipe source-asset identities into portable authored references. */
+    private static RuleReferences ruleReferences(ImportPreparationContext context) {
+        return new RuleReferences(
+                sourceAssetReference(context, ACTOR_CATALOG_SETTING),
+                sourceAssetReference(context, COMBAT_RULES_SETTING));
+    }
+
+    /** Returns one source-asset reference from a setting already validated during preparation. */
+    private static ProjectValue.ReferenceValue sourceAssetReference(
+            ImportPreparationContext context, String settingId) {
+        ProjectValue value = context.definition().settings().get(settingId);
+        if (!(value instanceof ProjectValue.TextValue(String assetId))) {
+            throw new IllegalStateException("validated import setting is not text: " + settingId);
+        }
+        return new ProjectValue.ReferenceValue(ResourceReference.asset(assetId));
     }
 
     /** Publishes one hierarchy whose children place shared actor definitions at resolved WAD thing positions. */
@@ -753,6 +784,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Stable inputs identifying where solid combatant components are published in one actor definition. */
     private record CombatantPublication(
             String importId, String prefix, DoomActorDefinition actor, String rootLocator, EntityId rootId) {}
+
+    /** Portable source references embedded in every provider-defined combatant state component. */
+    private record RuleReferences(ProjectValue.ReferenceValue actorCatalog, ProjectValue.ReferenceValue combatRules) {}
 
     /** One decoded actor frame retained only while artifacts are being published. */
     private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}

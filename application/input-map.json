@@ -41,6 +41,13 @@
         {"device": "keyboard", "control": "E"},
         {"device": "gamepad", "control": "button-west"}
       ]
+    },
+    "fire-primary": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "mouse", "control": "LEFT"},
+        {"device": "gamepad", "control": "button-south"}
+      ]
     }
   }
 }

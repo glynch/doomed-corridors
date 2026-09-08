@@ -82,6 +82,23 @@
             "actor-catalog": {"$ref": "asset:actors"},
             "combat-rules": {"$ref": "asset:combat"}
           }
+        },
+        {
+          "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
+          "type": "io.github.glynch.doomed-corridors/hitscan-weapon",
+          "typeVersion": 1,
+          "properties": {
+            "actor-catalog": {"$ref": "asset:actors"},
+            "combat-rules": {"$ref": "asset:combat"},
+            "weapon-id": "pistol",
+            "view-transform": {
+              "$target": {
+                "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+                "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
+              }
+            },
+            "fire-action": "fire-primary"
+          }
         }
       ],
       "children": [

@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.jscene3d.project.component.ComponentUpdatePhase;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoader;
@@ -129,7 +130,7 @@ final class ProjectManifestTest {
         assertThat(result.isValid()).isTrue();
         assertThat(result.diagnostics()).isEmpty();
         var actions = result.definition().orElseThrow().actions();
-        assertThat(actions).containsOnlyKeys("move", "look", "turn-left", "turn-right", "interact");
+        assertThat(actions).containsOnlyKeys("move", "look", "turn-left", "turn-right", "interact", "fire-primary");
         assertThat(actions.get("move").valueType()).isEqualTo(InputValueType.AXIS_2D);
         assertThat(actions.get("move").bindings())
                 .containsExactly(
@@ -143,6 +144,8 @@ final class ProjectManifestTest {
         assertThat(actions.get("turn-right").bindings()).containsExactly(new InputBinding.KeyboardKey("RIGHT"));
         assertThat(actions.get("interact").bindings())
                 .containsExactly(new InputBinding.KeyboardKey("E"), new InputBinding.GamepadButton("button-west"));
+        assertThat(actions.get("fire-primary").bindings())
+                .containsExactly(new InputBinding.MouseButton("LEFT"), new InputBinding.GamepadButton("button-south"));
     }
 
     /** Preserves MAP01's authored 16-unit step rule without embedding collision tolerance in project data. */
@@ -172,12 +175,31 @@ final class ProjectManifestTest {
                 .contains("io.github.glynch.jscene3d.doom/maps", EXTENSION_ID + "/actors");
         assertThat(result.catalog().componentTypes())
                 .extracting(type -> type.type().id().value())
-                .containsExactly(EXTENSION_ID + "/player-state", EXTENSION_ID + "/pickup");
+                .containsExactly(
+                        EXTENSION_ID + "/player-state",
+                        EXTENSION_ID + "/pickup",
+                        EXTENSION_ID + "/combatant-state",
+                        EXTENSION_ID + "/hitscan-weapon");
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
                         .orElseThrow()
                         .providedCapabilities())
                 .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE)
+                        .orElseThrow()
+                        .providedCapabilities())
+                .containsExactly(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE)
+                        .orElseThrow())
+                .satisfies(weapon -> {
+                    assertThat(weapon.providedCapabilities())
+                            .containsExactly(DoomedCorridorsRuntimeTypes.WEAPON_CAPABILITY);
+                    assertThat(weapon.requiredCapabilities())
+                            .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
+                    assertThat(weapon.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
+                });
     }
 
     /** Loads the repository's project manifest. */

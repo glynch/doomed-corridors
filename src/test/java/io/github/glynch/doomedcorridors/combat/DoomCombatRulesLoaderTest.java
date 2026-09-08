@@ -11,6 +11,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -33,7 +34,12 @@ final class DoomCombatRulesLoaderTest {
             assertThat(rules.startingBullets()).isEqualTo(50);
             assertThat(rules.maximumBullets()).isEqualTo(200);
             assertThat(rules.primaryWeaponId()).isEqualTo("pistol");
+            assertThat(rules.hasWeapon("pistol")).isTrue();
+            assertThat(rules.weaponAmmoPerShot("pistol")).isEqualTo(1);
+            assertThat(rules.weaponRange("pistol")).isEqualTo(2048);
+            assertThat(rules.rollWeaponDamage("pistol", new Random(0L))).isIn(5, 10, 15);
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
+            assertThat(rules.combatantStartingHealth("zombieman")).isEqualTo(20);
             assertThat(rules.pickupDefinitionCount()).isEqualTo(6);
             assertThat(rules.findCombatantBounds("zombieman")).contains(new DoomCombatRules.CombatantBounds(20, 56));
             assertThat(rules.findCombatantBounds("stimpack")).isEmpty();

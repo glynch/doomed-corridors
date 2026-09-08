@@ -12,7 +12,9 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.doomedcorridors.internal.RuntimeProperties;
+import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
 import io.github.glynch.jscene3d.project.runtime.extension.ApplicationRuntimeExtension;
@@ -20,7 +22,9 @@ import io.github.glynch.jscene3d.project.runtime.extension.ComponentFactoryRegis
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** Manifest-selected Doomed Corridors application extension. */
@@ -38,7 +42,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         return ID;
     }
 
-    /** Registers the executable player-state and pickup behavior factories. */
+    /** Registers the executable player, combatant, pickup, and weapon factories. */
     @Override
     public void register(ComponentFactoryRegistry registry) {
         ComponentFactoryRegistry validRegistry = Objects.requireNonNull(registry, "registry");
@@ -57,40 +61,68 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                                 context.properties(), DoomedCorridorsRuntimeTypes.PICKUP_AMOUNT_PROPERTY),
                         RuntimeProperties.positiveInteger(
                                 context.properties(), DoomedCorridorsRuntimeTypes.PICKUP_LIMIT_PROPERTY)));
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE,
+                context -> new DoomCombatantState(
+                        context.owner(),
+                        context.world(),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE,
+                context -> new DoomHitscanWeapon(
+                        context.owner(),
+                        context.world().requireModule(InputWorldModule.class),
+                        context.world().requireModule(Physics3dWorldModule.class),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.WEAPON_ID_PROPERTY),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.FIRE_ACTION_PROPERTY)));
     }
 
-    /** Loads authoritative provider rules and initializes every composed player before activation. */
+    /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */
     @Override
     public void prepare(HostedProject project) {
         HostedProject validProject = Objects.requireNonNull(project, "project");
-        List<DoomPlayerState> players = new ArrayList<>();
-        validProject.world().roots().forEach(root -> collectPlayers(root, players));
-        if (players.isEmpty()) {
+        List<DoomRuleConsumer> consumers = new ArrayList<>();
+        validProject.world().roots().forEach(root -> collectRuleConsumers(root, consumers));
+        boolean hasPlayer = consumers.stream().anyMatch(DoomPlayerState.class::isInstance);
+        if (!hasPlayer) {
             throw new IllegalStateException("the startup world has no Doom player-state component");
         }
-        for (DoomPlayerState player : players) {
-            player.configure(loadRules(validProject.project(), player));
+        Map<RuleSources, DoomCombatRules> loadedRules = new LinkedHashMap<>();
+        for (DoomRuleConsumer consumer : consumers) {
+            RuleSources sources = new RuleSources(consumer.actorCatalog(), consumer.combatRules());
+            DoomCombatRules rules = loadedRules.computeIfAbsent(
+                    sources, key -> loadRules(validProject.project(), key.actorCatalog(), key.combatRules()));
+            consumer.configure(rules);
         }
     }
 
-    /** Collects player-state components throughout one owned entity subtree. */
-    private static void collectPlayers(Entity entity, List<DoomPlayerState> destination) {
+    /** Collects only descriptor-declared rule consumers throughout one owned entity subtree. */
+    private static void collectRuleConsumers(Entity entity, List<DoomRuleConsumer> destination) {
         entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .ifPresent(destination::add);
-        entity.children().forEach(child -> collectPlayers(child, destination));
+        entity.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomCombatantState.class)
+                .ifPresent(destination::add);
+        entity.capability(DoomedCorridorsRuntimeTypes.WEAPON_CAPABILITY, DoomHitscanWeapon.class)
+                .ifPresent(destination::add);
+        entity.children().forEach(child -> collectRuleConsumers(child, destination));
     }
 
     /** Loads combat rules against the explicitly referenced companion actor catalog. */
-    private static DoomCombatRules loadRules(GameProject project, DoomPlayerState player) {
+    private static DoomCombatRules loadRules(
+            GameProject project, ResourceReference actorCatalogReference, ResourceReference combatRulesReference) {
         Path actorCatalog = source(
-                project, player.actorCatalog(), DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_ASSET_TYPE, "actor catalog");
+                project, actorCatalogReference, DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_ASSET_TYPE, "actor catalog");
         DoomActorCatalogLoadResult loadedActors = new DoomActorCatalogLoader().load(actorCatalog);
         DoomActorCatalog actors = loadedActors
                 .catalog()
                 .orElseThrow(
                         () -> new IllegalStateException("actor catalog loading failed: " + loadedActors.diagnostics()));
         Path combatRules = source(
-                project, player.combatRules(), DoomedCorridorsRuntimeTypes.COMBAT_RULES_ASSET_TYPE, "combat rules");
+                project, combatRulesReference, DoomedCorridorsRuntimeTypes.COMBAT_RULES_ASSET_TYPE, "combat rules");
         DoomCombatRulesLoadResult loadedRules = new DoomCombatRulesLoader().load(combatRules, actors);
         return loadedRules
                 .rules()
@@ -110,5 +142,13 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
                         name + " does not name a declared " + type + " asset: " + reference.locator()));
+    }
+
+    /** Explicit rule-source pair used to share one immutable load across matching runtime components. */
+    private record RuleSources(ResourceReference actorCatalog, ResourceReference combatRules) {
+        private RuleSources {
+            Objects.requireNonNull(actorCatalog, "actorCatalog");
+            Objects.requireNonNull(combatRules, "combatRules");
+        }
     }
 }

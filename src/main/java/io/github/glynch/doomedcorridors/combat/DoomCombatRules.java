@@ -10,11 +10,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.random.RandomGenerator;
 
 /** Immutable provider rules needed to initialize the first headless combat loop. */
 public final class DoomCombatRules {
     private final PlayerDefinition player;
     private final WeaponDefinition primaryWeapon;
+    private final Map<String, WeaponDefinition> weapons;
     private final Map<String, CombatantDefinition> combatants;
     private final Map<String, PickupDefinition> pickups;
 
@@ -25,8 +27,8 @@ public final class DoomCombatRules {
             List<CombatantDefinition> combatants,
             List<PickupDefinition> pickups) {
         this.player = Objects.requireNonNull(player, "player");
-        Map<String, WeaponDefinition> weaponsById = indexWeapons(weapons);
-        primaryWeapon = weaponsById.get(player.startingWeapon());
+        this.weapons = indexWeapons(weapons);
+        primaryWeapon = this.weapons.get(player.startingWeapon());
         if (primaryWeapon == null) {
             throw new IllegalArgumentException(
                     "startingWeapon does not name a defined weapon: " + player.startingWeapon());
@@ -75,12 +77,59 @@ public final class DoomCombatRules {
         return combatants.containsKey(Objects.requireNonNull(actorId, "actorId"));
     }
 
+    /** Returns one combatant's configured initial health. */
+    public int combatantStartingHealth(String actorId) {
+        return requireCombatant(actorId).health();
+    }
+
+    /** Returns whether the stable identity names a configured weapon. */
+    public boolean hasWeapon(String weaponId) {
+        return weapons.containsKey(Objects.requireNonNull(weaponId, "weaponId"));
+    }
+
+    /** Returns the bullet cost of firing one configured weapon. */
+    public int weaponAmmoPerShot(String weaponId) {
+        return requireWeapon(weaponId).ammoPerShot();
+    }
+
+    /** Returns one configured weapon's maximum distance in Doom map units. */
+    public int weaponRange(String weaponId) {
+        return requireWeapon(weaponId).range();
+    }
+
+    /** Rolls one configured weapon's inclusive discrete damage sequence. */
+    public int rollWeaponDamage(String weaponId, RandomGenerator random) {
+        WeaponDefinition weapon = requireWeapon(weaponId);
+        int valueIndex = Objects.requireNonNull(random, "random").nextInt(weapon.damageValueCount());
+        return weapon.damageMinimum() + valueIndex * weapon.damageStep();
+    }
+
     /** Finds the provider-defined solid collision bounds for one combatant actor identity. */
     public Optional<CombatantBounds> findCombatantBounds(String actorId) {
         CombatantDefinition definition = combatants.get(Objects.requireNonNull(actorId, "actorId"));
         return definition == null
                 ? Optional.empty()
                 : Optional.of(new CombatantBounds(definition.radius(), definition.height()));
+    }
+
+    /** Requires matching combatant rules for a descriptor-validated actor identity. */
+    private CombatantDefinition requireCombatant(String actorId) {
+        String validActorId = Objects.requireNonNull(actorId, "actorId");
+        CombatantDefinition combatant = combatants.get(validActorId);
+        if (combatant == null) {
+            throw new IllegalArgumentException("unknown combatant actor: " + validActorId);
+        }
+        return combatant;
+    }
+
+    /** Requires matching weapon rules for a descriptor-validated weapon identity. */
+    private WeaponDefinition requireWeapon(String weaponId) {
+        String validWeaponId = Objects.requireNonNull(weaponId, "weaponId");
+        WeaponDefinition weapon = weapons.get(validWeaponId);
+        if (weapon == null) {
+            throw new IllegalArgumentException("unknown weapon: " + validWeaponId);
+        }
+        return weapon;
     }
 
     /** Returns the initial weapon rules to the combat implementation. */

@@ -79,6 +79,86 @@
           "description": "Receives the pickup sensor's precise overlap transition."
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/combatant-state",
+      "typeVersion": 1,
+      "displayName": "Doom Combatant State",
+      "description": "Holds mutable health initialized from one provider combatant definition.",
+      "providedCapabilities": ["io.github.glynch.doomed-corridors/damageable"],
+      "properties": [
+        {
+          "id": "actor-catalog",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Actor Catalog",
+          "description": "Provider actor catalog used to validate the combat rules.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "combat-rules",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Combat Rules",
+          "description": "Provider rules supplying the combatant's starting health.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "actor-id",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Actor",
+          "description": "Stable provider actor identity represented by this entity."
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/hitscan-weapon",
+      "typeVersion": 1,
+      "displayName": "Doom Hitscan Weapon",
+      "description": "Consumes player ammunition and applies provider damage to the first solid target on a view ray.",
+      "providedCapabilities": ["io.github.glynch.doomed-corridors/weapon"],
+      "requiredCapabilities": ["io.github.glynch.doomed-corridors/player-resources"],
+      "updatePhases": ["after-physics"],
+      "properties": [
+        {
+          "id": "actor-catalog",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Actor Catalog",
+          "description": "Provider actor catalog used to validate the combat rules.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "combat-rules",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Combat Rules",
+          "description": "Provider rules supplying weapon range, cost, and damage.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "weapon-id",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Weapon",
+          "description": "Stable provider weapon identity fired by this component."
+        },
+        {
+          "id": "view-transform",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "View Transform",
+          "description": "Explicit transform supplying the weapon's world-space origin and direction."
+        },
+        {
+          "id": "fire-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Fire Action",
+          "description": "Semantic button action which fires one shot when pressed."
+        }
+      ]
     }
   ]
 }

@@ -35,7 +35,10 @@ import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -59,6 +62,8 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/transform");
     private static final ComponentId ZOMBIEMAN_BILLBOARD =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/billboard");
+    private static final ComponentId ZOMBIEMAN_STATE =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-state");
     private static final ComponentId ZOMBIEMAN_SHAPE =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-shape");
     private static final ComponentId ZOMBIEMAN_BODY =
@@ -66,9 +71,11 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
+    private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
+    private static final InputAction FIRE_PRIMARY = new InputAction("fire-primary");
     private static final Path PROJECT_ROOT = Path.of(".").toAbsolutePath().normalize();
 
     @TempDir
@@ -104,7 +111,7 @@ final class ProjectHostIntegrationTest {
                     .extracting(entity -> entity.name().orElseThrow())
                     .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors");
             assertThat(character.isClosed()).isFalse();
-            assertThat(player.componentIds()).contains(PLAYER_CONTROLLER);
+            assertThat(player.componentIds()).contains(PLAYER_CONTROLLER, PLAYER_WEAPON);
             assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
             assertThat(playerTransform.position().y()).isEqualTo(0.875F);
             assertThat(playerTransform.position().z()).isEqualTo(6.0F);
@@ -162,13 +169,17 @@ final class ProjectHostIntegrationTest {
                     zombieman.component(ZOMBIEMAN_SHAPE, CollisionShape3d.class).orElseThrow();
             CharacterBody3d body =
                     zombieman.component(ZOMBIEMAN_BODY, CharacterBody3d.class).orElseThrow();
+            DoomCombatantState state = zombieman
+                    .component(ZOMBIEMAN_STATE, DoomCombatantState.class)
+                    .orElseThrow();
 
             assertThat(actors.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(actors.instantiatedDefinition()).contains(ACTOR_MAP_DEFINITION);
             assertThat(actors.children()).hasSize(119);
             assertThat(zombieman.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(zombieman.componentIds())
-                    .containsExactly(ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD, ZOMBIEMAN_SHAPE, ZOMBIEMAN_BODY);
+                    .containsExactly(
+                            ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD, ZOMBIEMAN_STATE, ZOMBIEMAN_SHAPE, ZOMBIEMAN_BODY);
             assertThat(actorTransform.position().x()).isFinite();
             assertThat(actorTransform.position().y()).isFinite();
             assertThat(actorTransform.position().z()).isFinite();
@@ -178,6 +189,11 @@ final class ProjectHostIntegrationTest {
             assertThat(billboard.isVisible()).isTrue();
             assertThat(shape.localPosition().y()).isEqualTo(0.875F);
             assertThat(body.isClosed()).isFalse();
+            assertThat(state.health()).isEqualTo(20);
+            assertThat(zombieman
+                            .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+                            .orElseThrow())
+                    .isSameAs(state);
 
             loaded.world().activate();
             Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
@@ -191,6 +207,50 @@ final class ProjectHostIntegrationTest {
         }
 
         assertThat(billboard.isClosed()).isTrue();
+    }
+
+    /** Fires authored semantic input along the player view and destroys the first visible damageable actor. */
+    @Test
+    void firesPlayerWeaponThroughHostedWorld() {
+        Path cache = temporaryDirectory.resolve("weapon-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState playerState = player.capability(
+                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                    .orElseThrow();
+            Transform3d view = player.children()
+                    .getFirst()
+                    .component(VIEW_TRANSFORM, Transform3d.class)
+                    .orElseThrow();
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            loaded.world().activate();
+            input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            input.publish(ActionSnapshot.empty());
+            assertThat(playerState.bullets()).isEqualTo(49);
+
+            ShotLine firingLine = unobstructedShot(actors, physics);
+            Entity target = firingLine.target();
+            var orientation = new Quaternionf().lookAlong(firingLine.direction(), new Vector3f(0.0F, 1.0F, 0.0F));
+            view.setWorldPose(firingLine.origin(), orientation);
+
+            for (int shot = 0; shot < 4; shot++) {
+                input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+                loaded.world().advanceFixed(Duration.ofMillis(25));
+                input.publish(ActionSnapshot.empty());
+            }
+
+            assertThat(playerState.bullets()).isEqualTo(45);
+            assertThat(target.isDestroyed()).isTrue();
+            assertThat(actors.children()).hasSize(118);
+            assertThat(physics.collisionObjectCount()).isEqualTo(36);
+            assertThat(physics.collisionShapeCount()).isEqualTo(36);
+        }
     }
 
     /** Collects one useful imported stimpack through its authored physics-signal connection. */
@@ -371,6 +431,36 @@ final class ProjectHostIntegrationTest {
                 .orElseThrow();
     }
 
+    /** Finds one short unobstructed ray into a damageable actor from its surrounding map space. */
+    private static ShotLine unobstructedShot(Entity actors, Physics3dWorldModule physics) {
+        List<Vector3f> offsets = List.of(
+                new Vector3f(2.0F, 0.0F, 0.0F),
+                new Vector3f(-2.0F, 0.0F, 0.0F),
+                new Vector3f(0.0F, 0.0F, 2.0F),
+                new Vector3f(0.0F, 0.0F, -2.0F),
+                new Vector3f(0.0F, 2.0F, 0.0F));
+        for (Entity entity : actors.children()) {
+            if (entity.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+                    .isEmpty()) {
+                continue;
+            }
+            Vector3f center = entity.component(ZOMBIEMAN_TRANSFORM, Transform3d.class)
+                    .orElseThrow()
+                    .worldMatrix()
+                    .getTranslation(new Vector3f())
+                    .add(0.0F, 0.875F, 0.0F);
+            for (Vector3f offset : offsets) {
+                Vector3f origin = new Vector3f(center).add(offset);
+                Vector3f direction = new Vector3f(center).sub(origin).normalize();
+                Optional<CollisionRaycastHit3d> hit = physics.raycast(origin, direction, offset.length() + 0.5F);
+                if (hit.map(result -> result.object().owner() == entity).orElse(false)) {
+                    return new ShotLine(entity, origin, direction);
+                }
+            }
+        }
+        throw new AssertionError("MAP01 has no combatant with an unobstructed test ray");
+    }
+
     /** Advances the active hosted world by a deterministic number of 25 ms fixed steps. */
     private static void advanceFixed(HostedProject loaded, int steps) {
         for (int step = 0; step < steps; step++) {
@@ -389,4 +479,7 @@ final class ProjectHostIntegrationTest {
         UUID id = UUID.nameUUIDFromBytes((ACTOR_IMPORT_ID + ':' + locator).getBytes(StandardCharsets.UTF_8));
         return new ComponentId(id);
     }
+
+    /** One verified unobstructed weapon ray used by the host integration test. */
+    private record ShotLine(Entity target, Vector3f origin, Vector3f direction) {}
 }
