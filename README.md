@@ -16,8 +16,10 @@ entry world. [`imports/freedoom-map01.import.json`](imports/freedoom-map01.impor
 selects `MAP01` from the WAD. The application importer publishes the selection
 as a generated, read-only entity definition backed by generic JScene3D mesh,
 material, texture, and independently published collision resources. The
-authored world places that definition and a camera; the generic desktop project
-host resolves and composes both.
+authored world places that definition alongside a composed Player entity. The
+Player owns its transform, capsule shape, character body, application controller,
+and a child view containing the primary camera; the generic desktop project host
+resolves and composes the complete world.
 
 The actor catalog in
 [`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
@@ -61,9 +63,16 @@ desktop launcher with:
 
 The current migration slice renders textured static MAP01 geometry from the
 WAD-defined player-one start and registers its generated static collision mesh
-with the world physics module. Player movement and collision response, doors,
-actors, combat, audio, and the HUD have not yet been connected to the new
-entity-component runtime.
+with the world physics module. Authored `move` and `look` actions drive the
+descriptor-declared player controller, which moves the capsule through the
+engine character-body API, resolves floor and wall collision, slides along
+obstacles, and keeps the child camera attached. Doors, actors, combat, audio,
+and the HUD have not yet been connected to the new entity-component runtime.
+
+Click the game window to capture the pointer; Escape releases it without
+closing the application. W/A/S/D move, the mouse looks while captured, and the
+left/right arrow keys turn. Close the application with the native window close
+control.
 
 ## Development
 

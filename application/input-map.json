@@ -23,6 +23,18 @@
         {"device": "gamepad", "control": "right-stick", "deadZone": 0.15, "invertY": true}
       ]
     },
+    "turn-left": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "LEFT"}
+      ]
+    },
+    "turn-right": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "RIGHT"}
+      ]
+    },
     "interact": {
       "valueType": "button",
       "bindings": [

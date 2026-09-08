@@ -14,5 +14,85 @@
       "displayName": "Doom Map"
     }
   ],
-  "components": []
+  "components": [
+    {
+      "id": "io.github.glynch.doomed-corridors/player-controller",
+      "typeVersion": 2,
+      "displayName": "Doom Player Controller",
+      "description": "Moves a character body and rotates its child view from semantic input actions.",
+      "properties": [
+        {
+          "id": "body",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Character Body",
+          "description": "Character body moved by this controller."
+        },
+        {
+          "id": "view-transform",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "View Transform",
+          "description": "Child transform receiving yaw and pitch."
+        },
+        {
+          "id": "move-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Move Action",
+          "description": "Semantic two-dimensional movement action."
+        },
+        {
+          "id": "look-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Look Action",
+          "description": "Semantic two-dimensional look action."
+        },
+        {
+          "id": "turn-left-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Turn Left Action",
+          "description": "Semantic held action for keyboard left turning."
+        },
+        {
+          "id": "turn-right-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Turn Right Action",
+          "description": "Semantic held action for keyboard right turning."
+        },
+        {
+          "id": "move-speed",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Move Speed",
+          "description": "Maximum planar movement speed in world units per second."
+        },
+        {
+          "id": "turn-speed-degrees",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Turn Speed",
+          "description": "Held keyboard and gamepad turn speed in degrees per second."
+        },
+        {
+          "id": "pointer-sensitivity",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Pointer Sensitivity",
+          "description": "View rotation in radians per unit of relative pointer motion."
+        },
+        {
+          "id": "maximum-pitch-degrees",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Maximum Pitch",
+          "description": "Symmetric vertical view limit in degrees."
+        }
+      ],
+      "updatePhases": ["before-physics", "frame-update"]
+    }
+  ]
 }

@@ -55,21 +55,22 @@ test independently verifies 51 wall textures and 28 non-sky flats. The launcher
 writes a deterministic contact sheet under `target/smoke/` for manual inspection
 without initializing windowing or native rendering.
 
-The static-geometry and presentation slices are complete. A renderer-independent
-builder recovers convex leaf polygons from the classic BSP, constructs textured
-floor, ceiling, one-sided wall, upper, lower, and masked-middle surfaces, and
-places the view at the WAD-defined player-one start. A separate presentation
-adapter owns the JScene3D scene, camera, meshes, materials, and textures. The
-graphical launcher displays this static MAP01 view, while the headless inspector
-exercises the same loading and geometry path without initializing GLFW.
+The MAP01 project-runtime geometry and player slices are complete. The
+application importer publishes textured mesh resources and independently
+authored static collision behind the generic importer interface. The entry
+world places that generated definition alongside a composed Player entity with
+a transform, capsule, character body, application controller, and child camera
+view. The generic project host constructs this graph and owns its resources.
 
-The headless player-movement slice is also complete. Its game-session interface
-accepts GUI-independent commands and elapsed time, advances deterministic 35 Hz
-steps, and exposes immutable player state. The internal collision implementation
-uses the WAD linedefs and sector openings for the classic 16-unit player radius,
-56-unit height, 24-unit step limit, portal clearance, and wall sliding. The native
-host adapts keyboard and captured-pointer input to that session, while the
-presentation adapter applies the resulting position, yaw, and pitch to the camera.
+The player controller is safe descriptor metadata paired with application-owned
+Java behavior. Stable component targets bind it explicitly to the character body
+and child view transform. During the declared before-physics phase it reads the
+authored `move` and `look` actions, submits planar velocity to the engine-owned
+character body, and applies bounded yaw and pitch to the view. Hosted-project
+acceptance tests cover grounding, movement, MAP01 wall blocking and sliding, and
+camera attachment. This replaces the earlier standalone movement runtime; the
+older headless Doom models remain domain prototypes for later gameplay migration,
+not an alternative game host.
 
 The visible-actor slice is also complete. The project declares a provider-owned,
 versioned actor catalog that assigns stable identities, categories, and initial

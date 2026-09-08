@@ -8,32 +8,104 @@
   "roots": [
     {
       "entryType": "local",
-      "entityId": "b4ba3fc1-75d3-4bd2-887d-bd58ddb56e95",
-      "name": "Player Camera",
+      "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+      "name": "Player",
       "enabled": true,
       "components": [
         {
-          "componentId": "b90f4420-f715-4855-91e3-c188f1a3bd6c",
+          "componentId": "3e940be7-e58d-4f3a-8b5e-e61c99c00904",
           "type": "io.github.glynch.jscene3d.spatial3d/transform-3d",
           "typeVersion": 1,
           "properties": {
-            "position": [-6, 1.28125, 6],
-            "orientation": [0, -0.70710678, 0, 0.70710678]
+            "position": [-6, 0.875, 6]
           }
         },
         {
-          "componentId": "ec44cc94-966b-474c-9354-03ec33c0bcd4",
-          "type": "io.github.glynch.jscene3d.spatial3d/perspective-camera-3d",
+          "componentId": "85e8dc9b-a756-4dc0-bb92-77ec71dc0954",
+          "type": "io.github.glynch.jscene3d.physics3d/collision-shape-3d",
           "typeVersion": 1,
           "properties": {
-            "field-of-view-degrees": 74,
-            "near": 0.05,
-            "far": 256,
-            "primary": true
+            "shape": {"$ref": "asset:player-capsule"}
+          }
+        },
+        {
+          "componentId": "4d8cae80-322d-4bdf-b8c0-5703699de177",
+          "type": "io.github.glynch.jscene3d.physics3d/character-body-3d",
+          "typeVersion": 1,
+          "properties": {
+            "shapes": [
+              {
+                "$target": {
+                  "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                  "componentId": "85e8dc9b-a756-4dc0-bb92-77ec71dc0954"
+                }
+              }
+            ],
+            "gravity": 18,
+            "jump-speed": 0,
+            "maximum-step-height": 0.75,
+            "ground-snap-distance": 0.25
+          }
+        },
+        {
+          "componentId": "486f49a3-fe97-4a6c-b92d-533a1995493c",
+          "type": "io.github.glynch.doomed-corridors/player-controller",
+          "typeVersion": 2,
+          "properties": {
+            "body": {
+              "$target": {
+                "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                "componentId": "4d8cae80-322d-4bdf-b8c0-5703699de177"
+              }
+            },
+            "view-transform": {
+              "$target": {
+                "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+                "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
+              }
+            },
+            "move-action": "move",
+            "look-action": "look",
+            "turn-left-action": "turn-left",
+            "turn-right-action": "turn-right",
+            "move-speed": 8,
+            "turn-speed-degrees": 180,
+            "pointer-sensitivity": 0.002,
+            "maximum-pitch-degrees": 85
           }
         }
       ],
-      "children": []
+      "children": [
+        {
+          "entryType": "local",
+          "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+          "name": "Player View",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6",
+              "type": "io.github.glynch.jscene3d.spatial3d/transform-3d",
+              "typeVersion": 1,
+              "properties": {
+                "position": [0, 0.40625, 0],
+                "orientation": [0, -0.70710678, 0, 0.70710678]
+              }
+            },
+            {
+              "componentId": "3dc7d003-6eb6-4b5d-a13d-ab906176836b",
+              "type": "io.github.glynch.jscene3d.spatial3d/perspective-camera-3d",
+              "typeVersion": 1,
+              "properties": {
+                "field-of-view-degrees": 74,
+                "near": 0.05,
+                "far": 256,
+                "primary": true
+              }
+            }
+          ],
+          "children": []
+        }
+      ]
     },
     {
       "entryType": "placement",

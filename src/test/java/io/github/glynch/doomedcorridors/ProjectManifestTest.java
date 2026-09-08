@@ -50,13 +50,18 @@ final class ProjectManifestTest {
 
         assertThat(project.assets())
                 .extracting(GameProject.AssetSource::id)
-                .containsExactly("actors", "combat", "combat-presentation", "freedoom");
+                .containsExactly("actors", "combat", "combat-presentation", "player-capsule", "freedoom");
         assertThat(project.assets().getFirst()).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/actor-catalog");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/actors.json"));
             assertThat(asset.sha256()).isEmpty();
         });
         assertThat(project.assets().get(3)).satisfies(asset -> {
+            assertThat(asset.type()).isEqualTo("io.github.glynch.jscene3d.physics3d/capsule-collision-shape-3d");
+            assertThat(asset.path()).isEqualTo(project.root().resolve("resources/player-capsule.resource.json"));
+            assertThat(asset.sha256()).isEmpty();
+        });
+        assertThat(project.assets().get(4)).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo("io.github.glynch.jscene3d.wad/source");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256()).contains("a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b");
@@ -67,7 +72,7 @@ final class ProjectManifestTest {
             assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
                 assertThat(diagnostic.severity()).isEqualTo(ProjectDiagnostic.Severity.WARNING);
                 assertThat(diagnostic.code()).isEqualTo("project.path.missing");
-                assertThat(diagnostic.location()).isEqualTo("/assets/3/path");
+                assertThat(diagnostic.location()).isEqualTo("/assets/4/path");
             });
         }
     }
@@ -98,7 +103,7 @@ final class ProjectManifestTest {
         assertThat(result.isValid()).isTrue();
         assertThat(result.diagnostics()).isEmpty();
         var actions = result.definition().orElseThrow().actions();
-        assertThat(actions).containsOnlyKeys("move", "look", "interact");
+        assertThat(actions).containsOnlyKeys("move", "look", "turn-left", "turn-right", "interact");
         assertThat(actions.get("move").valueType()).isEqualTo(InputValueType.AXIS_2D);
         assertThat(actions.get("move").bindings())
                 .containsExactly(
@@ -108,11 +113,13 @@ final class ProjectManifestTest {
                 .containsExactly(
                         new InputBinding.MouseDelta(0.002F, -0.002F),
                         new InputBinding.GamepadStick("right-stick", 0.15F, true));
+        assertThat(actions.get("turn-left").bindings()).containsExactly(new InputBinding.KeyboardKey("LEFT"));
+        assertThat(actions.get("turn-right").bindings()).containsExactly(new InputBinding.KeyboardKey("RIGHT"));
         assertThat(actions.get("interact").bindings())
                 .containsExactly(new InputBinding.KeyboardKey("E"), new InputBinding.GamepadButton("button-west"));
     }
 
-    /** Loads the application descriptor and its only importer declaration. */
+    /** Loads the application descriptor with its importer and player-controller declarations. */
     @Test
     void loadsDoomedCorridorsExtension() {
         GameProject project = loadProject().project().orElseThrow();
@@ -126,6 +133,9 @@ final class ProjectManifestTest {
         assertThat(result.catalog().types())
                 .extracting(type -> type.type().id())
                 .contains(EXTENSION_ID + "/map-importer");
+        assertThat(result.catalog().componentTypes())
+                .extracting(component -> component.type().id().value())
+                .contains(EXTENSION_ID + "/player-controller");
     }
 
     /** Loads the repository's project manifest. */

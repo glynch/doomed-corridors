@@ -53,6 +53,11 @@
       "path": "game/combat-presentation.json"
     },
     {
+      "id": "player-capsule",
+      "type": "io.github.glynch.jscene3d.physics3d/capsule-collision-shape-3d",
+      "path": "resources/player-capsule.resource.json"
+    },
+    {
       "id": "freedoom",
       "type": "io.github.glynch.jscene3d.wad/source",
       "path": "assets/freedoom2.wad",

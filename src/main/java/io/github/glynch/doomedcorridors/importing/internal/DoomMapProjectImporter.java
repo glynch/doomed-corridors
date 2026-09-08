@@ -16,6 +16,7 @@ import io.github.glynch.doomedcorridors.wad.WadArchive;
 import io.github.glynch.doomedcorridors.wad.WadDiagnostic;
 import io.github.glynch.doomedcorridors.wad.WadLoadResult;
 import io.github.glynch.doomedcorridors.wad.WadLoader;
+import io.github.glynch.doomedcorridors.world.DoomBlockingLineGeometryBuilder;
 import io.github.glynch.doomedcorridors.world.DoomGeometryBuildResult;
 import io.github.glynch.doomedcorridors.world.DoomGeometryDiagnostic;
 import io.github.glynch.doomedcorridors.world.DoomMeshData;
@@ -121,7 +122,7 @@ public final class DoomMapProjectImporter implements ProjectImporter {
         DoomMap map = decodeMap(context, archive, mapName);
         DoomMapMaterials materials = importMaterials(context, archive, map);
         DoomStaticGeometry geometry = buildGeometry(context, map, materials);
-        publishMap(context, prefix, geometry, materials);
+        publishMap(context, prefix, map, geometry, materials);
     }
 
     /** Requires one valid decoded map after forwarding source diagnostics. */
@@ -158,6 +159,7 @@ public final class DoomMapProjectImporter implements ProjectImporter {
     private static void publishMap(
             ImportPreparationContext context,
             String prefix,
+            DoomMap map,
             DoomStaticGeometry geometry,
             DoomMapMaterials sourceMaterials)
             throws IOException {
@@ -171,7 +173,7 @@ public final class DoomMapProjectImporter implements ProjectImporter {
         List<ComponentDefinition> components = new ArrayList<>();
         components.add(component(
                 context.definition().id(), prefix + "/root/transform", Spatial3dDescriptors.transformType(), Map.of()));
-        publishCollision(context, prefix, staticCollisionMesh(geometry));
+        publishCollision(context, prefix, staticCollisionMesh(map, geometry));
         String collisionIdentity = collisionIdentity(prefix);
         references.add(collisionIdentity);
         ComponentId collisionShape = componentId(context.definition().id(), prefix + "/root/collision/static-shape");
@@ -306,12 +308,13 @@ public final class DoomMapProjectImporter implements ProjectImporter {
                 .toList();
     }
 
-    /** Combines solid map surfaces into one independently published static collision mesh. */
-    private static DoomMeshData staticCollisionMesh(DoomStaticGeometry geometry) {
-        List<DoomMeshData> collisionSurfaces = geometry.surfaces().stream()
+    /** Combines physical surfaces and source-semantic blockers into independently published collision. */
+    private static DoomMeshData staticCollisionMesh(DoomMap map, DoomStaticGeometry geometry) {
+        List<DoomMeshData> collisionSurfaces = new ArrayList<>(geometry.surfaces().stream()
                 .filter(surface -> surface.type() != DoomSurface.Type.MASKED_MIDDLE_WALL)
                 .map(DoomSurface::mesh)
-                .toList();
+                .toList());
+        collisionSurfaces.addAll(new DoomBlockingLineGeometryBuilder().build(map));
         if (collisionSurfaces.isEmpty()) {
             throw new IllegalArgumentException("Doom map has no static collision surfaces");
         }
