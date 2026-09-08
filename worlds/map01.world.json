@@ -1,0 +1,49 @@
+{
+  "$schema": "https://jscene3d.org/schemas/world-definition-1.json",
+  "assetId": "4b067393-2ee9-4345-babc-ea1614fb95c8",
+  "assetType": "world-definition",
+  "formatVersion": 1,
+  "name": "MAP01",
+  "connections": [],
+  "roots": [
+    {
+      "entryType": "local",
+      "entityId": "b4ba3fc1-75d3-4bd2-887d-bd58ddb56e95",
+      "name": "Player Camera",
+      "enabled": true,
+      "components": [
+        {
+          "componentId": "b90f4420-f715-4855-91e3-c188f1a3bd6c",
+          "type": "io.github.glynch.jscene3d.spatial3d/transform-3d",
+          "typeVersion": 1,
+          "properties": {
+            "position": [-6, 1.28125, 6],
+            "orientation": [0, -0.70710678, 0, 0.70710678]
+          }
+        },
+        {
+          "componentId": "ec44cc94-966b-474c-9354-03ec33c0bcd4",
+          "type": "io.github.glynch.jscene3d.spatial3d/perspective-camera-3d",
+          "typeVersion": 1,
+          "properties": {
+            "field-of-view-degrees": 74,
+            "near": 0.05,
+            "far": 256,
+            "primary": true
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "entryType": "placement",
+      "entityId": "9107e22b-adc5-4449-bd08-0e2066f50563",
+      "name": "MAP01 Geometry",
+      "enabled": true,
+      "definition": {
+        "assetId": "15a64477-b57f-3ae3-bf65-33cd6baab7b6"
+      },
+      "arguments": {}
+    }
+  ]
+}

@@ -10,8 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Imported combat presentation assets, when usable, and source diagnostics. */
-public record DoomCombatAssetImportResult(
-        Optional<DoomCombatAssets> assets, List<WadDiagnostic> diagnostics) {
+public record DoomCombatAssetImportResult(Optional<DoomCombatAssets> assets, List<WadDiagnostic> diagnostics) {
     /** Copies the result values and rejects contradictory success states. */
     public DoomCombatAssetImportResult {
         Objects.requireNonNull(assets, "assets");

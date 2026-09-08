@@ -18,16 +18,15 @@ final class DoomCombatPresentationLoaderTest {
     /** Loads WAD patch, sound, timing, and HUD bindings from the checked-in project data. */
     @Test
     void loadsProjectCombatPresentation() {
-        DoomCombatPresentationLoadResult result = new DoomCombatPresentationLoader()
-                .load(Path.of("game/combat-presentation.json"), combatRules());
+        DoomCombatPresentationLoadResult result =
+                new DoomCombatPresentationLoader().load(Path.of("game/combat-presentation.json"), combatRules());
 
         assertThat(result.isValid()).isTrue();
         assertThat(result.diagnostics()).isEmpty();
         DoomCombatPresentationRules rules = result.rules().orElseThrow();
         assertThat(rules.weapon().id()).isEqualTo("pistol");
         assertThat(rules.weapon().readyFrame()).isEqualTo("PISGA0");
-        assertThat(rules.weapon().fireFrames())
-                .containsExactly("PISGB0", "PISGC0", "PISGD0", "PISGE0");
+        assertThat(rules.weapon().fireFrames()).containsExactly("PISGB0", "PISGC0", "PISGD0", "PISGE0");
         assertThat(rules.combatant("zombieman").animations().deathFrames())
                 .containsExactly("POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0");
         assertThat(rules.combatant("zombieman").animations().walkFrames())

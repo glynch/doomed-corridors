@@ -11,21 +11,8 @@ public final class DoomedCorridorsTypes {
     /** Application extension identity. */
     public static final String EXTENSION_IDENTIFIER = "io.github.glynch.doomed-corridors";
 
-    /** Imported map-material resource type. */
-    public static final RegisteredType MAP_MATERIALS =
-            new RegisteredType(EXTENSION_IDENTIFIER + "/map-materials", 1);
-
-    /** WAD map-material importer type. */
-    public static final RegisteredType MAP_MATERIALS_IMPORTER =
-            new RegisteredType(EXTENSION_IDENTIFIER + "/map-materials-importer", 1);
-
-    /** Declarative Doom level scene-node type. */
-    public static final RegisteredType DOOM_LEVEL_3D =
-            new RegisteredType(EXTENSION_IDENTIFIER + "/doom-level-3d", 1);
-
-    /** Player movement controller attached to a declarative Doom level. */
-    public static final RegisteredType DOOM_PLAYER_CONTROLLER =
-            new RegisteredType(EXTENSION_IDENTIFIER + "/doom-player-controller", 1);
+    /** WAD-to-project map presentation importer type. */
+    public static final RegisteredType MAP_IMPORTER = new RegisteredType(EXTENSION_IDENTIFIER + "/map-importer", 1);
 
     /** Prevents construction of this type-identity namespace. */
     private DoomedCorridorsTypes() {

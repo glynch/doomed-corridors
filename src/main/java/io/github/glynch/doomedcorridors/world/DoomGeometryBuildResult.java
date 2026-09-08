@@ -9,15 +9,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Result of constructing renderer-independent geometry and its ordered diagnostics. */
-public record DoomGeometryBuildResult(
-        Optional<DoomStaticGeometry> geometry, List<DoomGeometryDiagnostic> diagnostics) {
+public record DoomGeometryBuildResult(Optional<DoomStaticGeometry> geometry, List<DoomGeometryDiagnostic> diagnostics) {
     /** Creates an immutable result. */
     public DoomGeometryBuildResult {
         Objects.requireNonNull(geometry, "geometry");
         diagnostics = List.copyOf(diagnostics);
         if (geometry.isPresent()
-                && diagnostics.stream()
-                        .anyMatch(item -> item.severity() == DoomGeometryDiagnostic.Severity.ERROR)) {
+                && diagnostics.stream().anyMatch(item -> item.severity() == DoomGeometryDiagnostic.Severity.ERROR)) {
             throw new IllegalArgumentException("geometry cannot accompany error diagnostics");
         }
     }

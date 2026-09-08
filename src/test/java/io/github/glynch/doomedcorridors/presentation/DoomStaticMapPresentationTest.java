@@ -25,15 +25,14 @@ final class DoomStaticMapPresentationTest {
     /** Moves a door ceiling plane and the lower edge of its surrounding upper wall. */
     @Test
     void appliesMovingSectorCeilingToBoundSurfaces() {
-        DoomStaticGeometry geometry = new DoomStaticGeometry(
-                List.of(ceiling(), upperWall()),
-                new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomStaticGeometry geometry =
+                new DoomStaticGeometry(List.of(ceiling(), upperWall()), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
 
-        try (DoomStaticMapPresentation presentation =
-                DoomStaticMapPresentation.create(geometry, materials())) {
+        try (DoomStaticMapPresentation presentation = DoomStaticMapPresentation.create(geometry, materials())) {
             presentation.setSectorCeilingHeight(1, 3.0F);
 
-            BufferGeometry ceilingGeometry = ((Mesh) presentation.root().children().get(0)).geometry();
+            BufferGeometry ceilingGeometry =
+                    ((Mesh) presentation.root().children().get(0)).geometry();
             BufferGeometry wallGeometry = ((Mesh) presentation.root().children().get(1)).geometry();
             assertThat(ceilingGeometry.attribute(BufferGeometry.POSITION))
                     .isNotNull()
@@ -93,8 +92,7 @@ final class DoomStaticMapPresentationTest {
                 Map.of("CEILING", material("CEILING", DoomMaterial.Kind.FLAT, 64, 64)));
     }
 
-    private static DoomMaterial material(
-            String name, DoomMaterial.Kind kind, int width, int height) {
+    private static DoomMaterial material(String name, DoomMaterial.Kind kind, int width, int height) {
         byte[] pixels = new byte[width * height * 4];
         java.util.Arrays.fill(pixels, (byte) 0xff);
         return new DoomMaterial(name, kind, new RgbaImage(width, height, pixels), List.of());

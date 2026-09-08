@@ -5,10 +5,10 @@
 package io.github.glynch.doomedcorridors.combat;
 
 import io.github.glynch.doomedcorridors.actor.DoomActor;
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomCollisionWorld;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
 import io.github.glynch.doomedcorridors.world.DoomUnits;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -40,8 +40,7 @@ public final class DoomCombatSession {
     private long accumulatedNanos;
 
     /** Initializes mutable session state from immutable map, rules, and actor inputs. */
-    private DoomCombatSession(
-            DoomMap map, DoomCombatRules rules, List<DoomActor> actors, long randomSeed) {
+    private DoomCombatSession(DoomMap map, DoomCombatRules rules, List<DoomActor> actors, long randomSeed) {
         this.map = map;
         this.rules = rules;
         collision = new DoomCollisionWorld(map);
@@ -143,8 +142,7 @@ public final class DoomCombatSession {
     }
 
     /** Creates initial combatant snapshots for actors named by the combat rules. */
-    private static List<DoomCombatantState> createCombatants(
-            List<DoomActor> actors, DoomCombatRules rules) {
+    private static List<DoomCombatantState> createCombatants(List<DoomActor> actors, DoomCombatRules rules) {
         List<DoomCombatantState> result = new ArrayList<>();
         for (DoomActor actor : actors) {
             DoomCombatRules.CombatantDefinition definition =
@@ -170,8 +168,7 @@ public final class DoomCombatSession {
     }
 
     /** Creates immutable pickup placements for actors named by the provider rules. */
-    private static List<Pickup> createPickups(
-            List<DoomActor> actors, DoomCombatRules rules) {
+    private static List<Pickup> createPickups(List<DoomActor> actors, DoomCombatRules rules) {
         List<Pickup> result = new ArrayList<>();
         for (DoomActor actor : actors) {
             DoomCombatRules.PickupDefinition definition =
@@ -190,8 +187,7 @@ public final class DoomCombatSession {
     }
 
     /** Collects every overlapping useful pickup once in source-map order. */
-    private void collectPickups(
-            DoomPlayerState player, List<DoomCombatEvent> events) {
+    private void collectPickups(DoomPlayerState player, List<DoomCombatEvent> events) {
         if (playerHealth == 0) {
             return;
         }
@@ -207,10 +203,11 @@ public final class DoomCombatSession {
     /** Applies one useful resource effect and emits its exact applied amount. */
     private boolean applyPickup(Pickup pickup, List<DoomCombatEvent> events) {
         DoomCombatRules.PickupDefinition definition = pickup.definition();
-        int previous = switch (definition.resource()) {
-            case HEALTH -> playerHealth;
-            case BULLETS -> bullets;
-        };
+        int previous =
+                switch (definition.resource()) {
+                    case HEALTH -> playerHealth;
+                    case BULLETS -> bullets;
+                };
         int current = addResource(previous, definition.amount(), definition.limit());
         if (current == previous) {
             return false;
@@ -220,10 +217,11 @@ public final class DoomCombatSession {
         } else {
             bullets = current;
         }
-        DoomCombatEvent.Type eventType = switch (definition.resource()) {
-            case HEALTH -> DoomCombatEvent.Type.HEALTH_PICKED_UP;
-            case BULLETS -> DoomCombatEvent.Type.AMMUNITION_PICKED_UP;
-        };
+        DoomCombatEvent.Type eventType =
+                switch (definition.resource()) {
+                    case HEALTH -> DoomCombatEvent.Type.HEALTH_PICKED_UP;
+                    case BULLETS -> DoomCombatEvent.Type.AMMUNITION_PICKED_UP;
+                };
         int applied = current - previous;
         events.add(event(eventType, pickup.thingIndex(), applied));
         return true;
@@ -247,8 +245,7 @@ public final class DoomCombatSession {
     }
 
     /** Advances each living combatant once and publishes one immutable state list. */
-    private void advanceCombatants(
-            DoomPlayerState player, List<DoomCombatEvent> events) {
+    private void advanceCombatants(DoomPlayerState player, List<DoomCombatEvent> events) {
         if (playerHealth == 0) {
             return;
         }
@@ -264,10 +261,7 @@ public final class DoomCombatSession {
 
     /** Advances perception and selects pursuit or attack behavior for one living combatant. */
     private DoomCombatantState advanceCombatant(
-            int index,
-            DoomCombatantState combatant,
-            DoomPlayerState player,
-            List<DoomCombatEvent> events) {
+            int index, DoomCombatantState combatant, DoomPlayerState player, List<DoomCombatEvent> events) {
         DoomCombatRules.CombatantDefinition definition = rules.combatant(combatant.actorId());
         DoomCombatRules.EnemyBehavior behavior = definition.behavior();
         EnemyRuntime runtime = enemyRuntimes.get(index);
@@ -287,8 +281,7 @@ public final class DoomCombatSession {
                 && runtime.cooldownNanos == 0L) {
             return attack(combatant, behavior, runtime, events);
         }
-        if (perception.visible()
-                && perception.distance() <= DoomUnits.toWorld(behavior.preferredRange())) {
+        if (perception.visible() && perception.distance() <= DoomUnits.toWorld(behavior.preferredRange())) {
             return combatant.withActivity(DoomCombatantActivity.ATTACKING);
         }
         return pursue(combatant, behavior, runtime);
@@ -319,17 +312,14 @@ public final class DoomCombatSession {
 
     /** Moves one alerted enemy toward its most recently visible player position. */
     private DoomCombatantState pursue(
-            DoomCombatantState combatant,
-            DoomCombatRules.EnemyBehavior behavior,
-            EnemyRuntime runtime) {
+            DoomCombatantState combatant, DoomCombatRules.EnemyBehavior behavior, EnemyRuntime runtime) {
         float deltaX = runtime.targetX - combatant.x();
         float deltaZ = runtime.targetZ - combatant.z();
         float remaining = (float) Math.hypot(deltaX, deltaZ);
         if (remaining <= INTERSECTION_TOLERANCE) {
             return combatant.withActivity(DoomCombatantActivity.PURSUING);
         }
-        float distance = Math.min(
-                DoomUnits.toWorld(behavior.moveSpeed()) * FIXED_STEP_SECONDS, remaining);
+        float distance = Math.min(DoomUnits.toWorld(behavior.moveSpeed()) * FIXED_STEP_SECONDS, remaining);
         float scale = distance / remaining;
         DoomCollisionWorld.Position position = collision.moveActor(
                 combatant.x(),
@@ -339,18 +329,12 @@ public final class DoomCombatSession {
                 combatant.radius(),
                 combatant.height(),
                 ENEMY_MAXIMUM_STEP);
-        return combatant.withPose(
-                position.x(),
-                position.floorHeight(),
-                position.z(),
-                DoomCombatantActivity.PURSUING);
+        return combatant.withPose(position.x(), position.floorHeight(), position.z(), DoomCombatantActivity.PURSUING);
     }
 
     /** Computes visible range and map occlusion between one enemy and the player. */
     private Perception perception(
-            DoomCombatantState combatant,
-            DoomPlayerState player,
-            DoomCombatRules.EnemyBehavior behavior) {
+            DoomCombatantState combatant, DoomPlayerState player, DoomCombatRules.EnemyBehavior behavior) {
         float deltaX = player.x() - combatant.x();
         float deltaZ = player.z() - combatant.z();
         float distance = (float) Math.hypot(deltaX, deltaZ);
@@ -361,15 +345,13 @@ public final class DoomCombatSession {
             return new Perception(true, distance);
         }
         float eyeHeight = combatant.floorHeight() + combatant.height() * 0.75F;
-        Ray sight = Ray.between(
-                combatant.x(), eyeHeight, combatant.z(), player.x(), player.eyeHeight(), player.z());
+        Ray sight = Ray.between(combatant.x(), eyeHeight, combatant.z(), player.x(), player.eyeHeight(), player.z());
         float wallDistance = nearestWallDistance(sight, distance);
         return new Perception(wallDistance + INTERSECTION_TOLERANCE >= distance, distance);
     }
 
     /** Selects the nearest living actor intersection not hidden behind map geometry. */
-    private Target closestTarget(
-            DoomPlayerState shooter, DoomCombatRules.WeaponDefinition weapon) {
+    private Target closestTarget(DoomPlayerState shooter, DoomCombatRules.WeaponDefinition weapon) {
         float range = DoomUnits.toWorld(weapon.range());
         Ray ray = Ray.from(shooter);
         Target target = closestTarget(ray, range);
@@ -380,12 +362,8 @@ public final class DoomCombatSession {
         if (target != null) {
             return target;
         }
-        target = closestAutoAimTarget(
-                shooter, range, shooter.yawRadians() + AUTO_AIM_ANGLE);
-        return target != null
-                ? target
-                : closestAutoAimTarget(
-                        shooter, range, shooter.yawRadians() - AUTO_AIM_ANGLE);
+        target = closestAutoAimTarget(shooter, range, shooter.yawRadians() + AUTO_AIM_ANGLE);
+        return target != null ? target : closestAutoAimTarget(shooter, range, shooter.yawRadians() - AUTO_AIM_ANGLE);
     }
 
     /** Selects the nearest living actor intersected by one fully specified ray. */
@@ -396,8 +374,7 @@ public final class DoomCombatSession {
             DoomCombatantState combatant = combatants.get(index);
             if (combatant.status() == DoomCombatantStatus.ALIVE) {
                 float distance = combatantDistance(ray, combatant, range);
-                if (distance < wallDistance
-                        && (nearest == null || distance < nearest.distance())) {
+                if (distance < wallDistance && (nearest == null || distance < nearest.distance())) {
                     nearest = new Target(index, distance);
                 }
             }
@@ -406,8 +383,7 @@ public final class DoomCombatSession {
     }
 
     /** Selects the nearest visible actor reached by one classic horizontal auto-aim probe. */
-    private Target closestAutoAimTarget(
-            DoomPlayerState shooter, float range, float yaw) {
+    private Target closestAutoAimTarget(DoomPlayerState shooter, float range, float yaw) {
         Target nearest = null;
         for (int index = 0; index < combatants.size(); index++) {
             DoomCombatantState combatant = combatants.get(index);
@@ -415,8 +391,7 @@ public final class DoomCombatSession {
                 Ray ray = autoAimRay(shooter, combatant, yaw);
                 float distance = combatantDistance(ray, combatant, range);
                 float wallDistance = nearestWallDistance(ray, range);
-                if (distance < wallDistance
-                        && (nearest == null || distance < nearest.distance())) {
+                if (distance < wallDistance && (nearest == null || distance < nearest.distance())) {
                     nearest = new Target(index, distance);
                 }
             }
@@ -425,10 +400,8 @@ public final class DoomCombatSession {
     }
 
     /** Aims toward a target's vertical center within Doom's classic aiming slope window. */
-    private static Ray autoAimRay(
-            DoomPlayerState shooter, DoomCombatantState combatant, float yaw) {
-        float distance = (float) Math.hypot(
-                combatant.x() - shooter.x(), combatant.z() - shooter.z());
+    private static Ray autoAimRay(DoomPlayerState shooter, DoomCombatantState combatant, float yaw) {
+        float distance = (float) Math.hypot(combatant.x() - shooter.x(), combatant.z() - shooter.z());
         float targetHeight = combatant.floorHeight() + combatant.height() * 0.5F;
         float slope = distance < INTERSECTION_TOLERANCE
                 ? 0.0F
@@ -440,8 +413,7 @@ public final class DoomCombatSession {
     }
 
     /** Returns the first distance where a ray enters one finite vertical collision cylinder. */
-    private static float combatantDistance(
-            Ray ray, DoomCombatantState combatant, float maximumDistance) {
+    private static float combatantDistance(Ray ray, DoomCombatantState combatant, float maximumDistance) {
         float offsetX = combatant.x() - ray.x();
         float offsetZ = combatant.z() - ray.z();
         float projection = offsetX * ray.directionX() + offsetZ * ray.directionZ();
@@ -464,11 +436,7 @@ public final class DoomCombatSession {
 
     /** Intersects a horizontal cylinder chord with the ray's vertical span. */
     private static float verticalIntersection(
-            Ray ray,
-            DoomCombatantState combatant,
-            float near,
-            float far,
-            float maximumDistance) {
+            Ray ray, DoomCombatantState combatant, float near, float far, float maximumDistance) {
         float bottom = combatant.floorHeight();
         float top = bottom + combatant.height();
         if (Math.abs(ray.verticalSlope()) < INTERSECTION_TOLERANCE) {
@@ -518,9 +486,7 @@ public final class DoomCombatSession {
         float offsetZ = startZ - ray.z();
         float distance = cross(offsetX, offsetZ, segmentX, segmentZ) / denominator;
         float segmentAmount = cross(offsetX, offsetZ, ray.directionX(), ray.directionZ()) / denominator;
-        return distance >= 0.0F && segmentAmount >= 0.0F && segmentAmount <= 1.0F
-                ? distance
-                : Float.POSITIVE_INFINITY;
+        return distance >= 0.0F && segmentAmount >= 0.0F && segmentAmount <= 1.0F ? distance : Float.POSITIVE_INFINITY;
     }
 
     /** Determines whether a linedef is solid at the shot's intersection height. */
@@ -530,10 +496,8 @@ public final class DoomCombatSession {
         }
         DoomMap.Sector right = sectorForSide(linedef.rightSidedef());
         DoomMap.Sector left = sectorForSide(linedef.leftSidedef());
-        float openingBottom =
-                DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
-        float openingTop =
-                DoomUnits.toWorld(Math.min(right.ceilingHeight(), left.ceilingHeight()));
+        float openingBottom = DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
+        float openingTop = DoomUnits.toWorld(Math.min(right.ceilingHeight(), left.ceilingHeight()));
         return shotHeight <= openingBottom || shotHeight >= openingTop;
     }
 
@@ -547,8 +511,7 @@ public final class DoomCombatSession {
         List<DoomCombatantState> updated = new ArrayList<>(combatants);
         updated.set(index, damaged);
         combatants = List.copyOf(updated);
-        events.add(event(
-                DoomCombatEvent.Type.COMBATANT_DAMAGED, damaged.thingIndex(), appliedDamage));
+        events.add(event(DoomCombatEvent.Type.COMBATANT_DAMAGED, damaged.thingIndex(), appliedDamage));
         if (damaged.status() == DoomCombatantStatus.DEAD) {
             events.add(event(DoomCombatEvent.Type.COMBATANT_KILLED, damaged.thingIndex(), 0));
         }
@@ -563,10 +526,7 @@ public final class DoomCombatSession {
         long remainingHealth = (long) playerHealth - damage;
         playerHealth = (int) Math.clamp(remainingHealth, 0L, rules.maximumHealth());
         int appliedDamage = previousHealth - playerHealth;
-        events.add(event(
-                DoomCombatEvent.Type.PLAYER_DAMAGED,
-                DoomCombatEvent.PLAYER,
-                appliedDamage));
+        events.add(event(DoomCombatEvent.Type.PLAYER_DAMAGED, DoomCombatEvent.PLAYER, appliedDamage));
         if (playerHealth == 0) {
             events.add(event(DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0));
         }
@@ -574,15 +534,13 @@ public final class DoomCombatSession {
 
     /** Rolls one deterministic configured damage value. */
     private int weaponDamage(DoomCombatRules.WeaponDefinition weapon) {
-        return weapon.damageMinimum()
-                + random.nextInt(weapon.damageValueCount()) * weapon.damageStep();
+        return weapon.damageMinimum() + random.nextInt(weapon.damageValueCount()) * weapon.damageStep();
     }
 
     /** Rolls one deterministic configured enemy hitscan damage value. */
     private int enemyDamage(DoomCombatRules.EnemyBehavior behavior) {
         DoomCombatRules.DamageDefinition damage = behavior.damage();
-        return damage.minimum()
-                + random.nextInt(behavior.damageValueCount()) * damage.step();
+        return damage.minimum() + random.nextInt(behavior.damageValueCount()) * damage.step();
     }
 
     /** Returns the sector referenced by one map sidedef. */
@@ -596,8 +554,7 @@ public final class DoomCombatSession {
     }
 
     /** Creates one compact event value. */
-    private static DoomCombatEvent event(
-            DoomCombatEvent.Type type, int thingIndex, int amount) {
+    private static DoomCombatEvent event(DoomCombatEvent.Type type, int thingIndex, int amount) {
         return new DoomCombatEvent(type, thingIndex, amount);
     }
 
@@ -612,19 +569,10 @@ public final class DoomCombatSession {
     }
 
     /** Horizontal ray origin and direction plus vertical slope. */
-    private record Ray(
-            float x,
-            float height,
-            float z,
-            float directionX,
-            float directionZ,
-            float verticalSlope) {
+    private record Ray(float x, float height, float z, float directionX, float directionZ, float verticalSlope) {
         /** Creates a normalized horizontal ray from one player view pose. */
         private static Ray from(DoomPlayerState player) {
-            return from(
-                    player,
-                    player.yawRadians(),
-                    (float) Math.tan(player.pitchRadians()));
+            return from(player, player.yawRadians(), (float) Math.tan(player.pitchRadians()));
         }
 
         /** Creates a ray from one player position with an explicit yaw and vertical slope. */
@@ -640,12 +588,7 @@ public final class DoomCombatSession {
 
         /** Creates a ray from one world point toward another. */
         private static Ray between(
-                float startX,
-                float startHeight,
-                float startZ,
-                float endX,
-                float endHeight,
-                float endZ) {
+                float startX, float startHeight, float startZ, float endX, float endHeight, float endZ) {
             float deltaX = endX - startX;
             float deltaZ = endZ - startZ;
             float distance = (float) Math.hypot(deltaX, deltaZ);

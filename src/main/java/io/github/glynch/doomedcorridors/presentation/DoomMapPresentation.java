@@ -79,8 +79,7 @@ public final class DoomMapPresentation implements AutoCloseable {
             List<DoomActor> actors,
             DoomActorSprites sourceSprites,
             float aspectRatio) {
-        return createInternal(
-                geometry, sourceMaterials, actors, sourceSprites, Optional.empty(), aspectRatio);
+        return createInternal(geometry, sourceMaterials, actors, sourceSprites, Optional.empty(), aspectRatio);
     }
 
     /**
@@ -101,8 +100,13 @@ public final class DoomMapPresentation implements AutoCloseable {
             DoomActorSprites sourceSprites,
             DoomCombatAssets sourceCombatAssets,
             float aspectRatio) {
-        return createInternal(geometry, sourceMaterials, actors, sourceSprites,
-                Optional.of(Objects.requireNonNull(sourceCombatAssets, "sourceCombatAssets")), aspectRatio);
+        return createInternal(
+                geometry,
+                sourceMaterials,
+                actors,
+                sourceSprites,
+                Optional.of(Objects.requireNonNull(sourceCombatAssets, "sourceCombatAssets")),
+                aspectRatio);
     }
 
     /** Builds the shared map presentation for optional combat-frame support. */
@@ -123,8 +127,7 @@ public final class DoomMapPresentation implements AutoCloseable {
         DoomPresentationResources resources =
                 new DoomPresentationResources(validGeometry.surfaces().size());
         List<Billboard> billboards = new ArrayList<>(validActors.size());
-        Map<DoomPresentationResources.MapMaterialKey, BasicMaterial> materialCache =
-                new LinkedHashMap<>();
+        Map<DoomPresentationResources.MapMaterialKey, BasicMaterial> materialCache = new LinkedHashMap<>();
         for (DoomSurface surface : validGeometry.surfaces()) {
             var bufferGeometry = resources.createGeometry(surface);
             BasicMaterial material = materialCache.computeIfAbsent(
@@ -135,13 +138,7 @@ public final class DoomMapPresentation implements AutoCloseable {
         Map<String, BasicMaterial> spriteMaterialCache = new LinkedHashMap<>();
         Map<Integer, ActorVisual> actorVisuals = new LinkedHashMap<>();
         for (DoomActor actor : validActors) {
-            ActorVisual visual = addActor(
-                    scene,
-                    actor,
-                    validSprites,
-                    spriteMaterialCache,
-                    billboards,
-                    resources);
+            ActorVisual visual = addActor(scene, actor, validSprites, spriteMaterialCache, billboards, resources);
             if (visual != null) {
                 actorVisuals.put(actor.thingIndex(), visual);
             }
@@ -189,9 +186,8 @@ public final class DoomMapPresentation implements AutoCloseable {
         actorVisuals.forEach((thingIndex, visual) -> {
             visual.setVisible(!validState.isPickupCollected(thingIndex));
             validState.combatant(thingIndex).ifPresent(visual::move);
-            DoomActorSprite sprite = validState.actorFrame(thingIndex)
-                    .map(assets::image)
-                    .orElse(visual.idleSprite);
+            DoomActorSprite sprite =
+                    validState.actorFrame(thingIndex).map(assets::image).orElse(visual.idleSprite);
             BasicMaterial material = spriteMaterials.computeIfAbsent(
                     sprite.lumpName(), ignored -> createSpriteMaterial(sprite, resources));
             visual.apply(sprite, material);
@@ -223,8 +219,8 @@ public final class DoomMapPresentation implements AutoCloseable {
         if (sprite == null) {
             return null;
         }
-        BasicMaterial material = materialCache.computeIfAbsent(
-                sprite.lumpName(), ignored -> createSpriteMaterial(sprite, resources));
+        BasicMaterial material =
+                materialCache.computeIfAbsent(sprite.lumpName(), ignored -> createSpriteMaterial(sprite, resources));
         Billboard billboard = new Billboard(material);
         billboard.setAlignment(BillboardAlignment.CYLINDRICAL);
         billboard.setPosition(actor.x(), actor.floorHeight(), actor.z());
@@ -235,12 +231,12 @@ public final class DoomMapPresentation implements AutoCloseable {
     }
 
     /** Applies patch-dependent material, anchor, and size to one actor billboard. */
-    private static void applyActorSprite(
-            Billboard billboard, DoomActorSprite sprite, BasicMaterial material) {
+    private static void applyActorSprite(Billboard billboard, DoomActorSprite sprite, BasicMaterial material) {
         billboard.setMaterial(material);
         billboard.setAnchor(
                 sprite.leftOffset() / (float) sprite.image().width(),
-                (sprite.image().height() - sprite.topOffset()) / (float) sprite.image().height());
+                (sprite.image().height() - sprite.topOffset())
+                        / (float) sprite.image().height());
         billboard.setScale(
                 DoomUnits.toWorld(sprite.image().width()),
                 DoomUnits.toWorld(sprite.image().height()),
@@ -249,21 +245,16 @@ public final class DoomMapPresentation implements AutoCloseable {
 
     /** Creates a camera looking along the classic Doom thing angle. */
     private static PerspectiveCamera createCamera(DoomPlayerStart start, float aspectRatio) {
-        PerspectiveCamera camera =
-                new PerspectiveCamera(VERTICAL_FIELD_OF_VIEW, aspectRatio, NEAR_CLIP, FAR_CLIP);
+        PerspectiveCamera camera = new PerspectiveCamera(VERTICAL_FIELD_OF_VIEW, aspectRatio, NEAR_CLIP, FAR_CLIP);
         DoomPlayerCamera.apply(
-                camera,
-                new DoomPlayerState(start.x(), start.eyeHeight(), start.z(), start.yawRadians(), 0.0F));
+                camera, new DoomPlayerState(start.x(), start.eyeHeight(), start.z(), start.yawRadians(), 0.0F));
         return camera;
     }
 
     /** Creates one alpha-masked, edge-clamped material for an actor sprite. */
-    private static BasicMaterial createSpriteMaterial(
-            DoomActorSprite sprite, DoomPresentationResources resources) {
+    private static BasicMaterial createSpriteMaterial(DoomActorSprite sprite, DoomPresentationResources resources) {
         return resources.createImageMaterial(
-                sprite.image(),
-                TextureWrap.CLAMP_TO_EDGE,
-                TextureCoordinateOrigin.BOTTOM_LEFT);
+                sprite.image(), TextureWrap.CLAMP_TO_EDGE, TextureCoordinateOrigin.BOTTOM_LEFT);
     }
 
     /** Rejects access after terminal resource closure. */

@@ -62,9 +62,7 @@ final class DoomDoorMechanisms {
     /** Returns the effective ceiling height in application world units. */
     float ceilingHeight(int sectorIndex) {
         Door door = doorsBySector.get(sectorIndex);
-        return door == null
-                ? DoomUnits.toWorld(map.sectors().get(sectorIndex).ceilingHeight())
-                : door.currentHeight;
+        return door == null ? DoomUnits.toWorld(map.sectors().get(sectorIndex).ceilingHeight()) : door.currentHeight;
     }
 
     /** Returns stable immutable snapshots in source-sector discovery order. */
@@ -80,8 +78,8 @@ final class DoomDoorMechanisms {
                 continue;
             }
             int sectorIndex = sectorForSide(linedef.leftSidedef());
-            Door door = doorsBySector.computeIfAbsent(
-                    sectorIndex, ignored -> createDoor(sectorIndex, linedef.special()));
+            Door door =
+                    doorsBySector.computeIfAbsent(sectorIndex, ignored -> createDoor(sectorIndex, linedef.special()));
             doorsByLinedef.put(linedefIndex, door);
         }
     }
@@ -97,9 +95,11 @@ final class DoomDoorMechanisms {
             int right = sectorForSide(candidate.rightSidedef());
             int left = sectorForSide(candidate.leftSidedef());
             if (right == sectorIndex && left != sectorIndex) {
-                adjacent = Math.min(adjacent, DoomUnits.toWorld(map.sectors().get(left).ceilingHeight()));
+                adjacent = Math.min(
+                        adjacent, DoomUnits.toWorld(map.sectors().get(left).ceilingHeight()));
             } else if (left == sectorIndex && right != sectorIndex) {
-                adjacent = Math.min(adjacent, DoomUnits.toWorld(map.sectors().get(right).ceilingHeight()));
+                adjacent = Math.min(
+                        adjacent, DoomUnits.toWorld(map.sectors().get(right).ceilingHeight()));
             }
         }
         if (!Float.isFinite(adjacent) || adjacent - OPEN_CLEARANCE < closed) {
@@ -118,11 +118,7 @@ final class DoomDoorMechanisms {
 
     /** Returns the fractional distance along a ray where it crosses a finite linedef. */
     private float intersectionAmount(
-            float rayStartX,
-            float rayStartZ,
-            float rayX,
-            float rayZ,
-            DoomMap.Linedef linedef) {
+            float rayStartX, float rayStartZ, float rayX, float rayZ, DoomMap.Linedef linedef) {
         DoomMap.Vertex first = map.vertices().get(linedef.startVertex());
         DoomMap.Vertex second = map.vertices().get(linedef.endVertex());
         float lineStartX = DoomUnits.toWorld(first.x());
@@ -137,9 +133,7 @@ final class DoomDoorMechanisms {
         float offsetZ = lineStartZ - rayStartZ;
         float rayAmount = cross(offsetX, offsetZ, lineX, lineZ) / denominator;
         float lineAmount = cross(offsetX, offsetZ, rayX, rayZ) / denominator;
-        return rayAmount >= 0.0F && rayAmount <= 1.0F && lineAmount >= 0.0F && lineAmount <= 1.0F
-                ? rayAmount
-                : -1.0F;
+        return rayAmount >= 0.0F && rayAmount <= 1.0F && lineAmount >= 0.0F && lineAmount <= 1.0F ? rayAmount : -1.0F;
     }
 
     /** Returns one sector index referenced by a validated sidedef index. */
@@ -175,11 +169,7 @@ final class DoomDoorMechanisms {
         private float currentHeight;
         private int waitTicks;
 
-        private Door(
-                int sectorIndex,
-                float closedHeight,
-                float openHeight,
-                DoorBehavior behavior) {
+        private Door(int sectorIndex, float closedHeight, float openHeight, DoorBehavior behavior) {
             this.sectorIndex = sectorIndex;
             this.closedHeight = closedHeight;
             this.openHeight = openHeight;

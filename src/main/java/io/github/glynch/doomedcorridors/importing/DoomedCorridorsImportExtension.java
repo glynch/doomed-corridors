@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors.importing;
 
-import io.github.glynch.doomedcorridors.importing.internal.DoomMapMaterialsProjectImporter;
+import io.github.glynch.doomedcorridors.importing.internal.DoomMapProjectImporter;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsTypes;
 import io.github.glynch.jscene3d.project.importing.extension.ProjectImportExtension;
 import io.github.glynch.jscene3d.project.importing.extension.ProjectImportRegistry;
@@ -25,8 +25,6 @@ public final class DoomedCorridorsImportExtension implements ProjectImportExtens
     @Override
     public void register(ProjectImportRegistry registry) {
         Objects.requireNonNull(registry, "registry")
-                .registerImporter(
-                        DoomedCorridorsTypes.MAP_MATERIALS_IMPORTER,
-                        new DoomMapMaterialsProjectImporter());
+                .registerImporter(DoomedCorridorsTypes.MAP_IMPORTER, new DoomMapProjectImporter());
     }
 }

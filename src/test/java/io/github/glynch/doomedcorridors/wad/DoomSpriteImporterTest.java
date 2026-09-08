@@ -67,7 +67,8 @@ final class DoomSpriteImporterTest {
         DoomSpriteImportResult result =
                 new DoomSpriteImporter().importActors(archive, List.of(actor(1, "missing", "MISSA")));
 
-        assertThat(result.sprites()).hasValueSatisfying(sprites -> assertThat(sprites.byFrame()).isEmpty());
+        assertThat(result.sprites())
+                .hasValueSatisfying(sprites -> assertThat(sprites.byFrame()).isEmpty());
         assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
             assertThat(diagnostic.severity()).isEqualTo(WadDiagnostic.Severity.WARNING);
             assertThat(diagnostic.code()).isEqualTo("doom.sprite.frame-missing");
@@ -76,8 +77,8 @@ final class DoomSpriteImporterTest {
     }
 
     private static DoomActor actor(int thingType, String id, String frame) {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                thingType, id, id, DoomActorCategory.DECORATION, Optional.of(frame));
+        DoomActorDefinition definition =
+                new DoomActorDefinition(thingType, id, id, DoomActorCategory.DECORATION, Optional.of(frame));
         return new DoomActor(thingType, definition, 0.0F, 0.0F, 0.0F, 0.0F);
     }
 
@@ -86,7 +87,8 @@ final class DoomSpriteImporterTest {
                 .mapToInt(lump -> lump.content().length)
                 .sum();
         int directoryOffset = 12 + contentSize;
-        ByteBuffer bytes = ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer bytes =
+                ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
         bytes.put("PWAD".getBytes(StandardCharsets.US_ASCII));
         bytes.putInt(lumps.length);
         bytes.putInt(directoryOffset);

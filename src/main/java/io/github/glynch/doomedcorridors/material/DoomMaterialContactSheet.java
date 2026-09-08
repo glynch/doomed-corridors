@@ -13,7 +13,8 @@ public final class DoomMaterialContactSheet {
     public void write(DoomMapMaterials materials, Path output) throws IOException {
         Objects.requireNonNull(materials, "materials");
         Objects.requireNonNull(output, "output");
-        List<RgbaImage> images = entries(materials).stream().map(DoomMaterial::image).toList();
+        List<RgbaImage> images =
+                entries(materials).stream().map(DoomMaterial::image).toList();
         new RgbaContactSheetWriter().write(images, output);
     }
 
@@ -25,5 +26,4 @@ public final class DoomMaterialContactSheet {
         entries.sort(Comparator.comparing(DoomMaterial::kind).thenComparing(DoomMaterial::name));
         return entries;
     }
-
 }

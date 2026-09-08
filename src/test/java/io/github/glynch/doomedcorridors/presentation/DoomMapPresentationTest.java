@@ -40,8 +40,8 @@ final class DoomMapPresentationTest {
     /** Creates a scene mesh and WAD-oriented camera without initializing native rendering. */
     @Test
     void createsStaticMapMeshAndPlayerCamera() {
-        DoomStaticGeometry geometry = new DoomStaticGeometry(
-                List.of(maskedWall()), new DoomPlayerStart(1.0F, 2.0F, 3.0F, 0.0F));
+        DoomStaticGeometry geometry =
+                new DoomStaticGeometry(List.of(maskedWall()), new DoomPlayerStart(1.0F, 2.0F, 3.0F, 0.0F));
 
         try (DoomMapPresentation presentation = DoomMapPresentation.create(
                 geometry, materials(), List.of(), new DoomActorSprites(Map.of()), 16.0F / 9.0F)) {
@@ -52,8 +52,8 @@ final class DoomMapPresentationTest {
                 assertThat(position.y()).isEqualTo(2.0F);
                 assertThat(position.z()).isEqualTo(3.0F);
             });
-            Vector3f forward = new Vector3f(0.0F, 0.0F, -1.0F)
-                    .rotate(presentation.camera().quaternion());
+            Vector3f forward =
+                    new Vector3f(0.0F, 0.0F, -1.0F).rotate(presentation.camera().quaternion());
             assertThat(forward.x()).isCloseTo(1.0F, within());
             assertThat(forward.y()).isCloseTo(0.0F, within());
             assertThat(forward.z()).isCloseTo(0.0F, within());
@@ -61,10 +61,12 @@ final class DoomMapPresentationTest {
 
             Mesh mesh = (Mesh) presentation.scene().children().getFirst();
             BufferGeometry bufferGeometry = mesh.geometry();
-            assertThat(bufferGeometry.attribute(BufferGeometry.POSITION)).isNotNull().satisfies(attribute -> {
-                assertThat(attribute.count()).isEqualTo(3);
-                assertThat(attribute.value(1, 0)).isEqualTo(1.0F);
-            });
+            assertThat(bufferGeometry.attribute(BufferGeometry.POSITION))
+                    .isNotNull()
+                    .satisfies(attribute -> {
+                        assertThat(attribute.count()).isEqualTo(3);
+                        assertThat(attribute.value(1, 0)).isEqualTo(1.0F);
+                    });
             BasicMaterial material = (BasicMaterial) mesh.material();
             assertThat(material.alphaMode()).isEqualTo(AlphaMode.MASK);
             Texture texture = material.colorMap().orElseThrow();
@@ -77,8 +79,7 @@ final class DoomMapPresentationTest {
     /** Creates an upright, grounded cylindrical billboard for an imported actor sprite. */
     @Test
     void createsGroundedActorBillboard() {
-        DoomStaticGeometry geometry =
-                new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomStaticGeometry geometry = new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
 
         try (DoomMapPresentation presentation =
                 DoomMapPresentation.create(geometry, materials(), List.of(actor()), sprites(), 1.0F)) {
@@ -111,11 +112,10 @@ final class DoomMapPresentationTest {
     /** Applies viewport and player-state changes to the presentation camera. */
     @Test
     void updatesCameraFromViewportAndPlayerState() {
-        DoomStaticGeometry geometry =
-                new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomStaticGeometry geometry = new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
 
-        try (DoomMapPresentation presentation = DoomMapPresentation.create(
-                geometry, materials(), List.of(), new DoomActorSprites(Map.of()), 1.0F)) {
+        try (DoomMapPresentation presentation =
+                DoomMapPresentation.create(geometry, materials(), List.of(), new DoomActorSprites(Map.of()), 1.0F)) {
 
             presentation.resize(4.0F / 3.0F);
             assertThat(presentation.camera().aspectRatio()).isEqualTo(4.0F / 3.0F);
@@ -126,8 +126,8 @@ final class DoomMapPresentationTest {
                 assertThat(position.y()).isEqualTo(5.0F);
                 assertThat(position.z()).isEqualTo(6.0F);
             });
-            Vector3f raisedForward = new Vector3f(0.0F, 0.0F, -1.0F)
-                    .rotate(presentation.camera().quaternion());
+            Vector3f raisedForward =
+                    new Vector3f(0.0F, 0.0F, -1.0F).rotate(presentation.camera().quaternion());
             assertThat(raisedForward.x()).isCloseTo((float) Math.cos(0.25F), within());
             assertThat(raisedForward.y()).isCloseTo((float) Math.sin(0.25F), within());
             assertThat(raisedForward.z()).isCloseTo(0.0F, within());
@@ -148,8 +148,8 @@ final class DoomMapPresentationTest {
                         new int[] {0, 1, 2}));
         DoomStaticGeometry geometry =
                 new DoomStaticGeometry(List.of(surface), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
-        DoomMapPresentation presentation = DoomMapPresentation.create(
-                geometry, materials(), List.of(), new DoomActorSprites(Map.of()), 1.0F);
+        DoomMapPresentation presentation =
+                DoomMapPresentation.create(geometry, materials(), List.of(), new DoomActorSprites(Map.of()), 1.0F);
         Mesh mesh = (Mesh) presentation.scene().children().getFirst();
         BufferGeometry bufferGeometry = mesh.geometry();
         BasicMaterial material = (BasicMaterial) mesh.material();
@@ -169,15 +169,14 @@ final class DoomMapPresentationTest {
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x00
         };
-        DoomMaterial grate = new DoomMaterial(
-                "GRATE", DoomMaterial.Kind.WALL_TEXTURE, new RgbaImage(2, 1, opaquePixels), List.of());
+        DoomMaterial grate =
+                new DoomMaterial("GRATE", DoomMaterial.Kind.WALL_TEXTURE, new RgbaImage(2, 1, opaquePixels), List.of());
         DoomMaterial floor = new DoomMaterial(
                 "FLOOR",
                 DoomMaterial.Kind.FLAT,
                 new RgbaImage(1, 1, new byte[] {(byte) 0xff, 0, 0, (byte) 0xff}),
                 List.of());
-        return new DoomMapMaterials(
-                "MAP01", Map.of("GRATE", grate), Map.of("FLOOR", floor));
+        return new DoomMapMaterials("MAP01", Map.of("GRATE", grate), Map.of("FLOOR", floor));
     }
 
     private static DoomSurface maskedWall() {
@@ -193,12 +192,8 @@ final class DoomMapPresentationTest {
     }
 
     private static DoomActor actor() {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                3004,
-                "zombieman",
-                "Zombieman",
-                DoomActorCategory.ENEMY,
-                Optional.of("POSSA"));
+        DoomActorDefinition definition =
+                new DoomActorDefinition(3004, "zombieman", "Zombieman", DoomActorCategory.ENEMY, Optional.of("POSSA"));
         return new DoomActor(4, definition, 2.0F, 0.5F, -1.0F, 0.0F);
     }
 
@@ -206,8 +201,7 @@ final class DoomMapPresentationTest {
         byte[] pixels = new byte[4 * 6 * 4];
         pixels[0] = (byte) 0xff;
         pixels[3] = (byte) 0xff;
-        DoomActorSprite sprite = new DoomActorSprite(
-                "POSSA", "POSSA1", new RgbaImage(4, 6, pixels), 1, 6, List.of());
+        DoomActorSprite sprite = new DoomActorSprite("POSSA", "POSSA1", new RgbaImage(4, 6, pixels), 1, 6, List.of());
         return new DoomActorSprites(Map.of("POSSA", sprite));
     }
 

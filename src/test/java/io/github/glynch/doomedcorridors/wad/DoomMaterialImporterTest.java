@@ -2,8 +2,8 @@ package io.github.glynch.doomedcorridors.wad;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -146,9 +146,8 @@ final class DoomMaterialImporterTest {
     /** Reports a referenced flat absent from the flat namespace. */
     @Test
     void reportsMissingReferencedFlat() throws IOException {
-        WadArchive archive = writeAndLoad(
-                new TestLump("PLAYPAL", new byte[256 * 3]),
-                new TestLump("FLAT1", new byte[64 * 64]));
+        WadArchive archive =
+                writeAndLoad(new TestLump("PLAYPAL", new byte[256 * 3]), new TestLump("FLAT1", new byte[64 * 64]));
         DoomMap map = mapWithMaterials(List.of(), List.of("FLAT1"));
 
         DoomMaterialImportResult result = new DoomMaterialImporter().importMap(archive, map);
@@ -181,7 +180,8 @@ final class DoomMaterialImporterTest {
                 .mapToInt(lump -> lump.content().length)
                 .sum();
         int directoryOffset = 12 + contentSize;
-        ByteBuffer bytes = ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer bytes =
+                ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
         bytes.put("PWAD".getBytes(StandardCharsets.US_ASCII));
         bytes.putInt(lumps.length);
         bytes.putInt(directoryOffset);

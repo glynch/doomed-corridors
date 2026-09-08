@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 
 /** Exercises combat image and sound import against the pinned Freedoom archive. */
 final class FreedoomCombatAssetImporterTest {
-    private static final String FREEDOOM_SHA256 =
-            "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
+    private static final String FREEDOOM_SHA256 = "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
 
     /** Imports all exact provider-declared patches and DMX effects. */
     @Test
@@ -34,8 +33,7 @@ final class FreedoomCombatAssetImporterTest {
                 .archive()
                 .orElseThrow();
 
-        DoomCombatAssetImportResult result = new DoomCombatAssetImporter()
-                .importAssets(archive, presentationRules());
+        DoomCombatAssetImportResult result = new DoomCombatAssetImporter().importAssets(archive, presentationRules());
 
         assertThat(result.diagnostics()).isEmpty();
         DoomCombatAssets assets = result.assets().orElseThrow();

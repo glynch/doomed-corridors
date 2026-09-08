@@ -56,22 +56,19 @@ public final class DoomCombatAudio implements AutoCloseable {
             for (Map.Entry<String, PcmAudio> entry : validAssets.sounds().entrySet()) {
                 clips.put(entry.getKey(), engine.createClip(entry.getValue()));
             }
-            AudioSource weaponSource = source(
-                    engine, clips, validAssets.rules().weapon().fireSound(), true);
+            AudioSource weaponSource =
+                    source(engine, clips, validAssets.rules().weapon().fireSound(), true);
             Map<String, AudioSource> playerSources = new LinkedHashMap<>();
             addSource(engine, clips, playerSources, validAssets.rules().player().painSound(), true);
             addSource(engine, clips, playerSources, validAssets.rules().player().deathSound(), true);
-            addSource(engine, clips, playerSources, validAssets.rules().pickups().collectSound(), true);
+            addSource(
+                    engine, clips, playerSources, validAssets.rules().pickups().collectSound(), true);
             Map<String, AudioSource> worldSources = new LinkedHashMap<>();
             for (String name : validAssets.rules().soundLumps()) {
                 addSource(engine, clips, worldSources, name, false);
             }
             return new DoomCombatAudio(
-                    validAssets.rules(),
-                    engine,
-                    weaponSource,
-                    Map.copyOf(playerSources),
-                    Map.copyOf(worldSources));
+                    validAssets.rules(), engine, weaponSource, Map.copyOf(playerSources), Map.copyOf(worldSources));
         } catch (RuntimeException failure) {
             engine.close();
             throw failure;
@@ -97,48 +94,34 @@ public final class DoomCombatAudio implements AutoCloseable {
                 .filter(event -> event.type() == DoomCombatEvent.Type.COMBATANT_KILLED)
                 .map(DoomCombatEvent::thingIndex)
                 .collect(Collectors.toUnmodifiableSet());
-        boolean playerKilled = validUpdate.events().stream()
-                .anyMatch(event -> event.type() == DoomCombatEvent.Type.PLAYER_KILLED);
+        boolean playerKilled =
+                validUpdate.events().stream().anyMatch(event -> event.type() == DoomCombatEvent.Type.PLAYER_KILLED);
         for (DoomCombatEvent event : validUpdate.events()) {
             switch (event) {
                 case DoomCombatEvent weaponFired
-                        when weaponFired.type() == DoomCombatEvent.Type.WEAPON_FIRED ->
-                    restart(weaponSource);
+                when weaponFired.type() == DoomCombatEvent.Type.WEAPON_FIRED -> restart(weaponSource);
                 case DoomCombatEvent combatantAlerted
-                        when combatantAlerted.type() == DoomCombatEvent.Type.COMBATANT_ALERTED ->
-                    playCombatantSound(
-                            combatantAlerted.thingIndex(),
-                            validUpdate.state(),
-                            CombatantSound.SIGHT);
+                when combatantAlerted.type() == DoomCombatEvent.Type.COMBATANT_ALERTED ->
+                    playCombatantSound(combatantAlerted.thingIndex(), validUpdate.state(), CombatantSound.SIGHT);
                 case DoomCombatEvent combatantAttacked
-                        when combatantAttacked.type() == DoomCombatEvent.Type.COMBATANT_ATTACKED ->
-                    playCombatantSound(
-                            combatantAttacked.thingIndex(),
-                            validUpdate.state(),
-                            CombatantSound.ATTACK);
+                when combatantAttacked.type() == DoomCombatEvent.Type.COMBATANT_ATTACKED ->
+                    playCombatantSound(combatantAttacked.thingIndex(), validUpdate.state(), CombatantSound.ATTACK);
                 case DoomCombatEvent combatantDamaged
-                        when combatantDamaged.type() == DoomCombatEvent.Type.COMBATANT_DAMAGED
-                                && !killed.contains(combatantDamaged.thingIndex()) ->
-                    playCombatantSound(
-                            combatantDamaged.thingIndex(),
-                            validUpdate.state(),
-                            CombatantSound.PAIN);
+                when combatantDamaged.type() == DoomCombatEvent.Type.COMBATANT_DAMAGED
+                        && !killed.contains(combatantDamaged.thingIndex()) ->
+                    playCombatantSound(combatantDamaged.thingIndex(), validUpdate.state(), CombatantSound.PAIN);
                 case DoomCombatEvent combatantKilled
-                        when combatantKilled.type() == DoomCombatEvent.Type.COMBATANT_KILLED ->
-                    playCombatantSound(
-                            combatantKilled.thingIndex(),
-                            validUpdate.state(),
-                            CombatantSound.DEATH);
+                when combatantKilled.type() == DoomCombatEvent.Type.COMBATANT_KILLED ->
+                    playCombatantSound(combatantKilled.thingIndex(), validUpdate.state(), CombatantSound.DEATH);
                 case DoomCombatEvent playerDamaged
-                        when playerDamaged.type() == DoomCombatEvent.Type.PLAYER_DAMAGED
-                                && !playerKilled ->
+                when playerDamaged.type() == DoomCombatEvent.Type.PLAYER_DAMAGED && !playerKilled ->
                     playPlayerSound(rules.player().painSound());
                 case DoomCombatEvent playerDeath
-                        when playerDeath.type() == DoomCombatEvent.Type.PLAYER_KILLED ->
+                when playerDeath.type() == DoomCombatEvent.Type.PLAYER_KILLED ->
                     playPlayerSound(rules.player().deathSound());
                 case DoomCombatEvent pickup
-                        when pickup.type() == DoomCombatEvent.Type.HEALTH_PICKED_UP
-                                || pickup.type() == DoomCombatEvent.Type.AMMUNITION_PICKED_UP ->
+                when pickup.type() == DoomCombatEvent.Type.HEALTH_PICKED_UP
+                        || pickup.type() == DoomCombatEvent.Type.AMMUNITION_PICKED_UP ->
                     playPlayerSound(rules.pickups().collectSound());
                 default -> {
                     // No sound is bound for this event in the first combat presentation.
@@ -159,8 +142,7 @@ public final class DoomCombatAudio implements AutoCloseable {
         if (relative) {
             source.setPosition(new Vector3f());
         } else {
-            source.setAttenuation(
-                    SOURCE_REFERENCE_DISTANCE, SOURCE_MAXIMUM_DISTANCE, 1.0F);
+            source.setAttenuation(SOURCE_REFERENCE_DISTANCE, SOURCE_MAXIMUM_DISTANCE, 1.0F);
         }
     }
 
@@ -175,11 +157,7 @@ public final class DoomCombatAudio implements AutoCloseable {
     }
 
     /** Creates one configured source for a required decoded sound clip. */
-    private static AudioSource source(
-            AudioEngine engine,
-            Map<String, AudioClip> clips,
-            String name,
-            boolean relative) {
+    private static AudioSource source(AudioEngine engine, Map<String, AudioClip> clips, String name, boolean relative) {
         AudioClip clip = Objects.requireNonNull(clips.get(name), "clip " + name);
         AudioSource source = engine.createSource(clip, AudioCategory.EFFECTS);
         configureSource(source, relative);
@@ -187,10 +165,7 @@ public final class DoomCombatAudio implements AutoCloseable {
     }
 
     /** Resolves one combatant event sound and plays it in world space. */
-    private void playCombatantSound(
-            int thingIndex,
-            DoomCombatState state,
-            CombatantSound eventSound) {
+    private void playCombatantSound(int thingIndex, DoomCombatState state, CombatantSound eventSound) {
         DoomCombatantState combatant = state.combatant(thingIndex).orElse(null);
         if (combatant == null) {
             return;
@@ -201,18 +176,14 @@ public final class DoomCombatAudio implements AutoCloseable {
         }
         String sound = combatantSound(actorRules.sounds(), eventSound, thingIndex);
         AudioSource source = requiredSource(worldSources, sound);
-        source.setPosition(new Vector3f(
-                combatant.x(),
-                combatant.floorHeight() + combatant.height() * 0.5F,
-                combatant.z()));
+        source.setPosition(
+                new Vector3f(combatant.x(), combatant.floorHeight() + combatant.height() * 0.5F, combatant.z()));
         restart(source);
     }
 
     /** Resolves an event role to an exact sound, including deterministic variants. */
     private static String combatantSound(
-            DoomCombatPresentationRules.CombatantSounds sounds,
-            CombatantSound eventSound,
-            int thingIndex) {
+            DoomCombatPresentationRules.CombatantSounds sounds, CombatantSound eventSound, int thingIndex) {
         return switch (eventSound) {
             case SIGHT -> variant(sounds.sightSounds(), thingIndex);
             case ATTACK -> sounds.attackSound();
@@ -232,8 +203,7 @@ public final class DoomCombatAudio implements AutoCloseable {
     }
 
     /** Returns one required source from a role-specific source index. */
-    private static AudioSource requiredSource(
-            Map<String, AudioSource> sources, String sound) {
+    private static AudioSource requiredSource(Map<String, AudioSource> sources, String sound) {
         return Objects.requireNonNull(sources.get(sound), "sound source " + sound);
     }
 

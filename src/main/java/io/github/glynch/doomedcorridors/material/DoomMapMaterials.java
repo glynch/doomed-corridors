@@ -7,9 +7,7 @@ import java.util.Objects;
 
 /** Immutable wall textures and flats referenced by one decoded map. */
 public record DoomMapMaterials(
-        String mapName,
-        Map<String, DoomMaterial> wallTextures,
-        Map<String, DoomMaterial> flats) {
+        String mapName, Map<String, DoomMaterial> wallTextures, Map<String, DoomMaterial> flats) {
     /** Creates an immutable material set while preserving deterministic iteration order. */
     public DoomMapMaterials {
         mapName = Objects.requireNonNull(mapName, "mapName");

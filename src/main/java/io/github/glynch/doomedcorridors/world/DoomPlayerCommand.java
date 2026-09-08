@@ -9,12 +9,7 @@ import static io.github.glynch.doomedcorridors.internal.Preconditions.requireInR
 
 /** Held movement and turn axes, frame-relative view rotation, and a discrete interaction request. */
 public record DoomPlayerCommand(
-        float forward,
-        float strafe,
-        float turn,
-        float yawDelta,
-        float pitchDelta,
-        boolean interact) {
+        float forward, float strafe, float turn, float yawDelta, float pitchDelta, boolean interact) {
     /** Creates a movement-only command for callers that have no discrete interaction request. */
     public DoomPlayerCommand(float forward, float strafe, float turn, float yawDelta, float pitchDelta) {
         this(forward, strafe, turn, yawDelta, pitchDelta, false);

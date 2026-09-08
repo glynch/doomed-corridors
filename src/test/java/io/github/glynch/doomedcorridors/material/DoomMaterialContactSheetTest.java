@@ -24,8 +24,7 @@ final class DoomMaterialContactSheetTest {
     void writesMaterialImagesToPng() throws IOException {
         DoomMaterial wall = material("WALL", DoomMaterial.Kind.WALL_TEXTURE, (byte) 0xff, (byte) 0, (byte) 0);
         DoomMaterial flat = material("FLAT", DoomMaterial.Kind.FLAT, (byte) 0, (byte) 0xff, (byte) 0);
-        DoomMapMaterials materials =
-                new DoomMapMaterials("MAP01", Map.of("WALL", wall), Map.of("FLAT", flat));
+        DoomMapMaterials materials = new DoomMapMaterials("MAP01", Map.of("WALL", wall), Map.of("FLAT", flat));
         Path output = temporaryDirectory.resolve("nested/materials.png");
 
         new DoomMaterialContactSheet().write(materials, output);
@@ -41,10 +40,8 @@ final class DoomMaterialContactSheetTest {
     /** Writes unique actor sprite frames through the shared RGBA contact-sheet renderer. */
     @Test
     void writesSpriteImagesToPng() throws IOException {
-        RgbaImage source = new RgbaImage(
-                1, 1, new byte[] {(byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0xff});
-        DoomActorSprite sprite =
-                new DoomActorSprite("TESTA", "TESTA0", source, 0, 1, List.of());
+        RgbaImage source = new RgbaImage(1, 1, new byte[] {(byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0xff});
+        DoomActorSprite sprite = new DoomActorSprite("TESTA", "TESTA0", source, 0, 1, List.of());
         Path output = temporaryDirectory.resolve("nested/sprites.png");
 
         new DoomSpriteContactSheet().write(new DoomActorSprites(Map.of("TESTA", sprite)), output);
@@ -54,8 +51,7 @@ final class DoomMaterialContactSheetTest {
         assertThat(containsRgb(image, 0x112233)).isTrue();
     }
 
-    private static DoomMaterial material(
-            String name, DoomMaterial.Kind kind, byte red, byte green, byte blue) {
+    private static DoomMaterial material(String name, DoomMaterial.Kind kind, byte red, byte green, byte blue) {
         RgbaImage image = new RgbaImage(1, 1, new byte[] {red, green, blue, (byte) 0xff});
         return new DoomMaterial(name, kind, image, List.of(new WadLump(0, name, 0, 1)));
     }

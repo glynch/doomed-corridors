@@ -34,8 +34,7 @@ public final class DoomCombatPresentationState {
     private boolean playerDead;
 
     /** Builds state tracks for the combatants present in the initial snapshot. */
-    public DoomCombatPresentationState(
-            DoomCombatPresentationRules rules, DoomCombatState initialState) {
+    public DoomCombatPresentationState(DoomCombatPresentationRules rules, DoomCombatState initialState) {
         this.rules = Objects.requireNonNull(rules, "rules");
         DoomCombatState state = Objects.requireNonNull(initialState, "initialState");
         health = state.playerHealth();
@@ -77,8 +76,7 @@ public final class DoomCombatPresentationState {
             weaponSequence = null;
         }
         actors.values().forEach(actor -> actor.advance(validElapsed));
-        damageFlashNanos = Math.clamp(
-                damageFlashNanos - validElapsed.toNanos(), 0L, damageFlashNanos);
+        damageFlashNanos = Math.clamp(damageFlashNanos - validElapsed.toNanos(), 0L, damageFlashNanos);
     }
 
     /** Returns current player health for the HUD. */
@@ -136,10 +134,9 @@ public final class DoomCombatPresentationState {
     /** Starts the sequence implied by one presentation-neutral combat event. */
     private void applyEvent(DoomCombatEvent event, DoomCombatState state) {
         switch (event.type()) {
-            case WEAPON_FIRED -> weaponSequence = new FrameSequence(
-                    rules.weapon().fireFrames(),
-                    rules.weapon().frameDuration(),
-                    Completion.CLEAR);
+            case WEAPON_FIRED ->
+                weaponSequence = new FrameSequence(
+                        rules.weapon().fireFrames(), rules.weapon().frameDuration(), Completion.CLEAR);
             case COMBATANT_DAMAGED -> applyActorEvent(event.thingIndex(), state, false);
             case COMBATANT_KILLED -> applyActorEvent(event.thingIndex(), state, true);
             case COMBATANT_ATTACKED -> applyActorAttack(event.thingIndex());
@@ -188,9 +185,7 @@ public final class DoomCombatPresentationState {
         private void hurt() {
             if (!dead) {
                 overrideSequence = new FrameSequence(
-                        rules.animations().painFrames(),
-                        rules.animations().frameDuration(),
-                        Completion.CLEAR);
+                        rules.animations().painFrames(), rules.animations().frameDuration(), Completion.CLEAR);
             }
         }
 
@@ -198,9 +193,7 @@ public final class DoomCombatPresentationState {
         private void attack() {
             if (!dead) {
                 overrideSequence = new FrameSequence(
-                        rules.animations().attackFrames(),
-                        rules.animations().frameDuration(),
-                        Completion.CLEAR);
+                        rules.animations().attackFrames(), rules.animations().frameDuration(), Completion.CLEAR);
             }
         }
 
@@ -209,9 +202,7 @@ public final class DoomCombatPresentationState {
             dead = true;
             movementSequence = null;
             overrideSequence = new FrameSequence(
-                    rules.animations().deathFrames(),
-                    rules.animations().frameDuration(),
-                    Completion.HOLD);
+                    rules.animations().deathFrames(), rules.animations().frameDuration(), Completion.HOLD);
         }
 
         /** Synchronizes the looping walk track with the latest simulation activity. */
@@ -222,9 +213,7 @@ public final class DoomCombatPresentationState {
             } else if (activity == DoomCombatantActivity.PURSUING) {
                 if (movementSequence == null) {
                     movementSequence = new FrameSequence(
-                            rules.animations().walkFrames(),
-                            rules.animations().frameDuration(),
-                            Completion.LOOP);
+                            rules.animations().walkFrames(), rules.animations().frameDuration(), Completion.LOOP);
                 }
             } else {
                 movementSequence = null;
@@ -246,9 +235,7 @@ public final class DoomCombatPresentationState {
             if (overrideSequence != null) {
                 return Optional.of(overrideSequence.frame());
             }
-            return movementSequence == null
-                    ? Optional.empty()
-                    : Optional.of(movementSequence.frame());
+            return movementSequence == null ? Optional.empty() : Optional.of(movementSequence.frame());
         }
     }
 
@@ -260,8 +247,7 @@ public final class DoomCombatPresentationState {
         private int index;
         private long remainderNanos;
 
-        private FrameSequence(
-                List<String> frames, Duration frameDuration, Completion completion) {
+        private FrameSequence(List<String> frames, Duration frameDuration, Completion completion) {
             this.frames = List.copyOf(frames);
             frameNanos = frameDuration.toNanos();
             this.completion = Objects.requireNonNull(completion, "completion");

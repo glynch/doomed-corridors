@@ -4,15 +4,14 @@
  */
 package io.github.glynch.doomedcorridors.world;
 
+import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
+import io.github.glynch.doomedcorridors.material.DoomMaterial;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-
-import io.github.glynch.jscene3d.doom.map.DoomMap;
-import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
-import io.github.glynch.doomedcorridors.material.DoomMaterial;
 
 /** Builds immutable static surfaces from decoded classic Doom map records. */
 public final class DoomStaticGeometryBuilder {
@@ -91,8 +90,10 @@ public final class DoomStaticGeometryBuilder {
             positions[positionOffset + 2] = DoomUnits.yToWorldZ(vertex.y());
             normals[positionOffset + 1] = floor ? 1.0F : -1.0F;
             int textureOffset = index * 2;
-            textureCoordinates[textureOffset] = (float) (vertex.x() / material.image().width());
-            textureCoordinates[textureOffset + 1] = (float) (-vertex.y() / material.image().height());
+            textureCoordinates[textureOffset] =
+                    (float) (vertex.x() / material.image().width());
+            textureCoordinates[textureOffset + 1] =
+                    (float) (-vertex.y() / material.image().height());
         }
         int[] indices = planeIndices(vertices, floor);
         DoomSurface.Type type = floor ? DoomSurface.Type.FLOOR : DoomSurface.Type.CEILING;
@@ -130,8 +131,7 @@ public final class DoomStaticGeometryBuilder {
     }
 
     /** Adds the opaque or portal wall spans visible from one linedef side. */
-    private static void addWallSide(
-            BuildState state, int linedefIndex, DoomMap.Linedef linedef, WallSide side) {
+    private static void addWallSide(BuildState state, int linedefIndex, DoomMap.Linedef linedef, WallSide side) {
         int sidedefIndex = side.sidedefIndex(linedef);
         int neighborIndex = side.neighborSidedefIndex(linedef);
         DoomMap.Sidedef sidedef = state.map.sidedefs().get(sidedefIndex);
@@ -145,10 +145,8 @@ public final class DoomStaticGeometryBuilder {
                             sidedef,
                             sideLocation,
                             side,
-                            new WallRange(
-                                    sector.floorHeight(), sector.ceilingHeight(), sector.ceilingHeight()),
-                            new WallAppearance(
-                                    sidedef.middleTexture(), DoomSurface.Type.MIDDLE_WALL),
+                            new WallRange(sector.floorHeight(), sector.ceilingHeight(), sector.ceilingHeight()),
+                            new WallAppearance(sidedef.middleTexture(), DoomSurface.Type.MIDDLE_WALL),
                             OptionalInt.empty()),
                     sidedef.sector());
             return;
@@ -183,17 +181,13 @@ public final class DoomStaticGeometryBuilder {
                             sidedef,
                             wall.location(),
                             wall.side(),
-                            new WallRange(
-                                    neighbor.ceilingHeight(), sector.ceilingHeight(), textureTop),
-                            new WallAppearance(
-                                    sidedef.upperTexture(), DoomSurface.Type.UPPER_WALL),
+                            new WallRange(neighbor.ceilingHeight(), sector.ceilingHeight(), textureTop),
+                            new WallAppearance(sidedef.upperTexture(), DoomSurface.Type.UPPER_WALL),
                             OptionalInt.of(wall.neighbor().index())),
                     wall.sector().index());
         }
         if (neighbor.floorHeight() > sector.floorHeight()) {
-            int textureTop = (linedef.flags() & DONT_PEG_BOTTOM) != 0
-                    ? sector.ceilingHeight()
-                    : neighbor.floorHeight();
+            int textureTop = (linedef.flags() & DONT_PEG_BOTTOM) != 0 ? sector.ceilingHeight() : neighbor.floorHeight();
             addWallSpan(
                     state,
                     new WallSpan(
@@ -201,10 +195,8 @@ public final class DoomStaticGeometryBuilder {
                             sidedef,
                             wall.location(),
                             wall.side(),
-                            new WallRange(
-                                    sector.floorHeight(), neighbor.floorHeight(), textureTop),
-                            new WallAppearance(
-                                    sidedef.lowerTexture(), DoomSurface.Type.LOWER_WALL),
+                            new WallRange(sector.floorHeight(), neighbor.floorHeight(), textureTop),
+                            new WallAppearance(sidedef.lowerTexture(), DoomSurface.Type.LOWER_WALL),
                             OptionalInt.empty()),
                     wall.sector().index());
         }
@@ -222,8 +214,7 @@ public final class DoomStaticGeometryBuilder {
                             wall.location(),
                             wall.side(),
                             new WallRange(openingBottom, openingTop, textureTop),
-                            new WallAppearance(
-                                    sidedef.middleTexture(), DoomSurface.Type.MASKED_MIDDLE_WALL),
+                            new WallAppearance(sidedef.middleTexture(), DoomSurface.Type.MASKED_MIDDLE_WALL),
                             OptionalInt.empty()),
                     wall.sector().index());
         }
@@ -231,12 +222,13 @@ public final class DoomStaticGeometryBuilder {
 
     /** Creates one quad or reports its unresolved wall material. */
     private static void addWallSpan(BuildState state, WallSpan span, int sectorIndex) {
-        String role = switch (span.appearance.type) {
-            case UPPER_WALL -> "upper";
-            case LOWER_WALL -> "lower";
-            case MIDDLE_WALL, MASKED_MIDDLE_WALL -> "middle";
-            default -> throw new IllegalArgumentException("not a wall type: " + span.appearance.type);
-        };
+        String role =
+                switch (span.appearance.type) {
+                    case UPPER_WALL -> "upper";
+                    case LOWER_WALL -> "lower";
+                    case MIDDLE_WALL, MASKED_MIDDLE_WALL -> "middle";
+                    default -> throw new IllegalArgumentException("not a wall type: " + span.appearance.type);
+                };
         DoomMaterial material = state.materials.wallTextures().get(span.appearance.materialName);
         if (NO_TEXTURE.equals(span.appearance.materialName) || material == null) {
             state.error(
@@ -272,8 +264,7 @@ public final class DoomStaticGeometryBuilder {
     }
 
     /** Builds the four bottom-to-top wall vertices. */
-    private static float[] wallPositions(
-            DoomMap.Vertex first, DoomMap.Vertex second, int bottom, int top) {
+    private static float[] wallPositions(DoomMap.Vertex first, DoomMap.Vertex second, int bottom, int top) {
         float firstX = DoomUnits.toWorld(first.x());
         float firstZ = DoomUnits.yToWorldZ(first.y());
         float secondX = DoomUnits.toWorld(second.x());
@@ -352,10 +343,7 @@ public final class DoomStaticGeometryBuilder {
 
     /** Recursively clips one convex region into the node's right and left child regions. */
     private static void recoverPolygons(
-            DoomMap map,
-            DoomMap.NodeChild child,
-            List<PlanarPoint> polygon,
-            List<List<PlanarPoint>> polygons) {
+            DoomMap map, DoomMap.NodeChild child, List<PlanarPoint> polygon, List<List<PlanarPoint>> polygons) {
         if (child.subsector()) {
             polygons.set(child.index(), compactPolygon(polygon));
             return;
@@ -368,8 +356,7 @@ public final class DoomStaticGeometryBuilder {
     }
 
     /** Clips a convex polygon to one side of a BSP partition. */
-    private static List<PlanarPoint> clip(
-            List<PlanarPoint> polygon, DoomMap.Partition partition, boolean rightSide) {
+    private static List<PlanarPoint> clip(List<PlanarPoint> polygon, DoomMap.Partition partition, boolean rightSide) {
         if (polygon.isEmpty()) {
             return polygon;
         }
@@ -459,8 +446,7 @@ public final class DoomStaticGeometryBuilder {
 
     /** Compares clipping coordinates with a small numerical tolerance. */
     private static boolean samePoint(PlanarPoint first, PlanarPoint second) {
-        return Math.abs(first.x() - second.x()) < 0.000_001
-                && Math.abs(first.y() - second.y()) < 0.000_001;
+        return Math.abs(first.x() - second.x()) < 0.000_001 && Math.abs(first.y() - second.y()) < 0.000_001;
     }
 
     /** Calculates twice the signed polygon area. */
@@ -493,8 +479,7 @@ public final class DoomStaticGeometryBuilder {
         }
 
         private void error(String code, String location, String message) {
-            diagnostics.add(new DoomGeometryDiagnostic(
-                    DoomGeometryDiagnostic.Severity.ERROR, code, location, message));
+            diagnostics.add(new DoomGeometryDiagnostic(DoomGeometryDiagnostic.Severity.ERROR, code, location, message));
         }
 
         private boolean hasErrors() {

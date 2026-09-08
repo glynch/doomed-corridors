@@ -16,8 +16,11 @@ public enum DoomedCorridorsImportDiagnosticCode implements DiagnosticCode {
 
     /** Referenced wall textures or flats could not be imported. */
     MAP_MATERIALS_INVALID(
-            "doomed-corridors.import.map-materials",
-            "The selected Doom map materials could not be imported");
+            "doomed-corridors.import.map-materials", "The selected Doom map materials could not be imported"),
+
+    /** Renderer-independent geometry could not be generated for the selected map. */
+    MAP_GEOMETRY_INVALID(
+            "doomed-corridors.import.map-geometry", "The selected Doom map geometry could not be generated");
 
     private final String code;
     private final String message;

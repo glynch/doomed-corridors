@@ -24,5 +24,4 @@ public record DoomActor(
             throw new IllegalArgumentException("resolved actors require a sprite frame");
         }
     }
-
 }

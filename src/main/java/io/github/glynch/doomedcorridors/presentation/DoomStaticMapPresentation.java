@@ -31,9 +31,7 @@ public final class DoomStaticMapPresentation implements AutoCloseable {
 
     /** Stores one complete derived scene subtree and its owned GPU-facing resources. */
     private DoomStaticMapPresentation(
-            Object3D root,
-            DoomPresentationResources resources,
-            List<CeilingBinding> ceilingBindings) {
+            Object3D root, DoomPresentationResources resources, List<CeilingBinding> ceilingBindings) {
         this.root = root;
         this.resources = resources;
         this.ceilingBindings = List.copyOf(ceilingBindings);
@@ -46,15 +44,13 @@ public final class DoomStaticMapPresentation implements AutoCloseable {
      * @param sourceMaterials wall textures and flats referenced by the geometry
      * @return owned derived map presentation
      */
-    public static DoomStaticMapPresentation create(
-            DoomStaticGeometry geometry, DoomMapMaterials sourceMaterials) {
+    public static DoomStaticMapPresentation create(DoomStaticGeometry geometry, DoomMapMaterials sourceMaterials) {
         DoomStaticGeometry validGeometry = Objects.requireNonNull(geometry, "geometry");
         DoomMapMaterials validMaterials = Objects.requireNonNull(sourceMaterials, "sourceMaterials");
         Object3D root = new Object3D();
         DoomPresentationResources resources =
                 new DoomPresentationResources(validGeometry.surfaces().size());
-        Map<DoomPresentationResources.MapMaterialKey, BasicMaterial> materialCache =
-                new LinkedHashMap<>();
+        Map<DoomPresentationResources.MapMaterialKey, BasicMaterial> materialCache = new LinkedHashMap<>();
         List<CeilingBinding> ceilingBindings = new ArrayList<>();
         for (DoomSurface surface : validGeometry.surfaces()) {
             BufferGeometry bufferGeometry = resources.createGeometry(surface);
@@ -62,8 +58,9 @@ public final class DoomStaticMapPresentation implements AutoCloseable {
                     DoomPresentationResources.materialKey(surface),
                     key -> resources.createMapMaterial(key, validMaterials));
             root.add(new Mesh(bufferGeometry, material));
-            surface.movingCeilingSector().ifPresent(sectorIndex -> ceilingBindings.add(
-                    CeilingBinding.create(surface, bufferGeometry, validMaterials, sectorIndex)));
+            surface.movingCeilingSector()
+                    .ifPresent(sectorIndex -> ceilingBindings.add(
+                            CeilingBinding.create(surface, bufferGeometry, validMaterials, sectorIndex)));
         }
         return new DoomStaticMapPresentation(root, resources, ceilingBindings);
     }
@@ -139,16 +136,17 @@ public final class DoomStaticMapPresentation implements AutoCloseable {
 
         /** Creates a checked binding for a ceiling plane or an upper wall's lower edge. */
         private static CeilingBinding create(
-                DoomSurface surface,
-                BufferGeometry geometry,
-                DoomMapMaterials materials,
-                int sectorIndex) {
-            BufferAttribute positions = Objects.requireNonNull(
-                    geometry.attribute(BufferGeometry.POSITION), "position attribute");
-            BufferAttribute textureCoordinates = Objects.requireNonNull(
-                    geometry.attribute(BufferGeometry.UV), "texture-coordinate attribute");
+                DoomSurface surface, BufferGeometry geometry, DoomMapMaterials materials, int sectorIndex) {
+            BufferAttribute positions =
+                    Objects.requireNonNull(geometry.attribute(BufferGeometry.POSITION), "position attribute");
+            BufferAttribute textureCoordinates =
+                    Objects.requireNonNull(geometry.attribute(BufferGeometry.UV), "texture-coordinate attribute");
             float textureHeight = surface.type() == DoomSurface.Type.UPPER_WALL
-                    ? materials.wallTextures().get(surface.materialName()).image().height()
+                    ? materials
+                            .wallTextures()
+                            .get(surface.materialName())
+                            .image()
+                            .height()
                     : 1.0F;
             return new CeilingBinding(
                     surface.type(),

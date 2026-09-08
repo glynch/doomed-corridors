@@ -11,12 +11,7 @@ import java.util.Objects;
 
 /** One imported spawn-frame image with classic patch-origin metadata and provenance. */
 public record DoomActorSprite(
-        String frame,
-        String lumpName,
-        RgbaImage image,
-        int leftOffset,
-        int topOffset,
-        List<WadLump> sourceLumps) {
+        String frame, String lumpName, RgbaImage image, int leftOffset, int topOffset, List<WadLump> sourceLumps) {
     /** Creates an immutable imported actor sprite. */
     public DoomActorSprite {
         Objects.requireNonNull(frame, "frame");

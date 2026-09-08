@@ -29,7 +29,8 @@ public final class DoomSpriteImporter {
         List<DoomActor> validActors = List.copyOf(Objects.requireNonNull(actors, "actors"));
         List<WadDiagnostic> diagnostics = new ArrayList<>();
         try {
-            WadLump paletteLump = validArchive.lastLumpNamed("PLAYPAL")
+            WadLump paletteLump = validArchive
+                    .lastLumpNamed("PLAYPAL")
                     .orElseThrow(() -> new SpriteFailure(
                             "doom.sprite.palette-missing", "/sprites/palette", "Required PLAYPAL lump is missing"));
             byte[] palette = validArchive.read(paletteLump);
@@ -54,8 +55,7 @@ public final class DoomSpriteImporter {
                 }
                 imported.put(frame, importSprite(validArchive, paletteLump, palette, frame, lump));
             }
-            return new DoomSpriteImportResult(
-                    Optional.of(new DoomActorSprites(imported)), diagnostics);
+            return new DoomSpriteImportResult(Optional.of(new DoomActorSprites(imported)), diagnostics);
         } catch (SpriteFailure failure) {
             diagnostics.add(new WadDiagnostic(
                     WadDiagnostic.Severity.ERROR,
@@ -76,12 +76,7 @@ public final class DoomSpriteImporter {
 
     /** Decodes one sprite lump while translating patch failures into importer diagnostics. */
     private static DoomActorSprite importSprite(
-            WadArchive archive,
-            WadLump paletteLump,
-            byte[] palette,
-            String frame,
-            WadLump lump)
-            throws IOException {
+            WadArchive archive, WadLump paletteLump, byte[] palette, String frame, WadLump lump) throws IOException {
         try {
             DoomPatchImage patch = DoomPatchDecoder.decode(archive.read(lump), palette, lump.name());
             return new DoomActorSprite(
@@ -92,8 +87,7 @@ public final class DoomSpriteImporter {
                     patch.topOffset(),
                     List.of(paletteLump, lump));
         } catch (DoomPatchDataException exception) {
-            throw new SpriteFailure(
-                    "doom.sprite.patch-data", "/sprites/" + frame, exception.getMessage());
+            throw new SpriteFailure("doom.sprite.patch-data", "/sprites/" + frame, exception.getMessage());
         }
     }
 

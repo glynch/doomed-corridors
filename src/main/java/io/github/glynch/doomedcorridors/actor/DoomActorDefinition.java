@@ -10,11 +10,7 @@ import java.util.regex.Pattern;
 
 /** Provider-owned meaning assigned to one classic Doom thing type. */
 public record DoomActorDefinition(
-        int thingType,
-        String id,
-        String name,
-        DoomActorCategory category,
-        Optional<String> spriteFrame) {
+        int thingType, String id, String name, DoomActorCategory category, Optional<String> spriteFrame) {
     private static final Pattern SPRITE_FRAME = Pattern.compile("[A-Z0-9]{4}[A-Z]");
 
     /** Creates a validated actor definition. */

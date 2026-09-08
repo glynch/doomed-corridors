@@ -9,11 +9,7 @@ import java.util.OptionalInt;
 
 /** One textured static surface with source-map provenance. */
 public record DoomSurface(
-        Type type,
-        String materialName,
-        int sectorIndex,
-        DoomMeshData mesh,
-        OptionalInt movingCeilingSector) {
+        Type type, String materialName, int sectorIndex, DoomMeshData mesh, OptionalInt movingCeilingSector) {
     /** Creates a surface whose vertices do not follow a moving sector ceiling. */
     public DoomSurface(Type type, String materialName, int sectorIndex, DoomMeshData mesh) {
         this(type, materialName, sectorIndex, mesh, OptionalInt.empty());
@@ -47,11 +43,8 @@ public record DoomSurface(
         if (sectorIndex < 0) {
             throw new IllegalArgumentException("sectorIndex must not be negative");
         }
-        if (movingCeilingSector.isPresent()
-                && type != Type.CEILING
-                && type != Type.UPPER_WALL) {
-            throw new IllegalArgumentException(
-                    "only ceiling and upper-wall surfaces can follow a moving ceiling");
+        if (movingCeilingSector.isPresent() && type != Type.CEILING && type != Type.UPPER_WALL) {
+            throw new IllegalArgumentException("only ceiling and upper-wall surfaces can follow a moving ceiling");
         }
         if (movingCeilingSector.isPresent() && movingCeilingSector.orElseThrow() < 0) {
             throw new IllegalArgumentException("movingCeilingSector must not contain a negative index");

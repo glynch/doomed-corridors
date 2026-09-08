@@ -21,8 +21,7 @@ public final class DoomCombatPresentationRules {
     private final Hud hud;
 
     /** Indexes one weapon, combatant bindings, and HUD patch names. */
-    DoomCombatPresentationRules(
-            Weapon weapon, Player player, Pickups pickups, List<Combatant> combatants, Hud hud) {
+    DoomCombatPresentationRules(Weapon weapon, Player player, Pickups pickups, List<Combatant> combatants, Hud hud) {
         this.weapon = Objects.requireNonNull(weapon, "weapon");
         this.player = Objects.requireNonNull(player, "player");
         this.pickups = Objects.requireNonNull(pickups, "pickups");
@@ -133,11 +132,7 @@ public final class DoomCombatPresentationRules {
 
     /** Presentation binding for the selected weapon. */
     public record Weapon(
-            String id,
-            String readyFrame,
-            List<String> fireFrames,
-            Duration frameDuration,
-            String fireSound) {
+            String id, String readyFrame, List<String> fireFrames, Duration frameDuration, String fireSound) {
         /** Validates exact image/sound lump names and positive frame timing. */
         public Weapon {
             Objects.requireNonNull(id, "id");
@@ -194,10 +189,7 @@ public final class DoomCombatPresentationRules {
 
     /** Alert, attack, pain, and death sounds for one combatant actor identity. */
     public record CombatantSounds(
-            List<String> sightSounds,
-            String attackSound,
-            String painSound,
-            List<String> deathSounds) {
+            List<String> sightSounds, String attackSound, String painSound, List<String> deathSounds) {
         /** Validates exact sound lump names and non-empty variants. */
         public CombatantSounds {
             sightSounds = requireLumps(sightSounds, "sightSounds");

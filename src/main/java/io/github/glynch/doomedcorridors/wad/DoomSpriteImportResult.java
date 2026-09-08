@@ -10,8 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Imported actor sprites, when usable, and ordered source diagnostics. */
-public record DoomSpriteImportResult(
-        Optional<DoomActorSprites> sprites, List<WadDiagnostic> diagnostics) {
+public record DoomSpriteImportResult(Optional<DoomActorSprites> sprites, List<WadDiagnostic> diagnostics) {
     /** Creates an immutable sprite import result. */
     public DoomSpriteImportResult {
         Objects.requireNonNull(sprites, "sprites");

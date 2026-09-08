@@ -12,11 +12,7 @@ import java.util.Objects;
 
 /** Immutable editor-visible state of one door derived from imported Doom map behavior. */
 public record DoomDoorState(
-        int sectorIndex,
-        Phase phase,
-        float closedCeilingHeight,
-        float openCeilingHeight,
-        float currentCeilingHeight) {
+        int sectorIndex, Phase phase, float closedCeilingHeight, float openCeilingHeight, float currentCeilingHeight) {
     /** Runtime phases supported by the first manual open-and-stay door slice. */
     public enum Phase {
         /** The door blocks its sector opening. */
@@ -41,7 +37,6 @@ public record DoomDoorState(
         if (openCeilingHeight < closedCeilingHeight) {
             throw new IllegalArgumentException("openCeilingHeight must not be below closedCeilingHeight");
         }
-        requireInRange(
-                currentCeilingHeight, closedCeilingHeight, openCeilingHeight, "currentCeilingHeight");
+        requireInRange(currentCeilingHeight, closedCeilingHeight, openCeilingHeight, "currentCeilingHeight");
     }
 }

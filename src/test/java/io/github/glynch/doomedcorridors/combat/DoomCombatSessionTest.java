@@ -10,8 +10,8 @@ import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.actor.DoomActorCategory;
 import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.world.DoomPlayerState;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,8 +26,7 @@ final class DoomCombatSessionTest {
     /** Initializes player resources and only configured combatant actors. */
     @Test
     void initializesConfiguredCombatants() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 6.0F), decoration(2, 5.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 6.0F), decoration(2, 5.0F)), 0L);
 
         DoomCombatState state = session.state();
 
@@ -51,11 +50,9 @@ final class DoomCombatSessionTest {
     /** Alerts a visible distant enemy and advances it through map collision toward the player. */
     @Test
     void alertsAndPursuesVisiblePlayer() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 7.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 7.0F)), 0L);
 
-        DoomCombatUpdate update =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(200));
+        DoomCombatUpdate update = session.advance(player(0.0F, 0.0F), Duration.ofMillis(200));
 
         assertThat(update.events())
                 .extracting(DoomCombatEvent::type)
@@ -70,15 +67,14 @@ final class DoomCombatSessionTest {
     /** Attacks after the configured reaction delay and applies deterministic player damage. */
     @Test
     void attacksAndDamagesVisiblePlayer() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 6.0F)), 0L);
 
-        DoomCombatUpdate update =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(400));
+        DoomCombatUpdate update = session.advance(player(0.0F, 0.0F), Duration.ofMillis(400));
 
         assertThat(update.state().playerHealth()).isBetween(85, 97);
-        assertThat(update.state().combatant(1)).hasValueSatisfying(combatant ->
-                assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.ATTACKING));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(
+                        combatant -> assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.ATTACKING));
         assertThat(update.events())
                 .extracting(DoomCombatEvent::type)
                 .containsExactly(
@@ -90,28 +86,24 @@ final class DoomCombatSessionTest {
     /** Keeps a dormant enemy from seeing or attacking through a solid wall. */
     @Test
     void blocksEnemySightAtSolidWall() {
-        DoomCombatSession session = session(
-                dividedRoom(false), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(dividedRoom(false), List.of(zombieman(1, 6.0F)), 0L);
 
-        DoomCombatUpdate update =
-                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
+        DoomCombatUpdate update = session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
 
         assertThat(update.events()).isEmpty();
         assertThat(update.state().playerHealth()).isEqualTo(100);
-        assertThat(update.state().combatant(1)).hasValueSatisfying(combatant ->
-                assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.DORMANT));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(
+                        combatant -> assertThat(combatant.activity()).isEqualTo(DoomCombatantActivity.DORMANT));
     }
 
     /** Stops all enemy behavior after repeated attacks reach terminal player death. */
     @Test
     void stopsEnemyBehaviorAfterPlayerDeath() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 6.0F)), 0L);
 
-        DoomCombatUpdate fatalSequence =
-                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(40));
-        DoomCombatUpdate afterDeath =
-                session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
+        DoomCombatUpdate fatalSequence = session.advance(player(0.0F, 0.0F), Duration.ofSeconds(40));
+        DoomCombatUpdate afterDeath = session.advance(player(0.0F, 0.0F), Duration.ofSeconds(2));
 
         assertThat(fatalSequence.state().isPlayerDead()).isTrue();
         assertThat(fatalSequence.events())
@@ -124,16 +116,15 @@ final class DoomCombatSessionTest {
     /** Damages the nearest living combatant intersected by the pistol ray. */
     @Test
     void hitsNearestCombatant() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 4.0F), zombieman(2, 6.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 4.0F), zombieman(2, 6.0F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
 
         assertThat(update.state().bullets()).isEqualTo(49);
-        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isBetween(5, 15));
-        assertThat(update.state().combatant(2)).hasValueSatisfying(target ->
-                assertThat(target.health()).isEqualTo(20));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(target -> assertThat(target.health()).isBetween(5, 15));
+        assertThat(update.state().combatant(2))
+                .hasValueSatisfying(target -> assertThat(target.health()).isEqualTo(20));
         assertThat(update.events())
                 .extracting(DoomCombatEvent::type)
                 .containsExactly(DoomCombatEvent.Type.WEAPON_FIRED, DoomCombatEvent.Type.COMBATANT_DAMAGED);
@@ -142,25 +133,23 @@ final class DoomCombatSessionTest {
     /** Hits a centered combatant at the closest non-overlapping player separation. */
     @Test
     void hitsCenteredCombatantAtCloseRange() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 3.125F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 3.125F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
 
-        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isLessThan(20));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(target -> assertThat(target.health()).isLessThan(20));
     }
 
     /** Stops a shot at a one-sided linedef before an otherwise aligned combatant. */
     @Test
     void blocksHitscanAtSolidWall() {
-        DoomCombatSession session = session(
-                dividedRoom(false), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(dividedRoom(false), List.of(zombieman(1, 6.0F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
 
-        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isEqualTo(20));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(target -> assertThat(target.health()).isEqualTo(20));
         assertThat(update.events())
                 .extracting(DoomCombatEvent::type)
                 .containsExactly(DoomCombatEvent.Type.WEAPON_FIRED);
@@ -169,32 +158,29 @@ final class DoomCombatSessionTest {
     /** Allows a shot through a two-sided linedef with an open vertical span. */
     @Test
     void passesHitscanThroughOpenPortal() {
-        DoomCombatSession session = session(
-                dividedRoom(true), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(dividedRoom(true), List.of(zombieman(1, 6.0F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
 
-        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isLessThan(20));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(target -> assertThat(target.health()).isLessThan(20));
     }
 
     /** Vertically auto-aims at a combatant centered on the player's horizontal bearing. */
     @Test
     void autoAimsVerticallyAtCenteredCombatant() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 6.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 6.0F)), 0L);
 
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.75F));
 
-        assertThat(update.state().combatant(1)).hasValueSatisfying(target ->
-                assertThat(target.health()).isLessThan(20));
+        assertThat(update.state().combatant(1))
+                .hasValueSatisfying(target -> assertThat(target.health()).isLessThan(20));
     }
 
     /** Marks a zero-health combatant dead and lets later shots pass through it. */
     @Test
     void killsCombatantAndSkipsItsCylinder() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(zombieman(1, 4.0F), zombieman(2, 6.0F)), 0L);
+        DoomCombatSession session = session(openRoom(), List.of(zombieman(1, 4.0F), zombieman(2, 6.0F)), 0L);
         DoomCombatantState first = session.state().combatant(1).orElseThrow();
         for (int shot = 0; shot < 4 && first.status() == DoomCombatantStatus.ALIVE; shot++) {
             first = session.firePrimary(player(0.0F, 0.0F)).state().combatant(1).orElseThrow();
@@ -204,8 +190,8 @@ final class DoomCombatSessionTest {
 
         assertThat(first.health()).isZero();
         assertThat(first.status()).isEqualTo(DoomCombatantStatus.DEAD);
-        assertThat(update.state().combatant(2)).hasValueSatisfying(target ->
-                assertThat(target.health()).isLessThan(20));
+        assertThat(update.state().combatant(2))
+                .hasValueSatisfying(target -> assertThat(target.health()).isLessThan(20));
     }
 
     /** Reports an empty weapon without firing or consuming negative ammunition. */
@@ -219,8 +205,9 @@ final class DoomCombatSessionTest {
         DoomCombatUpdate update = session.firePrimary(player(0.0F, 0.0F));
 
         assertThat(update.state().bullets()).isZero();
-        assertThat(update.events()).singleElement().satisfies(event ->
-                assertThat(event.type()).isEqualTo(DoomCombatEvent.Type.WEAPON_EMPTY));
+        assertThat(update.events())
+                .singleElement()
+                .satisfies(event -> assertThat(event.type()).isEqualTo(DoomCombatEvent.Type.WEAPON_EMPTY));
     }
 
     /** Applies incoming damage once and clamps player death at zero health. */
@@ -267,13 +254,11 @@ final class DoomCombatSessionTest {
     /** Collects one overlapping ammunition actor once and reports the applied amount. */
     @Test
     void collectsAmmunitionOnce() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(pickup(7, "ammunition-clip", DoomActorCategory.AMMUNITION, 0.0F)), 0L);
+        DoomCombatSession session =
+                session(openRoom(), List.of(pickup(7, "ammunition-clip", DoomActorCategory.AMMUNITION, 0.0F)), 0L);
 
-        DoomCombatUpdate collected =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
-        DoomCombatUpdate repeated =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate collected = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate repeated = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(collected.state().bullets()).isEqualTo(60);
         assertThat(collected.state().collectedPickupThingIndices()).containsExactly(7);
@@ -289,14 +274,12 @@ final class DoomCombatSessionTest {
     /** Leaves a capped health pickup present until player damage makes it useful. */
     @Test
     void collectsHealthOnlyWhenUseful() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(pickup(8, "stimpack", DoomActorCategory.HEALTH, 0.0F)), 0L);
+        DoomCombatSession session =
+                session(openRoom(), List.of(pickup(8, "stimpack", DoomActorCategory.HEALTH, 0.0F)), 0L);
 
-        DoomCombatUpdate atCapacity =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate atCapacity = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
         session.damagePlayer(30);
-        DoomCombatUpdate collected =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate collected = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(atCapacity.state().playerHealth()).isEqualTo(100);
         assertThat(atCapacity.state().isPickupCollected(8)).isFalse();
@@ -311,11 +294,10 @@ final class DoomCombatSessionTest {
     /** Allows bonus health to exceed the ordinary medical-item limit up to 200. */
     @Test
     void collectsBonusHealthAboveOneHundred() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(pickup(9, "health-bonus", DoomActorCategory.HEALTH, 0.0F)), 0L);
+        DoomCombatSession session =
+                session(openRoom(), List.of(pickup(9, "health-bonus", DoomActorCategory.HEALTH, 0.0F)), 0L);
 
-        DoomCombatUpdate collected =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate collected = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(collected.state().playerHealth()).isEqualTo(101);
         assertThat(collected.state().isPickupCollected(9)).isTrue();
@@ -324,11 +306,10 @@ final class DoomCombatSessionTest {
     /** Collects a health bonus resting one full classic player height above the player's feet. */
     @Test
     void collectsHealthBonusAtMaximumVerticalReach() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(pickup(14, "health-bonus", DoomActorCategory.HEALTH, 56.0F / 32.0F)), 0L);
+        DoomCombatSession session =
+                session(openRoom(), List.of(pickup(14, "health-bonus", DoomActorCategory.HEALTH, 56.0F / 32.0F)), 0L);
 
-        DoomCombatUpdate collected =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate collected = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(collected.state().playerHealth()).isEqualTo(101);
         assertThat(collected.state().isPickupCollected(14)).isTrue();
@@ -337,11 +318,10 @@ final class DoomCombatSessionTest {
     /** Rejects a health bonus immediately above the classic player's vertical reach. */
     @Test
     void rejectsHealthBonusAboveMaximumVerticalReach() {
-        DoomCombatSession session = session(
-                openRoom(), List.of(pickup(15, "health-bonus", DoomActorCategory.HEALTH, 57.0F / 32.0F)), 0L);
+        DoomCombatSession session =
+                session(openRoom(), List.of(pickup(15, "health-bonus", DoomActorCategory.HEALTH, 57.0F / 32.0F)), 0L);
 
-        DoomCombatUpdate update =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate update = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(update.state().playerHealth()).isEqualTo(100);
         assertThat(update.state().isPickupCollected(15)).isFalse();
@@ -350,10 +330,10 @@ final class DoomCombatSessionTest {
     /** Accepts an item eight units below the player but rejects one unit farther below. */
     @Test
     void appliesClassicLowerPickupReach() {
-        DoomCombatSession reachable = session(
-                openRoom(), List.of(pickup(16, "health-bonus", DoomActorCategory.HEALTH, -8.0F / 32.0F)), 0L);
-        DoomCombatSession unreachable = session(
-                openRoom(), List.of(pickup(17, "health-bonus", DoomActorCategory.HEALTH, -9.0F / 32.0F)), 0L);
+        DoomCombatSession reachable =
+                session(openRoom(), List.of(pickup(16, "health-bonus", DoomActorCategory.HEALTH, -8.0F / 32.0F)), 0L);
+        DoomCombatSession unreachable =
+                session(openRoom(), List.of(pickup(17, "health-bonus", DoomActorCategory.HEALTH, -9.0F / 32.0F)), 0L);
 
         DoomCombatState collected =
                 reachable.advance(player(0.0F, 0.0F), Duration.ofMillis(30)).state();
@@ -376,16 +356,12 @@ final class DoomCombatSessionTest {
                         pickup(13, "box-of-bullets", DoomActorCategory.AMMUNITION, 0.0F)),
                 0L);
 
-        DoomCombatUpdate collected =
-                session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
+        DoomCombatUpdate collected = session.advance(player(0.0F, 0.0F), Duration.ofMillis(30));
 
         assertThat(collected.state().bullets()).isEqualTo(200);
-        assertThat(collected.state().collectedPickupThingIndices())
-                .containsExactly(10, 11, 12);
+        assertThat(collected.state().collectedPickupThingIndices()).containsExactly(10, 11, 12);
         assertThat(collected.state().isPickupCollected(13)).isFalse();
-        assertThat(collected.events())
-                .extracting(DoomCombatEvent::amount)
-                .containsExactly(50, 50, 50);
+        assertThat(collected.events()).extracting(DoomCombatEvent::amount).containsExactly(50, 50, 50);
     }
 
     private static DoomCombatSession session(DoomMap map, List<DoomActor> actors, long seed) {
@@ -408,33 +384,20 @@ final class DoomCombatSessionTest {
     }
 
     private static DoomActor zombieman(int thingIndex, float x) {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                3004,
-                "zombieman",
-                "Zombieman",
-                DoomActorCategory.ENEMY,
-                Optional.of("POSSA"));
+        DoomActorDefinition definition =
+                new DoomActorDefinition(3004, "zombieman", "Zombieman", DoomActorCategory.ENEMY, Optional.of("POSSA"));
         return new DoomActor(thingIndex, definition, x, 0.0F, -2.0F, 0.0F);
     }
 
     private static DoomActor decoration(int thingIndex, float x) {
         DoomActorDefinition definition = new DoomActorDefinition(
-                43,
-                "burnt-tree",
-                "Burnt Tree",
-                DoomActorCategory.DECORATION,
-                Optional.of("TRE1A"));
+                43, "burnt-tree", "Burnt Tree", DoomActorCategory.DECORATION, Optional.of("TRE1A"));
         return new DoomActor(thingIndex, definition, x, 0.0F, -2.0F, 0.0F);
     }
 
-    private static DoomActor pickup(
-            int thingIndex, String id, DoomActorCategory category, float floorHeight) {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                20_000 + thingIndex,
-                id,
-                id,
-                category,
-                Optional.of("TESTA"));
+    private static DoomActor pickup(int thingIndex, String id, DoomActorCategory category, float floorHeight) {
+        DoomActorDefinition definition =
+                new DoomActorDefinition(20_000 + thingIndex, id, id, category, Optional.of("TESTA"));
         return new DoomActor(thingIndex, definition, 2.0F, floorHeight, -2.0F, 0.0F);
     }
 
@@ -452,11 +415,8 @@ final class DoomCombatSessionTest {
                 new DoomMap.Vertex(0, 128),
                 new DoomMap.Vertex(256, 128),
                 new DoomMap.Vertex(256, 0)));
-        List<DoomMap.Linedef> lines = new ArrayList<>(List.of(
-                line(0, 1, 0, -1),
-                line(1, 2, 1, -1),
-                line(2, 3, 2, -1),
-                line(3, 0, 3, -1)));
+        List<DoomMap.Linedef> lines =
+                new ArrayList<>(List.of(line(0, 1, 0, -1), line(1, 2, 1, -1), line(2, 3, 2, -1), line(3, 0, 3, -1)));
         List<DoomMap.Sidedef> sides = new ArrayList<>(List.of(side(), side(), side(), side()));
         if (divided) {
             vertices.add(new DoomMap.Vertex(128, 0));
@@ -469,8 +429,7 @@ final class DoomCombatSessionTest {
             }
             lines.add(line(4, 5, 4, leftSide));
         }
-        List<DoomMap.Seg> segs = List.of(
-                seg(0, 1, 0), seg(1, 2, 1), seg(2, 3, 2), seg(3, 0, 3));
+        List<DoomMap.Seg> segs = List.of(seg(0, 1, 0), seg(1, 2, 1), seg(2, 3, 2), seg(3, 0, 3));
         return new DoomMap(
                 "MAP01",
                 List.of(),

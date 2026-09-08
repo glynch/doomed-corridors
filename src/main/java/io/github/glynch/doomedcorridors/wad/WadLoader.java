@@ -38,12 +38,7 @@ public final class WadLoader {
         List<WadDiagnostic> diagnostics = new ArrayList<>();
 
         if (!Files.isRegularFile(normalizedSource)) {
-            return error(
-                    diagnostics,
-                    normalizedSource,
-                    "wad.source.missing",
-                    "",
-                    "WAD source is not a regular file");
+            return error(diagnostics, normalizedSource, "wad.source.missing", "", "WAD source is not a regular file");
         }
 
         try {
@@ -61,11 +56,7 @@ public final class WadLoader {
             return readDirectory(normalizedSource, diagnostics);
         } catch (IOException exception) {
             return error(
-                    diagnostics,
-                    normalizedSource,
-                    "wad.source.read",
-                    "",
-                    "Cannot read WAD: " + exception.getMessage());
+                    diagnostics, normalizedSource, "wad.source.read", "", "Cannot read WAD: " + exception.getMessage());
         }
     }
 
@@ -114,7 +105,8 @@ public final class WadLoader {
                         "WAD directory extends beyond the source file");
             }
 
-            ByteBuffer directory = ByteBuffer.allocate(Math.toIntExact(directorySize)).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer directory =
+                    ByteBuffer.allocate(Math.toIntExact(directorySize)).order(ByteOrder.LITTLE_ENDIAN);
             readFully(channel, directory, directoryOffset);
             directory.flip();
             List<WadLump> lumps = new ArrayList<>(lumpCount);
@@ -147,8 +139,7 @@ public final class WadLoader {
         }
     }
 
-    private static WadArchive.Kind parseKind(
-            ByteBuffer header, Path source, List<WadDiagnostic> diagnostics) {
+    private static WadArchive.Kind parseKind(ByteBuffer header, Path source, List<WadDiagnostic> diagnostics) {
         byte[] signatureBytes = new byte[4];
         header.get(signatureBytes);
         String signature = new String(signatureBytes, StandardCharsets.US_ASCII);

@@ -11,12 +11,12 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.wad.DoomMapDecoder;
 import io.github.glynch.doomedcorridors.wad.DoomSpriteImportResult;
 import io.github.glynch.doomedcorridors.wad.DoomSpriteImporter;
 import io.github.glynch.doomedcorridors.wad.WadArchive;
 import io.github.glynch.doomedcorridors.wad.WadLoader;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Assumptions;
@@ -36,8 +36,7 @@ final class FreedoomActorResolverTest {
                 .catalog()
                 .orElseThrow();
 
-        DoomActorResolution result =
-                new DoomActorResolver().resolve(source, map, catalog, DoomSkillLevel.NORMAL);
+        DoomActorResolution result = new DoomActorResolver().resolve(source, map, catalog, DoomSkillLevel.NORMAL);
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.actors()).hasSize(119);

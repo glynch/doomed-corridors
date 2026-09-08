@@ -54,9 +54,7 @@ final class DoomActorResolverTest {
     /** Uses the requested classic skill group instead of merging duplicate placements. */
     @Test
     void selectsRequestedSkillGroup() {
-        DoomMap map = map(List.of(
-                new DoomMap.Thing(64, 32, 0, 3004, 2),
-                new DoomMap.Thing(128, 32, 0, 2001, 4)));
+        DoomMap map = map(List.of(new DoomMap.Thing(64, 32, 0, 3004, 2), new DoomMap.Thing(128, 32, 0, 2001, 4)));
         DoomActorCatalog catalog = new DoomActorCatalog(List.of(
                 definition(3004, "zombieman", DoomActorCategory.ENEMY, "POSSA"),
                 definition(2001, "shotgun", DoomActorCategory.WEAPON, "SHOTA")));
@@ -73,8 +71,7 @@ final class DoomActorResolverTest {
 
     private static DoomActorDefinition definition(
             int thingType, String id, DoomActorCategory category, String spriteFrame) {
-        return new DoomActorDefinition(
-                thingType, id, id, category, Optional.ofNullable(spriteFrame));
+        return new DoomActorDefinition(thingType, id, id, category, Optional.ofNullable(spriteFrame));
     }
 
     private static DoomMap map(List<DoomMap.Thing> things) {
@@ -83,8 +80,7 @@ final class DoomActorResolverTest {
                 new DoomMap.Vertex(0, 256),
                 new DoomMap.Vertex(256, 256),
                 new DoomMap.Vertex(256, 0));
-        List<DoomMap.Linedef> lines = List.of(
-                line(0, 1, 0), line(1, 2, 1), line(2, 3, 2), line(3, 0, 3));
+        List<DoomMap.Linedef> lines = List.of(line(0, 1, 0), line(1, 2, 1), line(2, 3, 2), line(3, 0, 3));
         return new DoomMap(
                 "MAP01",
                 things,

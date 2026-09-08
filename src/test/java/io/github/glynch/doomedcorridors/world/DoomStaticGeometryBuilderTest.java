@@ -6,10 +6,10 @@ package io.github.glynch.doomedcorridors.world;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +56,12 @@ final class DoomStaticGeometryBuilderTest {
     /** Builds upper, lower, and masked middle spans for a two-sided boundary. */
     @Test
     void buildsTwoSidedWallSpans() {
-        DoomGeometryBuildResult result =
-                new DoomStaticGeometryBuilder().build(twoSidedBoundary(), materials());
+        DoomGeometryBuildResult result = new DoomStaticGeometryBuilder().build(twoSidedBoundary(), materials());
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.geometry().orElseThrow().surfaces())
-                .filteredOn(surface -> surface.type() != DoomSurface.Type.FLOOR
-                        && surface.type() != DoomSurface.Type.CEILING)
+                .filteredOn(surface ->
+                        surface.type() != DoomSurface.Type.FLOOR && surface.type() != DoomSurface.Type.CEILING)
                 .extracting(DoomSurface::type, DoomSurface::materialName)
                 .contains(
                         org.assertj.core.groups.Tuple.tuple(DoomSurface.Type.UPPER_WALL, "UPPER"),
@@ -123,12 +122,11 @@ final class DoomStaticGeometryBuilderTest {
     }
 
     private static DoomMap twoSidedBoundary() {
-        List<DoomMap.Vertex> vertices = List.of(
-                new DoomMap.Vertex(0, 0), new DoomMap.Vertex(0, 128), new DoomMap.Vertex(128, 0));
-        List<DoomMap.Linedef> linedefs =
-                List.of(new DoomMap.Linedef(0, 1, 0, 0, 0, 0, 1));
-        List<DoomMap.Sidedef> sidedefs = List.of(
-                side("UPPER", "LOWER", "GRATE", 0), side("UPPER", "LOWER", "GRATE", 1));
+        List<DoomMap.Vertex> vertices =
+                List.of(new DoomMap.Vertex(0, 0), new DoomMap.Vertex(0, 128), new DoomMap.Vertex(128, 0));
+        List<DoomMap.Linedef> linedefs = List.of(new DoomMap.Linedef(0, 1, 0, 0, 0, 0, 1));
+        List<DoomMap.Sidedef> sidedefs =
+                List.of(side("UPPER", "LOWER", "GRATE", 0), side("UPPER", "LOWER", "GRATE", 1));
         List<DoomMap.Seg> segs = List.of(new DoomMap.Seg(0, 1, 0, 0, 0, 0));
         return map(
                 List.of(new DoomMap.Thing(0, 0, 0, 1, 7)),

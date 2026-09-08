@@ -59,13 +59,11 @@ final class DoomPresentationResources implements AutoCloseable {
     /** Creates and retains one nearest-filtered map material. */
     BasicMaterial createMapMaterial(MapMaterialKey key, DoomMapMaterials sourceMaterials) {
         DoomMaterial source = sourceMaterial(key, sourceMaterials);
-        return createImageMaterial(
-                source.image(), TextureWrap.REPEAT, TextureCoordinateOrigin.TOP_LEFT);
+        return createImageMaterial(source.image(), TextureWrap.REPEAT, TextureCoordinateOrigin.TOP_LEFT);
     }
 
     /** Creates and retains one nearest-filtered image material. */
-    BasicMaterial createImageMaterial(
-            RgbaImage image, TextureWrap wrap, TextureCoordinateOrigin coordinateOrigin) {
+    BasicMaterial createImageMaterial(RgbaImage image, TextureWrap wrap, TextureCoordinateOrigin coordinateOrigin) {
         requireOpen();
         byte[] pixels = image.pixels();
         Texture texture = Texture.baseColor(image.width(), image.height(), pixels);
@@ -105,17 +103,16 @@ final class DoomPresentationResources implements AutoCloseable {
 
     /** Creates a namespace-aware material key for one surface. */
     static MapMaterialKey materialKey(DoomSurface surface) {
-        DoomMaterial.Kind kind = switch (surface.type()) {
-            case FLOOR, CEILING -> DoomMaterial.Kind.FLAT;
-            case MIDDLE_WALL, UPPER_WALL, LOWER_WALL, MASKED_MIDDLE_WALL ->
-                DoomMaterial.Kind.WALL_TEXTURE;
-        };
+        DoomMaterial.Kind kind =
+                switch (surface.type()) {
+                    case FLOOR, CEILING -> DoomMaterial.Kind.FLAT;
+                    case MIDDLE_WALL, UPPER_WALL, LOWER_WALL, MASKED_MIDDLE_WALL -> DoomMaterial.Kind.WALL_TEXTURE;
+                };
         return new MapMaterialKey(kind, surface.materialName());
     }
 
     /** Resolves a material from its distinct flat or wall-texture namespace. */
-    private static DoomMaterial sourceMaterial(
-            MapMaterialKey key, DoomMapMaterials materials) {
+    private static DoomMaterial sourceMaterial(MapMaterialKey key, DoomMapMaterials materials) {
         Map<String, DoomMaterial> namespace =
                 key.kind == DoomMaterial.Kind.FLAT ? materials.flats() : materials.wallTextures();
         DoomMaterial material = namespace.get(key.name);

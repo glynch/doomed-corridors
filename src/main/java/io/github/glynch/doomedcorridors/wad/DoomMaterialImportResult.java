@@ -6,8 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Imported map materials, when valid, and ordered diagnostics suitable for tools and GUIs. */
-public record DoomMaterialImportResult(
-        Optional<DoomMapMaterials> materials, List<WadDiagnostic> diagnostics) {
+public record DoomMaterialImportResult(Optional<DoomMapMaterials> materials, List<WadDiagnostic> diagnostics) {
     /** Creates an immutable import result. */
     public DoomMaterialImportResult {
         Objects.requireNonNull(materials, "materials");

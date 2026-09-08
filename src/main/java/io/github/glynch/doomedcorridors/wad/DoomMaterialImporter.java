@@ -1,9 +1,9 @@
 package io.github.glynch.doomedcorridors.wad;
 
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
 import io.github.glynch.doomedcorridors.material.DoomMaterial;
 import io.github.glynch.doomedcorridors.material.RgbaImage;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -78,9 +78,7 @@ public final class DoomMaterialImporter {
                         "/materials/wall-textures/" + name,
                         "Referenced wall texture is not defined: " + name);
             }
-            materials.put(
-                    name,
-                    composeTexture(archive, paletteLump, palette, namesLump, patchNames, definition));
+            materials.put(name, composeTexture(archive, paletteLump, palette, namesLump, patchNames, definition));
         }
         return materials;
     }
@@ -128,8 +126,7 @@ public final class DoomMaterialImporter {
         return definitions;
     }
 
-    private static void addTextureDefinitions(
-            Map<String, TextureDefinition> definitions, WadLump source, byte[] data) {
+    private static void addTextureDefinitions(Map<String, TextureDefinition> definitions, WadLump source, byte[] data) {
         ByteBuffer input = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
         if (input.remaining() < Integer.BYTES) {
             throw materialData(source.name(), source.name() + " does not contain a texture count");
@@ -148,8 +145,7 @@ public final class DoomMaterialImporter {
         }
     }
 
-    private static TextureDefinition parseTextureDefinition(
-            WadLump source, byte[] data, int offset, int index) {
+    private static TextureDefinition parseTextureDefinition(WadLump source, byte[] data, int offset, int index) {
         String location = source.name() + "/" + index;
         if (offset < 0 || offset > data.length - 22) {
             throw materialData(location, "Texture definition offset is outside " + source.name());
@@ -170,8 +166,7 @@ public final class DoomMaterialImporter {
         }
         List<PatchPlacement> patches = new ArrayList<>(patchCount);
         for (int patchIndex = 0; patchIndex < patchCount; patchIndex++) {
-            patches.add(new PatchPlacement(
-                    input.getShort(), input.getShort(), Short.toUnsignedInt(input.getShort())));
+            patches.add(new PatchPlacement(input.getShort(), input.getShort(), Short.toUnsignedInt(input.getShort())));
             input.getShort();
             input.getShort();
         }
@@ -208,8 +203,7 @@ public final class DoomMaterialImporter {
             try {
                 patch = decodePatch(archive.read(patchLump), palette, patchName);
             } catch (ImportFailure failure) {
-                throw new ImportFailure(
-                        "doom.material.patch-data", patchLocation, failure.getMessage());
+                throw new ImportFailure("doom.material.patch-data", patchLocation, failure.getMessage());
             }
             drawPatch(target, definition.width(), definition.height(), patch, placement);
             sources.add(patchLump);
@@ -229,18 +223,14 @@ public final class DoomMaterialImporter {
         }
     }
 
-    private static void drawPatch(
-            byte[] target, int width, int height, RgbaImage patch, PatchPlacement placement) {
+    private static void drawPatch(byte[] target, int width, int height, RgbaImage patch, PatchPlacement placement) {
         TextureCanvas canvas = new TextureCanvas(width, height, target);
         byte[] source = patch.pixels();
         for (int y = 0; y < patch.height(); y++) {
             for (int x = 0; x < patch.width(); x++) {
                 int targetX = placement.originX() + x;
                 int targetY = placement.originY() + y;
-                if (targetX >= 0
-                        && targetX < canvas.width
-                        && targetY >= 0
-                        && targetY < canvas.height) {
+                if (targetX >= 0 && targetX < canvas.width && targetY >= 0 && targetY < canvas.height) {
                     copyOpaquePixel(source, patch.width(), x, y, canvas, targetX, targetY);
                 }
             }
@@ -248,13 +238,7 @@ public final class DoomMaterialImporter {
     }
 
     private static void copyOpaquePixel(
-            byte[] source,
-            int sourceWidth,
-            int sourceX,
-            int sourceY,
-            TextureCanvas target,
-            int targetX,
-            int targetY) {
+            byte[] source, int sourceWidth, int sourceX, int sourceY, TextureCanvas target, int targetX, int targetY) {
         int sourceOffset = (sourceY * sourceWidth + sourceX) * 4;
         if (source[sourceOffset + 3] == 0) {
             return;
@@ -278,11 +262,7 @@ public final class DoomMaterialImporter {
     }
 
     private static Map<String, DoomMaterial> importFlats(
-            WadArchive archive,
-            DoomMap map,
-            WadLump paletteLump,
-            byte[] palette,
-            Map<String, WadLump> flatLumps)
+            WadArchive archive, DoomMap map, WadLump paletteLump, byte[] palette, Map<String, WadLump> flatLumps)
             throws IOException {
         Set<String> names = new TreeSet<>();
         for (DoomMap.Sector sector : map.sectors()) {

@@ -9,8 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Loaded actor catalog, when valid, and ordered diagnostics. */
-public record DoomActorCatalogLoadResult(
-        Optional<DoomActorCatalog> catalog, List<DoomActorDiagnostic> diagnostics) {
+public record DoomActorCatalogLoadResult(Optional<DoomActorCatalog> catalog, List<DoomActorDiagnostic> diagnostics) {
     /** Creates an immutable load result. */
     public DoomActorCatalogLoadResult {
         Objects.requireNonNull(catalog, "catalog");

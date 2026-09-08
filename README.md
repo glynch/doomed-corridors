@@ -11,14 +11,14 @@ pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
 
 Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest declares the source
-asset and selects [`application/main.scene.json`](application/main.scene.json)
-as its entry scene. That scene contains a typed Doom level whose properties
-reference `MAP01` through [`imports/freedoom-maps.import.json`](imports/freedoom-maps.import.json)
-and its renderer-independent material set through
-[`imports/freedoom-map-materials.import.json`](imports/freedoom-map-materials.import.json).
-The import definitions select data from the WAD through JScene3D's generic
-import framework, allowing the sources, selections, and generated native
-resources to be inspected and edited by future tooling. The actor catalog in
+asset and selects [`worlds/map01.world.json`](worlds/map01.world.json) as its
+entry world. [`imports/freedoom-map01.import.json`](imports/freedoom-map01.import.json)
+selects `MAP01` from the WAD. The application importer publishes the selection
+as a generated, read-only entity definition backed by generic JScene3D mesh,
+material, and texture resources. The authored world places that definition and
+a camera; the generic desktop project host resolves and composes both.
+
+The actor catalog in
 [`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
 sprite frames to the numeric thing types stored in classic maps.
 [`game/combat.json`](game/combat.json) defines initial player
@@ -51,67 +51,17 @@ Build and test Doomed Corridors with:
 ./mvnw clean verify
 ```
 
-Run the application with:
+Publish the imported content and run the project through JScene3D's generic
+desktop launcher with:
 
 ```shell
-./mvnw -Prun compile
+./mvnw process-classes -Prun-desktop
 ```
 
-With the source WAD installed, the application loads the manifest-selected map,
-builds its static floors, ceilings, and walls, and opens the view at the
-WAD-defined player-one start. Normal-skill single-player enemies, pickups, and
-decorations are presented as camera-facing sprites. Zombiemen can be shot and
-killed; when they see the player, they pursue and return fire. Use W/S or Up/Down
-to move, A/D to strafe, Left/Right to turn, the mouse to look around, and the
-left mouse button to fire the pistol. Click inside the window to capture the
-pointer; this initial click does not fire. The WAD-backed HUD shows health and
-remaining bullets; damage flashes the view red and zero health ends player
-movement. Walking over a useful configured health or bullet pickup applies its
-effect, plays its sound, updates the HUD, and removes it from the map. Pickups
-remain available while their resource is at that item's limit. Escape releases
-the pointer. Press Escape again or close the window to stop the game.
-
-Run the same loading and geometry pipeline without starting windowing with:
-
-```shell
-./mvnw -Pinspect compile
-```
-
-The headless inspector also validates the combat presentation's 28 patches and
-11 DMX sounds, and writes visual material and sprite sheets to
-`target/smoke/map01-materials.png` and `target/smoke/map01-sprites.png`. Its
-console summary includes the combat rules and number of initialized MAP01
-combatants.
-
-Run the declarative import and project-runtime path headlessly with:
-
-```shell
-./mvnw -Pinspect-project-runtime compile
-```
-
-This updates the disposable import cache when required; resolves the scene's map
-and material references; creates typed runtime resources; and supplies them to
-the application extension's `doom-level-3d` factory. That factory derives the
-static floors, ceilings, and walls without reopening the WAD. The console
-summary reports the imported map counts, graphical surfaces, and generic static
-collision bodies and colliders instantiated from the derived collision
-resource.
-
-Render the same declarative scene through the graphical project runtime with:
-
-```shell
-./mvnw -Prun-project-runtime compile
-```
-
-This preview renders MAP01 from the native import cache and drives the authored
-`Player` scene node through the declarative input map. Click the viewport to
-capture the pointer; use WASD to move, the arrow keys or mouse to turn, and E or
-Space to operate supported doors. The first door slice recognizes classic
-manual open-and-stay and fast raise doors (linedef specials 31 and 117), updates
-their geometry and collision together, and derives each door from imported map
-data. Actors, combat, other door and switch behaviors, and the HUD remain to be
-moved onto the project runtime. Escape releases the pointer; press it again or
-close the window to stop the preview.
+The current migration slice renders textured static MAP01 geometry from the
+WAD-defined player-one start. Player movement, collision, doors, actors, combat,
+audio, and the HUD have not yet been connected to the new entity-component
+runtime.
 
 ## Development
 

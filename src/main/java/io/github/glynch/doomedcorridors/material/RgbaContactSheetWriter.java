@@ -27,7 +27,8 @@ final class RgbaContactSheetWriter {
     /** Writes images in caller-provided deterministic order. */
     void write(List<RgbaImage> images, Path output) throws IOException {
         List<RgbaImage> entries = List.copyOf(Objects.requireNonNull(images, "images"));
-        Path normalizedOutput = Objects.requireNonNull(output, "output").toAbsolutePath().normalize();
+        Path normalizedOutput =
+                Objects.requireNonNull(output, "output").toAbsolutePath().normalize();
         int rowCount = Math.max(1, (entries.size() + COLUMN_COUNT - 1) / COLUMN_COUNT);
         int width = COLUMN_COUNT * CELL_WIDTH;
         int height = rowCount * CELL_HEIGHT;
@@ -46,9 +47,8 @@ final class RgbaContactSheetWriter {
 
     /** Scales and centers one source image inside its fixed output cell. */
     private static void drawEntry(int[] sheet, int sheetWidth, RgbaImage source, int index) {
-        double scale = Math.min(
-                2.0,
-                Math.min(IMAGE_WIDTH / (double) source.width(), IMAGE_HEIGHT / (double) source.height()));
+        double scale =
+                Math.min(2.0, Math.min(IMAGE_WIDTH / (double) source.width(), IMAGE_HEIGHT / (double) source.height()));
         int width = Math.max(1, (int) Math.floor(source.width() * scale));
         int height = Math.max(1, (int) Math.floor(source.height() * scale));
         int cellX = index % COLUMN_COUNT * CELL_WIDTH;
@@ -60,8 +60,7 @@ final class RgbaContactSheetWriter {
     }
 
     /** Draws an eight-pixel transparency checkerboard beneath one image. */
-    private static void drawCheckerboard(
-            int[] sheet, int sheetWidth, int x, int y, int width, int height) {
+    private static void drawCheckerboard(int[] sheet, int sheetWidth, int x, int y, int width, int height) {
         for (int targetY = 0; targetY < height; targetY++) {
             for (int targetX = 0; targetX < width; targetX++) {
                 boolean dark = ((targetX / 8 + targetY / 8) & 1) == 0;
@@ -71,8 +70,7 @@ final class RgbaContactSheetWriter {
     }
 
     /** Draws one nearest-neighbor scaled RGBA image. */
-    private static void drawImage(
-            int[] sheet, int sheetWidth, int x, int y, int width, int height, RgbaImage source) {
+    private static void drawImage(int[] sheet, int sheetWidth, int x, int y, int width, int height, RgbaImage source) {
         for (int targetY = 0; targetY < height; targetY++) {
             int sourceY = targetY * source.height() / height;
             for (int targetX = 0; targetX < width; targetX++) {

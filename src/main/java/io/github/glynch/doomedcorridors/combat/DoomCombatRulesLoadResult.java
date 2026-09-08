@@ -9,8 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Loaded combat rules or structured diagnostics describing why loading failed. */
-public record DoomCombatRulesLoadResult(
-        Optional<DoomCombatRules> rules, List<DoomCombatDiagnostic> diagnostics) {
+public record DoomCombatRulesLoadResult(Optional<DoomCombatRules> rules, List<DoomCombatDiagnostic> diagnostics) {
     /** Creates an immutable load result. */
     public DoomCombatRulesLoadResult {
         Objects.requireNonNull(rules, "rules");
@@ -20,7 +19,7 @@ public record DoomCombatRulesLoadResult(
     /** Returns whether rules are available and no error diagnostic was emitted. */
     public boolean isValid() {
         return rules.isPresent()
-                && diagnostics.stream().noneMatch(diagnostic ->
-                        diagnostic.severity() == DoomCombatDiagnostic.Severity.ERROR);
+                && diagnostics.stream()
+                        .noneMatch(diagnostic -> diagnostic.severity() == DoomCombatDiagnostic.Severity.ERROR);
     }
 }

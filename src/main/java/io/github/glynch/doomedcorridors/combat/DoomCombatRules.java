@@ -113,16 +113,13 @@ public final class DoomCombatRules {
     }
 
     /** Indexes validated combatant definitions by actor ID. */
-    private static Map<String, CombatantDefinition> indexCombatants(
-            List<CombatantDefinition> definitions) {
+    private static Map<String, CombatantDefinition> indexCombatants(List<CombatantDefinition> definitions) {
         Map<String, CombatantDefinition> indexed = new LinkedHashMap<>();
-        for (CombatantDefinition definition :
-                List.copyOf(Objects.requireNonNull(definitions, "combatants"))) {
+        for (CombatantDefinition definition : List.copyOf(Objects.requireNonNull(definitions, "combatants"))) {
             CombatantDefinition validDefinition = Objects.requireNonNull(definition, "combatant");
             CombatantDefinition previous = indexed.putIfAbsent(validDefinition.actorId(), validDefinition);
             if (previous != null) {
-                throw new IllegalArgumentException(
-                        "Duplicate combatant actor id: " + validDefinition.actorId());
+                throw new IllegalArgumentException("Duplicate combatant actor id: " + validDefinition.actorId());
             }
         }
         return Map.copyOf(indexed);
@@ -132,22 +129,20 @@ public final class DoomCombatRules {
     private static Map<String, PickupDefinition> indexPickups(
             List<PickupDefinition> definitions, PlayerDefinition player) {
         Map<String, PickupDefinition> indexed = new LinkedHashMap<>();
-        for (PickupDefinition definition :
-                List.copyOf(Objects.requireNonNull(definitions, "pickups"))) {
+        for (PickupDefinition definition : List.copyOf(Objects.requireNonNull(definitions, "pickups"))) {
             PickupDefinition validDefinition = Objects.requireNonNull(definition, "pickup");
-            int capacity = switch (validDefinition.resource()) {
-                case HEALTH -> player.maximumHealth();
-                case BULLETS -> player.maximumBullets();
-            };
+            int capacity =
+                    switch (validDefinition.resource()) {
+                        case HEALTH -> player.maximumHealth();
+                        case BULLETS -> player.maximumBullets();
+                    };
             if (validDefinition.limit() > capacity) {
                 throw new IllegalArgumentException(
                         "Pickup limit exceeds player capacity: " + validDefinition.actorId());
             }
-            PickupDefinition previous = indexed.putIfAbsent(
-                    validDefinition.actorId(), validDefinition);
+            PickupDefinition previous = indexed.putIfAbsent(validDefinition.actorId(), validDefinition);
             if (previous != null) {
-                throw new IllegalArgumentException(
-                        "Duplicate pickup actor id: " + validDefinition.actorId());
+                throw new IllegalArgumentException("Duplicate pickup actor id: " + validDefinition.actorId());
             }
         }
         return Map.copyOf(indexed);
@@ -184,20 +179,14 @@ public final class DoomCombatRules {
 
     /** Validated starting resources and absolute capacities for the player. */
     record PlayerDefinition(
-            int startingHealth,
-            int maximumHealth,
-            int startingBullets,
-            int maximumBullets,
-            String startingWeapon) {
+            int startingHealth, int maximumHealth, int startingBullets, int maximumBullets, String startingWeapon) {
         /** Validates resource ranges and the selected weapon identity. */
         PlayerDefinition {
             if (startingHealth <= 0 || maximumHealth < startingHealth) {
-                throw new IllegalArgumentException(
-                        "health values must satisfy 0 < startingHealth <= maximumHealth");
+                throw new IllegalArgumentException("health values must satisfy 0 < startingHealth <= maximumHealth");
             }
             if (startingBullets < 0 || maximumBullets < startingBullets) {
-                throw new IllegalArgumentException(
-                        "bullet values must satisfy 0 <= startingBullets <= maximumBullets");
+                throw new IllegalArgumentException("bullet values must satisfy 0 <= startingBullets <= maximumBullets");
             }
             requireId(startingWeapon, "startingWeapon");
         }
@@ -205,20 +194,14 @@ public final class DoomCombatRules {
 
     /** Validated rules for one hitscan weapon. */
     record WeaponDefinition(
-            String id,
-            int ammoPerShot,
-            int range,
-            int damageMinimum,
-            int damageMaximum,
-            int damageStep) {
+            String id, int ammoPerShot, int range, int damageMinimum, int damageMaximum, int damageStep) {
         /** Validates the discrete damage sequence and positive weapon dimensions. */
         WeaponDefinition {
             requireId(id, "weapon id");
             if (ammoPerShot <= 0 || range <= 0 || damageMinimum <= 0 || damageStep <= 0) {
                 throw new IllegalArgumentException("weapon numeric values must be positive");
             }
-            if (damageMaximum < damageMinimum
-                    || (damageMaximum - damageMinimum) % damageStep != 0) {
+            if (damageMaximum < damageMinimum || (damageMaximum - damageMinimum) % damageStep != 0) {
                 throw new IllegalArgumentException("weapon damage range must contain complete damage steps");
             }
         }
@@ -230,12 +213,7 @@ public final class DoomCombatRules {
     }
 
     /** Validated collision, health, and behavior rules for one actor definition. */
-    record CombatantDefinition(
-            String actorId,
-            int health,
-            int radius,
-            int height,
-            EnemyBehavior behavior) {
+    record CombatantDefinition(String actorId, int health, int radius, int height, EnemyBehavior behavior) {
         /** Validates positive combatant dimensions and health. */
         CombatantDefinition {
             requireId(actorId, "combatant actor");
@@ -247,8 +225,7 @@ public final class DoomCombatRules {
     }
 
     /** Validated resource effect and contact radius for one collectable actor identity. */
-    record PickupDefinition(
-            String actorId, PickupResource resource, int amount, int limit, int radius) {
+    record PickupDefinition(String actorId, PickupResource resource, int amount, int limit, int radius) {
         /** Validates the provider actor identity and positive effect values. */
         PickupDefinition {
             requireId(actorId, "pickup actor");
@@ -301,10 +278,8 @@ public final class DoomCombatRules {
     record DamageDefinition(int minimum, int maximum, int step) {
         /** Validates a positive, evenly stepped inclusive range. */
         DamageDefinition {
-            if (minimum <= 0 || step <= 0 || maximum < minimum
-                    || (maximum - minimum) % step != 0) {
-                throw new IllegalArgumentException(
-                        "enemy damage range must contain positive complete damage steps");
+            if (minimum <= 0 || step <= 0 || maximum < minimum || (maximum - minimum) % step != 0) {
+                throw new IllegalArgumentException("enemy damage range must contain positive complete damage steps");
             }
         }
 

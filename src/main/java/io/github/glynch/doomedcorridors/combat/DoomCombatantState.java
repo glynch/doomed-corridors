@@ -126,27 +126,20 @@ public final class DoomCombatantState {
 
     /** Returns a new snapshot with adjusted health. */
     DoomCombatantState withHealth(int newHealth) {
-        DoomCombatantActivity newActivity =
-                newHealth == 0 ? DoomCombatantActivity.DEAD : activity;
+        DoomCombatantActivity newActivity = newHealth == 0 ? DoomCombatantActivity.DEAD : activity;
         return new DoomCombatantState(this, x, floorHeight, z, newHealth, newActivity);
     }
 
     /** Returns a new live snapshot with an adjusted position and activity. */
-    DoomCombatantState withPose(
-            float newX,
-            float newFloorHeight,
-            float newZ,
-            DoomCombatantActivity newActivity) {
+    DoomCombatantState withPose(float newX, float newFloorHeight, float newZ, DoomCombatantActivity newActivity) {
         if (health == 0) {
             throw new IllegalStateException("dead combatants cannot move or change activity");
         }
-        return new DoomCombatantState(
-                this, newX, newFloorHeight, newZ, health, newActivity);
+        return new DoomCombatantState(this, newX, newFloorHeight, newZ, health, newActivity);
     }
 
     /** Returns a new live snapshot with only its activity adjusted. */
     DoomCombatantState withActivity(DoomCombatantActivity newActivity) {
         return withPose(x, floorHeight, z, newActivity);
     }
-
 }

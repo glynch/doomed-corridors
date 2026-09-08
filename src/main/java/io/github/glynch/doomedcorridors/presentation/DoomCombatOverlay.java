@@ -99,12 +99,7 @@ public final class DoomCombatOverlay implements Overlay {
 
     /** Draws a left-to-right image sequence aligned to the bottom of its content box. */
     private static void drawImages(
-            OverlayCanvas canvas,
-            List<OverlayImage> values,
-            float x,
-            float y,
-            float contentHeight,
-            float scale) {
+            OverlayCanvas canvas, List<OverlayImage> values, float x, float y, float contentHeight, float scale) {
         float cursor = x;
         for (OverlayImage value : values) {
             drawImage(canvas, value, cursor, y, contentHeight, scale);
@@ -114,15 +109,10 @@ public final class DoomCombatOverlay implements Overlay {
 
     /** Draws one bottom-aligned nearest-sampled source image. */
     private static void drawImage(
-            OverlayCanvas canvas,
-            OverlayImage value,
-            float x,
-            float y,
-            float contentHeight,
-            float scale) {
+            OverlayCanvas canvas, OverlayImage value, float x, float y, float contentHeight, float scale) {
         float height = value.height() * scale;
-        canvas.image(value.fullRegion(), x, y + contentHeight - height,
-                value.width() * scale, height, Color.WHITE, 1.0F);
+        canvas.image(
+                value.fullRegion(), x, y + contentHeight - height, value.width() * scale, height, Color.WHITE, 1.0F);
     }
 
     /** Resolves non-negative decimal digits into imported WAD glyphs. */

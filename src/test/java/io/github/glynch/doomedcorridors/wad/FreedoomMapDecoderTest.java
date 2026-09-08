@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
 
 /** Exercises map decoding against the independently pinned Freedoom release. */
 final class FreedoomMapDecoderTest {
-    private static final String FREEDOOM_SHA256 =
-            "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
+    private static final String FREEDOOM_SHA256 = "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
 
     /** Decodes the actual MAP01 directory sequence and representative source values. */
     @Test
@@ -31,11 +30,13 @@ final class FreedoomMapDecoderTest {
         assertThat(map.things()).hasSize(200).first().isEqualTo(new DoomMap.Thing(-192, -192, 0, 1, 7));
         assertThat(map.linedefs()).hasSize(1_274);
         assertThat(map.sidedefs()).hasSize(2_041);
-        assertThat(map.vertices()).hasSize(1_189).startsWith(
-                new DoomMap.Vertex(-224, -288),
-                new DoomMap.Vertex(-224, -224),
-                new DoomMap.Vertex(400, -464),
-                new DoomMap.Vertex(400, -728));
+        assertThat(map.vertices())
+                .hasSize(1_189)
+                .startsWith(
+                        new DoomMap.Vertex(-224, -288),
+                        new DoomMap.Vertex(-224, -224),
+                        new DoomMap.Vertex(400, -464),
+                        new DoomMap.Vertex(400, -728));
         assertThat(map.segs()).hasSize(2_233);
         assertThat(map.subsectors()).hasSize(698);
         assertThat(map.nodes()).hasSize(697);

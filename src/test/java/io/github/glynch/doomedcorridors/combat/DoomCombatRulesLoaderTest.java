@@ -42,9 +42,7 @@ final class DoomCombatRulesLoaderTest {
     @Test
     void rejectsUnknownCombatantActor() throws IOException {
         Path source = temporaryDirectory.resolve("combat.json");
-        Files.writeString(
-                source,
-                """
+        Files.writeString(source, """
                 {
                   "schemaVersion": 3,
                   "player": {
@@ -81,8 +79,7 @@ final class DoomCombatRulesLoaderTest {
                 }
                 """);
 
-        DoomCombatRulesLoadResult result =
-                new DoomCombatRulesLoader().load(source, actorCatalog());
+        DoomCombatRulesLoadResult result = new DoomCombatRulesLoader().load(source, actorCatalog());
 
         assertThat(result.rules()).isEmpty();
         assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
@@ -99,8 +96,7 @@ final class DoomCombatRulesLoaderTest {
                 .replace("\"actor\": \"stimpack\"", "\"actor\": \"shotgun-shells\"");
         Files.writeString(source, mismatched);
 
-        DoomCombatRulesLoadResult result =
-                new DoomCombatRulesLoader().load(source, actorCatalog());
+        DoomCombatRulesLoadResult result = new DoomCombatRulesLoader().load(source, actorCatalog());
 
         assertThat(result.rules()).isEmpty();
         assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {

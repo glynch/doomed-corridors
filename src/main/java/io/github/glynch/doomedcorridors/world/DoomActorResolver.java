@@ -21,8 +21,7 @@ public final class DoomActorResolver {
     private static final int MULTIPLAYER_ONLY = 0x0010;
 
     /** Resolves single-player actors for one skill group while preserving thing order. */
-    public DoomActorResolution resolve(
-            Path source, DoomMap map, DoomActorCatalog catalog, DoomSkillLevel skillLevel) {
+    public DoomActorResolution resolve(Path source, DoomMap map, DoomActorCatalog catalog, DoomSkillLevel skillLevel) {
         Path normalizedSource = source.toAbsolutePath().normalize();
         DoomMap validMap = Objects.requireNonNull(map, "map");
         DoomActorCatalog validCatalog = Objects.requireNonNull(catalog, "catalog");
@@ -35,7 +34,8 @@ public final class DoomActorResolver {
             if (!validSkillLevel.includes(thing.flags()) || (thing.flags() & MULTIPLAYER_ONLY) != 0) {
                 continue;
             }
-            DoomActorDefinition definition = validCatalog.definition(thing.type()).orElse(null);
+            DoomActorDefinition definition =
+                    validCatalog.definition(thing.type()).orElse(null);
             if (definition == null) {
                 diagnostics.add(unsupported(normalizedSource, index, thing.type()));
             } else if (definition.spriteFrame().isPresent()) {
@@ -50,13 +50,7 @@ public final class DoomActorResolver {
             int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomCollisionWorld world) {
         float x = DoomUnits.toWorld(thing.x());
         float z = DoomUnits.yToWorldZ(thing.y());
-        return new DoomActor(
-                index,
-                definition,
-                x,
-                world.floorHeight(x, z),
-                z,
-                (float) Math.toRadians(thing.angle()));
+        return new DoomActor(index, definition, x, world.floorHeight(x, z), z, (float) Math.toRadians(thing.angle()));
     }
 
     /** Creates a stable warning for one selected but undefined classic thing type. */
@@ -68,5 +62,4 @@ public final class DoomActorResolver {
                 "/things/" + index,
                 "No actor definition exists for classic thing type " + thingType);
     }
-
 }

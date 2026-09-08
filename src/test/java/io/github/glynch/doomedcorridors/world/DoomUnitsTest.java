@@ -31,7 +31,6 @@ final class DoomUnitsTest {
     void promotesCoordinateDeltaBeforeSubtraction() {
         float expected = ((float) Integer.MAX_VALUE - Integer.MIN_VALUE) / 32.0F;
 
-        assertThat(DoomUnits.deltaToWorld(Integer.MAX_VALUE, Integer.MIN_VALUE))
-                .isEqualTo(expected);
+        assertThat(DoomUnits.deltaToWorld(Integer.MAX_VALUE, Integer.MIN_VALUE)).isEqualTo(expected);
     }
 }

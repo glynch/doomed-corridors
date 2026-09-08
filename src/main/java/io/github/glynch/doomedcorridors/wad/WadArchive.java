@@ -32,7 +32,11 @@ public record WadArchive(Path source, Kind kind, long fileSize, List<WadLump> lu
 
     /** Returns map-marker names in directory order. */
     public List<String> mapNames() {
-        return lumps.stream().map(WadLump::name).filter(WadArchive::isMapMarker).distinct().toList();
+        return lumps.stream()
+                .map(WadLump::name)
+                .filter(WadArchive::isMapMarker)
+                .distinct()
+                .toList();
     }
 
     /** Returns the last lump with the requested name, matching Doom override semantics. */

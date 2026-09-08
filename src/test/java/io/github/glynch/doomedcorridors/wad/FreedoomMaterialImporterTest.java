@@ -2,8 +2,8 @@ package io.github.glynch.doomedcorridors.wad;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.jscene3d.doom.map.DoomMap;
 import io.github.glynch.doomedcorridors.material.DoomMapMaterials;
+import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 
 /** Exercises material import against independently inspected Freedoom MAP01 values. */
 final class FreedoomMaterialImporterTest {
-    private static final String FREEDOOM_SHA256 =
-            "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
+    private static final String FREEDOOM_SHA256 = "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
 
     /** Imports exactly the wall textures and flats referenced by the pinned MAP01. */
     @Test
@@ -30,12 +29,8 @@ final class FreedoomMaterialImporterTest {
 
         assertThat(result.diagnostics()).isEmpty();
         DoomMapMaterials materials = result.materials().orElseThrow();
-        assertThat(materials.wallTextures())
-                .hasSize(51)
-                .containsKeys("A-BRICK3", "DOOR3", "PLANET1", "SKY1", "WFALL1");
-        assertThat(materials.flats())
-                .hasSize(28)
-                .containsKeys("AQF001", "CEIL5_1", "FWATER1", "RROCK19", "TLITE6_5");
+        assertThat(materials.wallTextures()).hasSize(51).containsKeys("A-BRICK3", "DOOR3", "PLANET1", "SKY1", "WFALL1");
+        assertThat(materials.flats()).hasSize(28).containsKeys("AQF001", "CEIL5_1", "FWATER1", "RROCK19", "TLITE6_5");
         assertThat(materials.wallTextures().get("A-BRICK3").image().width()).isEqualTo(128);
         assertThat(materials.wallTextures().get("A-BRICK3").image().height()).isEqualTo(128);
         assertThat(materials.wallTextures().get("DOOR3").image().width()).isEqualTo(64);

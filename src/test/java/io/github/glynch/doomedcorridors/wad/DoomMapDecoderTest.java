@@ -41,17 +41,14 @@ final class DoomMapDecoderTest {
         assertThat(map.name()).isEqualTo("MAP01");
         assertThat(map.things()).containsExactly(new DoomMap.Thing(64, -32, 90, 1, 7));
         assertThat(map.linedefs()).containsExactly(new DoomMap.Linedef(0, 1, 1, 0, 0, 0, -1));
-        assertThat(map.sidedefs())
-                .containsExactly(new DoomMap.Sidedef(8, -4, "UPPER", "-", "MIDDLE", 0));
+        assertThat(map.sidedefs()).containsExactly(new DoomMap.Sidedef(8, -4, "UPPER", "-", "MIDDLE", 0));
         assertThat(map.vertices()).containsExactly(new DoomMap.Vertex(0, 0), new DoomMap.Vertex(128, 0));
         assertThat(map.segs()).containsExactly(new DoomMap.Seg(0, 1, 0, 0, 0, 0));
         assertThat(map.subsectors()).containsExactly(new DoomMap.Subsector(1, 0));
         assertThat(map.nodes()).isEmpty();
-        assertThat(map.sectors())
-                .containsExactly(new DoomMap.Sector(0, 128, "FLOOR0_1", "CEIL1_1", 160, 0, 0));
+        assertThat(map.sectors()).containsExactly(new DoomMap.Sector(0, 128, "FLOOR0_1", "CEIL1_1", 160, 0, 0));
         assertThat(map.rejectBytes()).containsExactly(0);
-        assertThat(map.blockmap())
-                .isEqualTo(new DoomMap.Blockmap(0, 0, 1, 1, List.of(List.of(0))));
+        assertThat(map.blockmap()).isEqualTo(new DoomMap.Blockmap(0, 0, 1, 1, List.of(List.of(0))));
     }
 
     /** Reports a stable lump-level diagnostic when fixed-size records are truncated. */
@@ -81,8 +78,7 @@ final class DoomMapDecoderTest {
     /** Rejects geometry indexes that cannot resolve inside the decoded map. */
     @Test
     void rejectsLinedefWithMissingVertex() throws IOException {
-        WadArchive archive = writeAndLoadMapReplacing(
-                "LINEDEFS", shorts(0, 2, 1, 0, 0, 0, 0xffff));
+        WadArchive archive = writeAndLoadMapReplacing("LINEDEFS", shorts(0, 2, 1, 0, 0, 0, 0xffff));
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
 
@@ -96,8 +92,7 @@ final class DoomMapDecoderTest {
     /** Rejects a linedef that points outside the sidedef table. */
     @Test
     void rejectsLinedefWithMissingSidedef() throws IOException {
-        WadArchive archive = writeAndLoadMapReplacing(
-                "LINEDEFS", shorts(0, 1, 1, 0, 0, 1, 0xffff));
+        WadArchive archive = writeAndLoadMapReplacing("LINEDEFS", shorts(0, 1, 1, 0, 0, 1, 0xffff));
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
 
@@ -111,8 +106,7 @@ final class DoomMapDecoderTest {
     /** Rejects a sidedef that points outside the sector table. */
     @Test
     void rejectsSidedefWithMissingSector() throws IOException {
-        WadArchive archive = writeAndLoadMapReplacing(
-                "SIDEDEFS", sidedef(8, -4, "UPPER", "-", "MIDDLE", 1));
+        WadArchive archive = writeAndLoadMapReplacing("SIDEDEFS", sidedef(8, -4, "UPPER", "-", "MIDDLE", 1));
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
 
@@ -154,21 +148,7 @@ final class DoomMapDecoderTest {
     /** Rejects a BSP node child that points outside the subsector table. */
     @Test
     void rejectsNodeWithMissingSubsector() throws IOException {
-        byte[] node = shorts(
-                0,
-                0,
-                1,
-                0,
-                10,
-                -10,
-                -10,
-                10,
-                10,
-                -10,
-                -10,
-                10,
-                0x8001,
-                0x8000);
+        byte[] node = shorts(0, 0, 1, 0, 10, -10, -10, 10, 10, -10, -10, 10, 0x8001, 0x8000);
         WadArchive archive = writeAndLoadMapReplacing("NODES", node);
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
@@ -197,8 +177,7 @@ final class DoomMapDecoderTest {
     /** Rejects a blockmap cell that points outside the linedef table. */
     @Test
     void rejectsBlockmapCellWithMissingLinedef() throws IOException {
-        WadArchive archive = writeAndLoadMapReplacing(
-                "BLOCKMAP", shorts(0, 0, 1, 1, 5, 0, 1, 0xffff));
+        WadArchive archive = writeAndLoadMapReplacing("BLOCKMAP", shorts(0, 0, 1, 1, 5, 0, 1, 0xffff));
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
 
@@ -226,8 +205,8 @@ final class DoomMapDecoderTest {
     /** Distinguishes unsupported UDMF maps from corrupt classic lump ordering. */
     @Test
     void rejectsUdmfMapExplicitly() throws IOException {
-        WadArchive archive = writeAndLoadMap(
-                new TestLump("TEXTMAP", "namespace=\"zdoom\";".getBytes(StandardCharsets.US_ASCII)));
+        WadArchive archive =
+                writeAndLoadMap(new TestLump("TEXTMAP", "namespace=\"zdoom\";".getBytes(StandardCharsets.US_ASCII)));
 
         DoomMapDecodeResult result = new DoomMapDecoder().decode(archive, "MAP01");
 
@@ -289,7 +268,8 @@ final class DoomMapDecoderTest {
             contentSize += lump.content().length;
         }
         int directoryOffset = 12 + contentSize;
-        ByteBuffer bytes = ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer bytes =
+                ByteBuffer.allocate(directoryOffset + lumps.length * 16).order(ByteOrder.LITTLE_ENDIAN);
         bytes.put("PWAD".getBytes(StandardCharsets.US_ASCII));
         bytes.putInt(lumps.length);
         bytes.putInt(directoryOffset);
@@ -318,8 +298,7 @@ final class DoomMapDecoderTest {
         return bytes.array();
     }
 
-    private static byte[] sidedef(
-            int xOffset, int yOffset, String upper, String lower, String middle, int sector) {
+    private static byte[] sidedef(int xOffset, int yOffset, String upper, String lower, String middle, int sector) {
         ByteBuffer bytes = ByteBuffer.allocate(30).order(ByteOrder.LITTLE_ENDIAN);
         bytes.putShort((short) xOffset);
         bytes.putShort((short) yOffset);
@@ -331,13 +310,7 @@ final class DoomMapDecoderTest {
     }
 
     private static byte[] sector(
-            int floor,
-            int ceiling,
-            String floorTexture,
-            String ceilingTexture,
-            int light,
-            int special,
-            int tag) {
+            int floor, int ceiling, String floorTexture, String ceilingTexture, int light, int special, int tag) {
         ByteBuffer bytes = ByteBuffer.allocate(26).order(ByteOrder.LITTLE_ENDIAN);
         bytes.putShort((short) floor);
         bytes.putShort((short) ceiling);

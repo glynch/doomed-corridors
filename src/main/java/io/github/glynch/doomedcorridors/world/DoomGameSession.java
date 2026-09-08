@@ -37,8 +37,7 @@ public final class DoomGameSession {
      * @return a new deterministic session
      */
     public static DoomGameSession create(DoomMap map, DoomPlayerStart start) {
-        return new DoomGameSession(
-                Objects.requireNonNull(map, "map"), Objects.requireNonNull(start, "start"));
+        return new DoomGameSession(Objects.requireNonNull(map, "map"), Objects.requireNonNull(start, "start"));
     }
 
     /** Returns the current immutable player state. */
@@ -85,16 +84,14 @@ public final class DoomGameSession {
     /** Applies a frame-relative yaw and pitch change independently of simulation cadence. */
     private void applyView(DoomPlayerCommand command) {
         float yaw = normalizeAngle(player.yawRadians() + command.yawDelta());
-        float pitch = Math.clamp(
-                player.pitchRadians() + command.pitchDelta(), -MAXIMUM_PITCH, MAXIMUM_PITCH);
+        float pitch = Math.clamp(player.pitchRadians() + command.pitchDelta(), -MAXIMUM_PITCH, MAXIMUM_PITCH);
         player = new DoomPlayerState(player.x(), player.eyeHeight(), player.z(), yaw, pitch);
     }
 
     /** Applies one held keyboard-turn command at the fixed simulation rate. */
     private void turnPlayer(DoomPlayerCommand command) {
         float yaw = normalizeAngle(player.yawRadians() + command.turn() * TURN_SPEED * FIXED_STEP_SECONDS);
-        player = new DoomPlayerState(
-                player.x(), player.eyeHeight(), player.z(), yaw, player.pitchRadians());
+        player = new DoomPlayerState(player.x(), player.eyeHeight(), player.z(), yaw, player.pitchRadians());
     }
 
     /** Applies one normalized movement command through the collision world. */

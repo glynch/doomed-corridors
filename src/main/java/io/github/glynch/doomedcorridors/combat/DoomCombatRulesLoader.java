@@ -28,9 +28,8 @@ public final class DoomCombatRulesLoader {
 
     /** Loads one combat document against the actor catalog used by the same project. */
     public DoomCombatRulesLoadResult load(Path source, DoomActorCatalog actorCatalog) {
-        Path normalizedSource = Objects.requireNonNull(source, "source")
-                .toAbsolutePath()
-                .normalize();
+        Path normalizedSource =
+                Objects.requireNonNull(source, "source").toAbsolutePath().normalize();
         DoomActorCatalog validActors = Objects.requireNonNull(actorCatalog, "actorCatalog");
         try {
             RawCatalog raw = mapper.readValue(normalizedSource.toFile(), RawCatalog.class);
@@ -57,8 +56,7 @@ public final class DoomCombatRulesLoader {
     private static DoomCombatRules toRules(RawCatalog raw) {
         RawPlayer player = Objects.requireNonNull(raw.player(), "player is required");
         List<RawWeapon> rawWeapons = Objects.requireNonNull(raw.weapons(), "weapons are required");
-        List<RawCombatant> rawCombatants =
-                Objects.requireNonNull(raw.combatants(), "combatants are required");
+        List<RawCombatant> rawCombatants = Objects.requireNonNull(raw.combatants(), "combatants are required");
         List<RawPickup> rawPickups = Objects.requireNonNull(raw.pickups(), "pickups are required");
         List<DoomCombatRules.WeaponDefinition> weapons = new ArrayList<>(rawWeapons.size());
         for (RawWeapon weapon : rawWeapons) {
@@ -71,14 +69,11 @@ public final class DoomCombatRulesLoader {
                     value.damageMaximum(),
                     value.damageStep()));
         }
-        List<DoomCombatRules.CombatantDefinition> combatants =
-                new ArrayList<>(rawCombatants.size());
+        List<DoomCombatRules.CombatantDefinition> combatants = new ArrayList<>(rawCombatants.size());
         for (RawCombatant combatant : rawCombatants) {
             RawCombatant value = Objects.requireNonNull(combatant, "combatant must be an object");
-            RawBehavior behavior = Objects.requireNonNull(
-                    value.behavior(), "combatant behavior is required");
-            RawDamage damage = Objects.requireNonNull(
-                    behavior.damage(), "combatant behavior damage is required");
+            RawBehavior behavior = Objects.requireNonNull(value.behavior(), "combatant behavior is required");
+            RawDamage damage = Objects.requireNonNull(behavior.damage(), "combatant behavior damage is required");
             combatants.add(new DoomCombatRules.CombatantDefinition(
                     value.actor(),
                     value.health(),
@@ -91,18 +86,13 @@ public final class DoomCombatRulesLoader {
                             behavior.moveSpeed(),
                             behavior.reactionMilliseconds(),
                             behavior.attackIntervalMilliseconds(),
-                            new DoomCombatRules.DamageDefinition(
-                                    damage.minimum(), damage.maximum(), damage.step()))));
+                            new DoomCombatRules.DamageDefinition(damage.minimum(), damage.maximum(), damage.step()))));
         }
         List<DoomCombatRules.PickupDefinition> pickups = new ArrayList<>(rawPickups.size());
         for (RawPickup pickup : rawPickups) {
             RawPickup value = Objects.requireNonNull(pickup, "pickup must be an object");
             pickups.add(new DoomCombatRules.PickupDefinition(
-                    value.actor(),
-                    pickupResource(value.resource()),
-                    value.amount(),
-                    value.limit(),
-                    value.radius()));
+                    value.actor(), pickupResource(value.resource()), value.amount(), value.limit(), value.radius()));
         }
         return new DoomCombatRules(
                 new DoomCombatRules.PlayerDefinition(
@@ -121,8 +111,7 @@ public final class DoomCombatRulesLoader {
         return switch (Objects.requireNonNull(resource, "pickup resource is required")) {
             case "health" -> DoomCombatRules.PickupResource.HEALTH;
             case "bullets" -> DoomCombatRules.PickupResource.BULLETS;
-            default -> throw new IllegalArgumentException(
-                    "Unsupported pickup resource: " + resource);
+            default -> throw new IllegalArgumentException("Unsupported pickup resource: " + resource);
         };
     }
 
@@ -135,18 +124,19 @@ public final class DoomCombatRulesLoader {
             }
             DoomCombatRules.PickupDefinition pickup = rules.pickup(actor.id());
             if (pickup != null && !isCompatible(actor.category(), pickup.resource())) {
-                throw new IllegalArgumentException(
-                        "Pickup actor category does not match its resource: " + actor.id());
+                throw new IllegalArgumentException("Pickup actor category does not match its resource: " + actor.id());
             }
         }
         for (String actorId : rules.combatantActorIds()) {
-            boolean defined = actors.definitions().stream().anyMatch(actor -> actor.id().equals(actorId));
+            boolean defined =
+                    actors.definitions().stream().anyMatch(actor -> actor.id().equals(actorId));
             if (!defined) {
                 throw new IllegalArgumentException("Combatant actor is not defined: " + actorId);
             }
         }
         for (String actorId : rules.pickupActorIds()) {
-            boolean defined = actors.definitions().stream().anyMatch(actor -> actor.id().equals(actorId));
+            boolean defined =
+                    actors.definitions().stream().anyMatch(actor -> actor.id().equals(actorId));
             if (!defined) {
                 throw new IllegalArgumentException("Pickup actor is not defined: " + actorId);
             }
@@ -154,8 +144,7 @@ public final class DoomCombatRulesLoader {
     }
 
     /** Reports whether an actor's broad catalog category matches the configured resource. */
-    private static boolean isCompatible(
-            DoomActorCategory category, DoomCombatRules.PickupResource resource) {
+    private static boolean isCompatible(DoomActorCategory category, DoomCombatRules.PickupResource resource) {
         return switch (resource) {
             case HEALTH -> category == DoomActorCategory.HEALTH;
             case BULLETS -> category == DoomActorCategory.AMMUNITION;
@@ -163,8 +152,7 @@ public final class DoomCombatRulesLoader {
     }
 
     /** Returns one failed load result with a stable diagnostic identity. */
-    private static DoomCombatRulesLoadResult error(
-            Path source, String code, String location, String message) {
+    private static DoomCombatRulesLoadResult error(Path source, String code, String location, String message) {
         return new DoomCombatRulesLoadResult(
                 Optional.empty(),
                 List.of(new DoomCombatDiagnostic(
@@ -182,24 +170,14 @@ public final class DoomCombatRulesLoader {
 
     /** Direct JSON player binding retained only for conversion and validation. */
     private record RawPlayer(
-            int startingHealth,
-            int maximumHealth,
-            int startingBullets,
-            int maximumBullets,
-            String startingWeapon) {}
+            int startingHealth, int maximumHealth, int startingBullets, int maximumBullets, String startingWeapon) {}
 
     /** Direct JSON weapon binding retained only for conversion and validation. */
     private record RawWeapon(
-            String id,
-            int ammoPerShot,
-            int range,
-            int damageMinimum,
-            int damageMaximum,
-            int damageStep) {}
+            String id, int ammoPerShot, int range, int damageMinimum, int damageMaximum, int damageStep) {}
 
     /** Direct JSON combatant binding retained only for conversion and validation. */
-    private record RawCombatant(
-            String actor, int health, int radius, int height, RawBehavior behavior) {}
+    private record RawCombatant(String actor, int health, int radius, int height, RawBehavior behavior) {}
 
     /** Direct JSON enemy-behavior binding retained only for conversion and validation. */
     private record RawBehavior(

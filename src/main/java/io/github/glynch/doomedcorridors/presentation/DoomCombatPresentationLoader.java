@@ -28,21 +28,26 @@ public final class DoomCombatPresentationLoader {
 
     /** Loads one presentation document and cross-validates its combat identities. */
     public DoomCombatPresentationLoadResult load(Path source, DoomCombatRules combatRules) {
-        Path normalizedSource = Objects.requireNonNull(source, "source")
-                .toAbsolutePath()
-                .normalize();
+        Path normalizedSource =
+                Objects.requireNonNull(source, "source").toAbsolutePath().normalize();
         DoomCombatRules validCombatRules = Objects.requireNonNull(combatRules, "combatRules");
         try {
             RawPresentation raw = mapper.readValue(normalizedSource.toFile(), RawPresentation.class);
             if (raw.schemaVersion() != SCHEMA_VERSION) {
-                return error(normalizedSource, "doom.presentation.rules-version", "/schemaVersion",
+                return error(
+                        normalizedSource,
+                        "doom.presentation.rules-version",
+                        "/schemaVersion",
                         "Unsupported combat presentation schemaVersion: " + raw.schemaVersion());
             }
             DoomCombatPresentationRules rules = toRules(raw);
             validateCombatReferences(rules, validCombatRules);
             return new DoomCombatPresentationLoadResult(Optional.of(rules), List.of());
         } catch (IOException | IllegalArgumentException exception) {
-            return error(normalizedSource, "doom.presentation.rules-invalid", "/",
+            return error(
+                    normalizedSource,
+                    "doom.presentation.rules-invalid",
+                    "/",
                     "Cannot load combat presentation: " + exception.getMessage());
         }
     }
@@ -57,8 +62,8 @@ public final class DoomCombatPresentationLoader {
                 Duration.ofMillis(rawWeapon.frameMilliseconds()),
                 rawWeapon.fireSound());
         RawPlayer rawPlayer = Objects.requireNonNull(raw.player(), "player is required");
-        DoomCombatPresentationRules.Player player = new DoomCombatPresentationRules.Player(
-                rawPlayer.painSound(), rawPlayer.deathSound());
+        DoomCombatPresentationRules.Player player =
+                new DoomCombatPresentationRules.Player(rawPlayer.painSound(), rawPlayer.deathSound());
         RawPickups rawPickups = Objects.requireNonNull(raw.pickups(), "pickups are required");
         DoomCombatPresentationRules.Pickups pickups =
                 new DoomCombatPresentationRules.Pickups(rawPickups.collectSound());
@@ -66,10 +71,8 @@ public final class DoomCombatPresentationLoader {
         List<DoomCombatPresentationRules.Combatant> combatants = new ArrayList<>(rawCombatants.size());
         for (RawCombatant rawCombatant : rawCombatants) {
             RawCombatant value = Objects.requireNonNull(rawCombatant, "combatant must be an object");
-            RawAnimations animations = Objects.requireNonNull(
-                    value.animations(), "combatant animations are required");
-            RawSounds sounds = Objects.requireNonNull(
-                    value.sounds(), "combatant sounds are required");
+            RawAnimations animations = Objects.requireNonNull(value.animations(), "combatant animations are required");
+            RawSounds sounds = Objects.requireNonNull(value.sounds(), "combatant sounds are required");
             combatants.add(new DoomCombatPresentationRules.Combatant(
                     value.actor(),
                     new DoomCombatPresentationRules.CombatantAnimations(
@@ -79,23 +82,18 @@ public final class DoomCombatPresentationLoader {
                             animations.deathFrames(),
                             Duration.ofMillis(animations.frameMilliseconds())),
                     new DoomCombatPresentationRules.CombatantSounds(
-                            sounds.sightSounds(),
-                            sounds.attackSound(),
-                            sounds.painSound(),
-                            sounds.deathSounds())));
+                            sounds.sightSounds(), sounds.attackSound(), sounds.painSound(), sounds.deathSounds())));
         }
         RawHud rawHud = Objects.requireNonNull(raw.hud(), "hud is required");
-        DoomCombatPresentationRules.Hud hud =
-                new DoomCombatPresentationRules.Hud(rawHud.digits(), rawHud.percent());
+        DoomCombatPresentationRules.Hud hud = new DoomCombatPresentationRules.Hud(rawHud.digits(), rawHud.percent());
         return new DoomCombatPresentationRules(weapon, player, pickups, combatants, hud);
     }
 
     /** Requires all bindings to name combat identities from the companion rules. */
-    private static void validateCombatReferences(
-            DoomCombatPresentationRules presentation, DoomCombatRules combat) {
+    private static void validateCombatReferences(DoomCombatPresentationRules presentation, DoomCombatRules combat) {
         if (!presentation.weapon().id().equals(combat.primaryWeaponId())) {
-            throw new IllegalArgumentException(
-                    "Presented weapon is not the primary combat weapon: " + presentation.weapon().id());
+            throw new IllegalArgumentException("Presented weapon is not the primary combat weapon: "
+                    + presentation.weapon().id());
         }
         for (String actorId : presentation.combatantActorIds()) {
             if (!combat.hasCombatant(actorId)) {
@@ -105,10 +103,9 @@ public final class DoomCombatPresentationLoader {
     }
 
     /** Returns one failed load result with a stable diagnostic identity. */
-    private static DoomCombatPresentationLoadResult error(
-            Path source, String code, String location, String message) {
-        DoomCombatDiagnostic diagnostic = new DoomCombatDiagnostic(
-                DoomCombatDiagnostic.Severity.ERROR, code, source, location, message);
+    private static DoomCombatPresentationLoadResult error(Path source, String code, String location, String message) {
+        DoomCombatDiagnostic diagnostic =
+                new DoomCombatDiagnostic(DoomCombatDiagnostic.Severity.ERROR, code, source, location, message);
         return new DoomCombatPresentationLoadResult(Optional.empty(), List.of(diagnostic));
     }
 
@@ -124,11 +121,7 @@ public final class DoomCombatPresentationLoader {
 
     /** Direct JSON weapon binding retained only during conversion. */
     private record RawWeapon(
-            String id,
-            String readyFrame,
-            List<String> fireFrames,
-            int frameMilliseconds,
-            String fireSound) {}
+            String id, String readyFrame, List<String> fireFrames, int frameMilliseconds, String fireSound) {}
 
     /** Direct JSON player binding retained only during conversion. */
     private record RawPlayer(String painSound, String deathSound) {}
@@ -149,10 +142,7 @@ public final class DoomCombatPresentationLoader {
 
     /** Direct JSON combatant-sound binding retained only during conversion. */
     private record RawSounds(
-            List<String> sightSounds,
-            String attackSound,
-            String painSound,
-            List<String> deathSounds) {}
+            List<String> sightSounds, String attackSound, String painSound, List<String> deathSounds) {}
 
     /** Direct JSON HUD binding retained only during conversion. */
     private record RawHud(List<String> digits, String percent) {}

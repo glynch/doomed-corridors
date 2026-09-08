@@ -47,8 +47,7 @@ public final class DoomActorCatalogLoader {
             for (int index = 0; index < raw.actors().size(); index++) {
                 definitions.add(toDefinition(raw.actors().get(index), index));
             }
-            return new DoomActorCatalogLoadResult(
-                    Optional.of(new DoomActorCatalog(definitions)), diagnostics);
+            return new DoomActorCatalogLoadResult(Optional.of(new DoomActorCatalog(definitions)), diagnostics);
         } catch (IOException | IllegalArgumentException exception) {
             diagnostics.add(new DoomActorDiagnostic(
                     DoomActorDiagnostic.Severity.ERROR,
@@ -67,7 +66,8 @@ public final class DoomActorCatalogLoader {
         }
         DoomActorCategory category;
         try {
-            category = DoomActorCategory.valueOf(required(raw.category(), "category").toUpperCase(Locale.ROOT));
+            category = DoomActorCategory.valueOf(
+                    required(raw.category(), "category").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("actors[" + index + "] has an invalid category", exception);
         }
@@ -91,13 +91,11 @@ public final class DoomActorCatalogLoader {
     private static DoomActorCatalogLoadResult error(Path source, String code, String location, String message) {
         return new DoomActorCatalogLoadResult(
                 Optional.empty(),
-                List.of(new DoomActorDiagnostic(
-                        DoomActorDiagnostic.Severity.ERROR, code, source, location, message)));
+                List.of(new DoomActorDiagnostic(DoomActorDiagnostic.Severity.ERROR, code, source, location, message)));
     }
 
     /** Direct JSON binding retained only long enough for semantic validation. */
-    private record RawCatalog(
-            @JsonProperty("$schema") String schema, int schemaVersion, List<RawActor> actors) {}
+    private record RawCatalog(@JsonProperty("$schema") String schema, int schemaVersion, List<RawActor> actors) {}
 
     /** Nullable JSON actor fields retained only long enough for semantic validation. */
     private record RawActor(int thingType, String id, String name, String category, String spriteFrame) {}

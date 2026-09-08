@@ -43,9 +43,7 @@ final class DoomActorCatalogLoaderTest {
     @Test
     void rejectsDuplicateActorIds() throws IOException {
         Path source = temporaryDirectory.resolve("actors.json");
-        Files.writeString(
-                source,
-                """
+        Files.writeString(source, """
                 {
                   "schemaVersion": 1,
                   "actors": [
@@ -69,8 +67,8 @@ final class DoomActorCatalogLoaderTest {
     void rejectsMalformedActorId() {
         Optional<String> spriteFrame = Optional.of("BADDA");
 
-        assertThatThrownBy(() -> new DoomActorDefinition(
-                        1, "bad--id", "Malformed", DoomActorCategory.ENEMY, spriteFrame))
+        assertThatThrownBy(
+                        () -> new DoomActorDefinition(1, "bad--id", "Malformed", DoomActorCategory.ENEMY, spriteFrame))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("id has an invalid value: bad--id");
     }

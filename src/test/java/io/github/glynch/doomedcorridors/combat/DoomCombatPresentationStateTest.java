@@ -27,8 +27,8 @@ final class DoomCombatPresentationStateTest {
     /** Animates pistol frames after fire while updating the HUD snapshot atomically. */
     @Test
     void animatesWeaponAndResources() {
-        DoomCombatPresentationState presentation = new DoomCombatPresentationState(
-                presentationRules(), state(aliveCombatant(), 100, 50));
+        DoomCombatPresentationState presentation =
+                new DoomCombatPresentationState(presentationRules(), state(aliveCombatant(), 100, 50));
         DoomCombatUpdate fired = new DoomCombatUpdate(
                 state(aliveCombatant(), 100, 49),
                 List.of(new DoomCombatEvent(DoomCombatEvent.Type.WEAPON_FIRED, DoomCombatEvent.PLAYER, 0)));
@@ -48,8 +48,8 @@ final class DoomCombatPresentationStateTest {
     @Test
     void animatesPainAndTerminalDeath() {
         DoomCombatantState alive = aliveCombatant();
-        DoomCombatPresentationState presentation = new DoomCombatPresentationState(
-                presentationRules(), state(alive, 100, 50));
+        DoomCombatPresentationState presentation =
+                new DoomCombatPresentationState(presentationRules(), state(alive, 100, 50));
         DoomCombatantState hurt = alive.withHealth(10);
 
         presentation.apply(new DoomCombatUpdate(
@@ -76,10 +76,9 @@ final class DoomCombatPresentationStateTest {
     @Test
     void presentsEnemyBehaviorAndPlayerDamage() {
         DoomCombatantState alive = aliveCombatant();
-        DoomCombatPresentationState presentation = new DoomCombatPresentationState(
-                presentationRules(), state(alive, 100, 50));
-        DoomCombatantState pursuing = alive.withPose(
-                3.0F, 0.0F, 0.0F, DoomCombatantActivity.PURSUING);
+        DoomCombatPresentationState presentation =
+                new DoomCombatPresentationState(presentationRules(), state(alive, 100, 50));
+        DoomCombatantState pursuing = alive.withPose(3.0F, 0.0F, 0.0F, DoomCombatantActivity.PURSUING);
 
         presentation.apply(new DoomCombatUpdate(state(pursuing, 100, 50), List.of()));
         assertThat(presentation.actorFrame(THING_INDEX)).contains("POSSA1");
@@ -98,26 +97,19 @@ final class DoomCombatPresentationStateTest {
 
         presentation.apply(new DoomCombatUpdate(
                 state(attacking, 0, 50),
-                List.of(new DoomCombatEvent(
-                        DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0))));
+                List.of(new DoomCombatEvent(DoomCombatEvent.Type.PLAYER_KILLED, DoomCombatEvent.PLAYER, 0))));
         assertThat(presentation.isPlayerDead()).isTrue();
     }
 
     /** Builds one package-visible combat snapshot for the presentation boundary. */
-    private static DoomCombatState state(
-            DoomCombatantState combatant, int health, int bullets) {
-        return new DoomCombatState(
-                health, 200, bullets, 200, "pistol", List.of(combatant), List.of());
+    private static DoomCombatState state(DoomCombatantState combatant, int health, int bullets) {
+        return new DoomCombatState(health, 200, bullets, 200, "pistol", List.of(combatant), List.of());
     }
 
     /** Builds one configured zombieman combatant. */
     private static DoomCombatantState aliveCombatant() {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                3004,
-                "zombieman",
-                "Zombieman",
-                DoomActorCategory.ENEMY,
-                Optional.of("POSSA"));
+        DoomActorDefinition definition =
+                new DoomActorDefinition(3004, "zombieman", "Zombieman", DoomActorCategory.ENEMY, Optional.of("POSSA"));
         DoomActor actor = new DoomActor(THING_INDEX, definition, 4.0F, 0.0F, 0.0F, 0.0F);
         return new DoomCombatantState(actor, 20.0F / 32.0F, 56.0F / 32.0F, 20);
     }

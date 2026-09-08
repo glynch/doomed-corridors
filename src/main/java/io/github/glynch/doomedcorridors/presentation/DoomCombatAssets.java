@@ -11,9 +11,7 @@ import java.util.Objects;
 
 /** Immutable decoded images and sounds required by one combat presentation definition. */
 public record DoomCombatAssets(
-        DoomCombatPresentationRules rules,
-        Map<String, DoomActorSprite> images,
-        Map<String, PcmAudio> sounds) {
+        DoomCombatPresentationRules rules, Map<String, DoomActorSprite> images, Map<String, PcmAudio> sounds) {
     /** Copies lookup maps while retaining immutable decoded values. */
     public DoomCombatAssets {
         Objects.requireNonNull(rules, "rules");

@@ -40,16 +40,10 @@ final class DoomCombatMapPresentationTest {
         DoomActor actor = actor();
         DoomCombatantState alive = new DoomCombatantState(actor, 0.5F, 1.5F, 20);
         DoomCombatPresentationRules rules = presentationRules();
-        DoomCombatPresentationState state = new DoomCombatPresentationState(
-                rules, combatState(alive));
-        DoomCombatAssets assets = new DoomCombatAssets(
-                rules,
-                Map.of("POSSH0", sprite("POSSH0", 8, 3, 2, 3)),
-                Map.of());
-        DoomStaticGeometry geometry = new DoomStaticGeometry(
-                List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
-        DoomActorSprites idleSprites = new DoomActorSprites(
-                Map.of("POSSA", sprite("POSSA1", 4, 6, 1, 6)));
+        DoomCombatPresentationState state = new DoomCombatPresentationState(rules, combatState(alive));
+        DoomCombatAssets assets = new DoomCombatAssets(rules, Map.of("POSSH0", sprite("POSSH0", 8, 3, 2, 3)), Map.of());
+        DoomStaticGeometry geometry = new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomActorSprites idleSprites = new DoomActorSprites(Map.of("POSSA", sprite("POSSA1", 4, 6, 1, 6)));
 
         try (DoomMapPresentation presentation = DoomMapPresentation.create(
                 geometry,
@@ -60,13 +54,11 @@ final class DoomCombatMapPresentationTest {
                 1.0F)) {
             Billboard billboard = (Billboard) presentation.scene().children().getFirst();
             BasicMaterial idleMaterial = billboard.material();
-            DoomCombatantState dead = alive.withPose(
-                            3.0F, 0.25F, -2.0F, DoomCombatantActivity.PURSUING)
+            DoomCombatantState dead = alive.withPose(3.0F, 0.25F, -2.0F, DoomCombatantActivity.PURSUING)
                     .withHealth(0);
             state.apply(new DoomCombatUpdate(
                     combatState(dead),
-                    List.of(new DoomCombatEvent(
-                            DoomCombatEvent.Type.COMBATANT_KILLED, THING_INDEX, 0))));
+                    List.of(new DoomCombatEvent(DoomCombatEvent.Type.COMBATANT_KILLED, THING_INDEX, 0))));
 
             presentation.applyCombatState(state);
 
@@ -86,31 +78,20 @@ final class DoomCombatMapPresentationTest {
     void hidesCollectedPickupBillboard() {
         DoomActor pickup = pickup();
         DoomCombatPresentationRules rules = presentationRules();
-        DoomCombatState initial = new DoomCombatState(
-                100, 200, 50, 200, "pistol", List.of(), List.of());
+        DoomCombatState initial = new DoomCombatState(100, 200, 50, 200, "pistol", List.of(), List.of());
         DoomCombatPresentationState state = new DoomCombatPresentationState(rules, initial);
         DoomCombatAssets assets = new DoomCombatAssets(rules, Map.of(), Map.of());
-        DoomStaticGeometry geometry = new DoomStaticGeometry(
-                List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
-        DoomActorSprites sprites = new DoomActorSprites(
-                Map.of("CLIPA", sprite("CLIPA0", 4, 3, 2, 3)));
+        DoomStaticGeometry geometry = new DoomStaticGeometry(List.of(), new DoomPlayerStart(0.0F, 1.0F, 0.0F, 0.0F));
+        DoomActorSprites sprites = new DoomActorSprites(Map.of("CLIPA", sprite("CLIPA0", 4, 3, 2, 3)));
 
         try (DoomMapPresentation presentation = DoomMapPresentation.create(
-                geometry,
-                new DoomMapMaterials("MAP01", Map.of(), Map.of()),
-                List.of(pickup),
-                sprites,
-                assets,
-                1.0F)) {
+                geometry, new DoomMapMaterials("MAP01", Map.of(), Map.of()), List.of(pickup), sprites, assets, 1.0F)) {
             Billboard billboard = (Billboard) presentation.scene().children().getFirst();
-            DoomCombatState collected = new DoomCombatState(
-                    100, 200, 60, 200, "pistol", List.of(), List.of(pickup.thingIndex()));
+            DoomCombatState collected =
+                    new DoomCombatState(100, 200, 60, 200, "pistol", List.of(), List.of(pickup.thingIndex()));
             state.apply(new DoomCombatUpdate(
                     collected,
-                    List.of(new DoomCombatEvent(
-                            DoomCombatEvent.Type.AMMUNITION_PICKED_UP,
-                            pickup.thingIndex(),
-                            10))));
+                    List.of(new DoomCombatEvent(DoomCombatEvent.Type.AMMUNITION_PICKED_UP, pickup.thingIndex(), 10))));
 
             presentation.applyCombatState(state);
 
@@ -121,35 +102,25 @@ final class DoomCombatMapPresentationTest {
 
     /** Creates a one-combatant state visible to the presentation. */
     private static DoomCombatState combatState(DoomCombatantState combatant) {
-        return new DoomCombatState(
-                100, 200, 50, 200, "pistol", List.of(combatant), List.of());
+        return new DoomCombatState(100, 200, 50, 200, "pistol", List.of(combatant), List.of());
     }
 
     /** Creates the resolved actor shared by simulation and scene adaptation. */
     private static DoomActor actor() {
-        DoomActorDefinition definition = new DoomActorDefinition(
-                3004,
-                "zombieman",
-                "Zombieman",
-                DoomActorCategory.ENEMY,
-                Optional.of("POSSA"));
+        DoomActorDefinition definition =
+                new DoomActorDefinition(3004, "zombieman", "Zombieman", DoomActorCategory.ENEMY, Optional.of("POSSA"));
         return new DoomActor(THING_INDEX, definition, 2.0F, 0.0F, -1.0F, 0.0F);
     }
 
     /** Creates one collectable ammunition actor with a distinct source-map identity. */
     private static DoomActor pickup() {
         DoomActorDefinition definition = new DoomActorDefinition(
-                2007,
-                "ammunition-clip",
-                "Ammunition Clip",
-                DoomActorCategory.AMMUNITION,
-                Optional.of("CLIPA"));
+                2007, "ammunition-clip", "Ammunition Clip", DoomActorCategory.AMMUNITION, Optional.of("CLIPA"));
         return new DoomActor(15, definition, 1.0F, 0.0F, -1.0F, 0.0F);
     }
 
     /** Creates a transparent test patch with classic origin metadata. */
-    private static DoomActorSprite sprite(
-            String lumpName, int width, int height, int leftOffset, int topOffset) {
+    private static DoomActorSprite sprite(String lumpName, int width, int height, int leftOffset, int topOffset) {
         return new DoomActorSprite(
                 lumpName,
                 lumpName,

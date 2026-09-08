@@ -14,16 +14,7 @@ import java.util.Optional;
 /** Decodes classic Doom binary map lumps without rendering or applying game rules. */
 public final class DoomMapDecoder {
     private static final List<String> CLASSIC_LUMP_NAMES = List.of(
-            "THINGS",
-            "LINEDEFS",
-            "SIDEDEFS",
-            "VERTEXES",
-            "SEGS",
-            "SSECTORS",
-            "NODES",
-            "SECTORS",
-            "REJECT",
-            "BLOCKMAP");
+            "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP");
 
     /** Decodes one named classic map through the validated WAD archive interface. */
     public DoomMapDecodeResult decode(WadArchive archive, String mapName) {
@@ -81,8 +72,7 @@ public final class DoomMapDecoder {
         }
     }
 
-    private static List<WadLump> findMapLumps(
-            WadArchive archive, String mapName, List<WadDiagnostic> diagnostics) {
+    private static List<WadLump> findMapLumps(WadArchive archive, String mapName, List<WadDiagnostic> diagnostics) {
         int markerIndex = -1;
         for (WadLump lump : archive.lumps()) {
             if (lump.name().equalsIgnoreCase(mapName)) {
@@ -182,12 +172,7 @@ public final class DoomMapDecoder {
         List<DoomMap.Sidedef> result = new ArrayList<>(data.length / 30);
         while (input.hasRemaining()) {
             result.add(new DoomMap.Sidedef(
-                    input.getShort(),
-                    input.getShort(),
-                    name(input),
-                    name(input),
-                    name(input),
-                    unsigned(input)));
+                    input.getShort(), input.getShort(), name(input), name(input), name(input), unsigned(input)));
         }
         return List.copyOf(result);
     }
@@ -229,16 +214,14 @@ public final class DoomMapDecoder {
         ByteBuffer input = records(data, 28, "NODES");
         List<DoomMap.Node> result = new ArrayList<>(data.length / 28);
         while (input.hasRemaining()) {
-            DoomMap.Partition partition = new DoomMap.Partition(
-                    input.getShort(), input.getShort(), input.getShort(), input.getShort());
+            DoomMap.Partition partition =
+                    new DoomMap.Partition(input.getShort(), input.getShort(), input.getShort(), input.getShort());
             DoomMap.BoundingBox right = boundingBox(input);
             DoomMap.BoundingBox left = boundingBox(input);
             DoomMap.NodeChild rightChild = child(input);
             DoomMap.NodeChild leftChild = child(input);
             result.add(new DoomMap.Node(
-                    partition,
-                    new DoomMap.NodeSide(right, rightChild),
-                    new DoomMap.NodeSide(left, leftChild)));
+                    partition, new DoomMap.NodeSide(right, rightChild), new DoomMap.NodeSide(left, leftChild)));
         }
         return List.copyOf(result);
     }
@@ -285,8 +268,7 @@ public final class DoomMapDecoder {
         try {
             return Math.multiplyExact(columns, rows);
         } catch (ArithmeticException exception) {
-            throw new DecodeFailure(
-                    "doom.map.blockmap", "BLOCKMAP", "BLOCKMAP dimensions exceed the supported range");
+            throw new DecodeFailure("doom.map.blockmap", "BLOCKMAP", "BLOCKMAP dimensions exceed the supported range");
         }
     }
 
@@ -302,8 +284,7 @@ public final class DoomMapDecoder {
         return offsets;
     }
 
-    private static List<Integer> blockmapCell(
-            ByteBuffer input, int dataLength, int offset, int index) {
+    private static List<Integer> blockmapCell(ByteBuffer input, int dataLength, int offset, int index) {
         int byteOffset = offset * Short.BYTES;
         if (byteOffset > dataLength - 2 * Short.BYTES) {
             throw new DecodeFailure(
@@ -322,18 +303,13 @@ public final class DoomMapDecoder {
             }
             linedefs.add(value);
         }
-        throw new DecodeFailure(
-                "doom.map.blockmap",
-                "BLOCKMAP/cells/" + index,
-                "BLOCKMAP cell list is not terminated");
+        throw new DecodeFailure("doom.map.blockmap", "BLOCKMAP/cells/" + index, "BLOCKMAP cell list is not terminated");
     }
 
     private static ByteBuffer records(byte[] data, int recordSize, String name) {
         if (data.length % recordSize != 0) {
             throw new DecodeFailure(
-                    "doom.map.record-size",
-                    name,
-                    name + " size " + data.length + " is not divisible by " + recordSize);
+                    "doom.map.record-size", name, name + " size " + data.length + " is not divisible by " + recordSize);
         }
         return ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
     }
@@ -358,8 +334,7 @@ public final class DoomMapDecoder {
     }
 
     private static DoomMap.BoundingBox boundingBox(ByteBuffer input) {
-        return new DoomMap.BoundingBox(
-                input.getShort(), input.getShort(), input.getShort(), input.getShort());
+        return new DoomMap.BoundingBox(input.getShort(), input.getShort(), input.getShort(), input.getShort());
     }
 
     private static DoomMap.NodeChild child(ByteBuffer input) {
@@ -375,8 +350,7 @@ public final class DoomMapDecoder {
         return List.copyOf(result);
     }
 
-    private static void validateLinedefs(
-            List<DoomMap.Linedef> linedefs, int vertexCount, int sidedefCount) {
+    private static void validateLinedefs(List<DoomMap.Linedef> linedefs, int vertexCount, int sidedefCount) {
         for (int index = 0; index < linedefs.size(); index++) {
             DoomMap.Linedef linedef = linedefs.get(index);
             requireIndex(linedef.startVertex(), vertexCount, "LINEDEFS/" + index + "/startVertex");
@@ -398,10 +372,7 @@ public final class DoomMapDecoder {
         for (int cellIndex = 0; cellIndex < blockmap.cells().size(); cellIndex++) {
             List<Integer> cell = blockmap.cells().get(cellIndex);
             for (int entryIndex = 0; entryIndex < cell.size(); entryIndex++) {
-                requireIndex(
-                        cell.get(entryIndex),
-                        linedefCount,
-                        "BLOCKMAP/cells/" + cellIndex + "/" + entryIndex);
+                requireIndex(cell.get(entryIndex), linedefCount, "BLOCKMAP/cells/" + cellIndex + "/" + entryIndex);
             }
         }
     }
@@ -450,8 +421,7 @@ public final class DoomMapDecoder {
         }
     }
 
-    private static void validateNodeChild(
-            DoomMap.NodeChild child, int nodeCount, int subsectorCount, String location) {
+    private static void validateNodeChild(DoomMap.NodeChild child, int nodeCount, int subsectorCount, String location) {
         int size = child.subsector() ? subsectorCount : nodeCount;
         requireIndex(child.index(), size, location);
     }

@@ -37,7 +37,9 @@ public final class DoomCollisionWorld {
      * @param map decoded classic map used for movement queries
      */
     public DoomCollisionWorld(DoomMap map) {
-        this(map, sectorIndex -> DoomUnits.toWorld(map.sectors().get(sectorIndex).ceilingHeight()));
+        this(
+                map,
+                sectorIndex -> DoomUnits.toWorld(map.sectors().get(sectorIndex).ceilingHeight()));
     }
 
     /** Retains map records and a mutable ceiling-height view owned by the game session. */
@@ -48,12 +50,7 @@ public final class DoomCollisionWorld {
 
     /** Moves a player circle as far as possible and slides the remainder along the first wall. */
     Position move(float startX, float startZ, float deltaX, float deltaZ) {
-        return move(
-                startX,
-                startZ,
-                deltaX,
-                deltaZ,
-                new BodyDimensions(PLAYER_RADIUS, PLAYER_HEIGHT, MAXIMUM_STEP));
+        return move(startX, startZ, deltaX, deltaZ, new BodyDimensions(PLAYER_RADIUS, PLAYER_HEIGHT, MAXIMUM_STEP));
     }
 
     /**
@@ -69,27 +66,15 @@ public final class DoomCollisionWorld {
      * @return accepted position and supporting floor
      */
     public Position moveActor(
-            float startX,
-            float startZ,
-            float deltaX,
-            float deltaZ,
-            float radius,
-            float height,
-            float maximumStep) {
+            float startX, float startZ, float deltaX, float deltaZ, float radius, float height, float maximumStep) {
         BodyDimensions body = new BodyDimensions(radius, height, maximumStep);
         return move(startX, startZ, deltaX, deltaZ, body);
     }
 
     /** Moves a configured circle as far as possible and slides its remainder along a wall. */
-    private Position move(
-            float startX,
-            float startZ,
-            float deltaX,
-            float deltaZ,
-            BodyDimensions body) {
+    private Position move(float startX, float startZ, float deltaX, float deltaZ, BodyDimensions body) {
         float floorHeight = floorHeight(startX, startZ);
-        BlockedBy directBlock =
-                blockingLine(startX + deltaX, startZ + deltaZ, floorHeight, body);
+        BlockedBy directBlock = blockingLine(startX + deltaX, startZ + deltaZ, floorHeight, body);
         if (directBlock == null) {
             return position(startX + deltaX, startZ + deltaZ);
         }
@@ -98,8 +83,7 @@ public final class DoomCollisionWorld {
         float safeZ = startZ + deltaZ * safeFraction;
         float remaining = 1.0F - safeFraction;
         Slide slide = projectOntoLine(deltaX * remaining, deltaZ * remaining, directBlock.linedef());
-        float slideFraction =
-                safeFraction(safeX, safeZ, slide.deltaX(), slide.deltaZ(), floorHeight, body);
+        float slideFraction = safeFraction(safeX, safeZ, slide.deltaX(), slide.deltaZ(), floorHeight, body);
         return position(safeX + slide.deltaX() * slideFraction, safeZ + slide.deltaZ() * slideFraction);
     }
 
@@ -111,12 +95,7 @@ public final class DoomCollisionWorld {
 
     /** Finds the largest collision-free fraction of a proposed movement. */
     private float safeFraction(
-            float startX,
-            float startZ,
-            float deltaX,
-            float deltaZ,
-            float floorHeight,
-            BodyDimensions body) {
+            float startX, float startZ, float deltaX, float deltaZ, float floorHeight, BodyDimensions body) {
         if (deltaX == 0.0F && deltaZ == 0.0F) {
             return 0.0F;
         }
@@ -127,12 +106,7 @@ public final class DoomCollisionWorld {
         float blocked = 1.0F;
         for (int iteration = 0; iteration < SAFE_FRACTION_ITERATIONS; iteration++) {
             float candidate = (safe + blocked) * 0.5F;
-            if (blockingLine(
-                            startX + deltaX * candidate,
-                            startZ + deltaZ * candidate,
-                            floorHeight,
-                            body)
-                    == null) {
+            if (blockingLine(startX + deltaX * candidate, startZ + deltaZ * candidate, floorHeight, body) == null) {
                 safe = candidate;
             } else {
                 blocked = candidate;
@@ -142,8 +116,7 @@ public final class DoomCollisionWorld {
     }
 
     /** Returns the first wall preventing a circle from occupying the candidate position. */
-    private BlockedBy blockingLine(
-            float x, float z, float currentFloor, BodyDimensions body) {
+    private BlockedBy blockingLine(float x, float z, float currentFloor, BodyDimensions body) {
         for (int index = 0; index < map.linedefs().size(); index++) {
             DoomMap.Linedef linedef = map.linedefs().get(index);
             if (blocksBody(linedef, currentFloor, body) && touches(linedef, x, z, body.radius())) {
@@ -154,8 +127,7 @@ public final class DoomCollisionWorld {
     }
 
     /** Determines whether a linedef is solid for a player standing on the current floor. */
-    private boolean blocksBody(
-            DoomMap.Linedef linedef, float currentFloor, BodyDimensions body) {
+    private boolean blocksBody(DoomMap.Linedef linedef, float currentFloor, BodyDimensions body) {
         if (linedef.leftSidedef() < 0 || (linedef.flags() & BLOCKING_LINE) != 0) {
             return true;
         }
@@ -164,8 +136,8 @@ public final class DoomCollisionWorld {
         DoomMap.Sector right = map.sectors().get(rightSector);
         DoomMap.Sector left = map.sectors().get(leftSector);
         float openingBottom = DoomUnits.toWorld(Math.max(right.floorHeight(), left.floorHeight()));
-        float openingTop = (float)
-                Math.min(ceilingHeights.applyAsDouble(rightSector), ceilingHeights.applyAsDouble(leftSector));
+        float openingTop =
+                (float) Math.min(ceilingHeights.applyAsDouble(rightSector), ceilingHeights.applyAsDouble(leftSector));
         return openingTop - openingBottom < body.height()
                 || openingTop - currentFloor < body.height()
                 || openingBottom - currentFloor > body.maximumStep();
@@ -227,8 +199,7 @@ public final class DoomCollisionWorld {
         while (!child.subsector()) {
             DoomMap.Node node = map.nodes().get(child.index());
             DoomMap.Partition partition = node.partition();
-            double side = partition.deltaX() * (doomY - partition.y())
-                    - partition.deltaY() * (doomX - partition.x());
+            double side = partition.deltaX() * (doomY - partition.y()) - partition.deltaY() * (doomX - partition.x());
             child = side < 0.0 ? node.right().child() : node.left().child();
         }
         return sectorForSubsector(child.index());

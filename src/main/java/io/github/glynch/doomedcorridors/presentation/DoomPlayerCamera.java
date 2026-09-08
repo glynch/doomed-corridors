@@ -33,9 +33,7 @@ public final class DoomPlayerCamera {
         float directionZ = -(float) Math.sin(validPlayer.yawRadians()) * horizontal;
         validCamera.setPosition(validPlayer.x(), validPlayer.eyeHeight(), validPlayer.z());
         validCamera.lookAt(
-                validPlayer.x() + directionX,
-                validPlayer.eyeHeight() + directionY,
-                validPlayer.z() + directionZ);
+                validPlayer.x() + directionX, validPlayer.eyeHeight() + directionY, validPlayer.z() + directionZ);
     }
 
     /**
@@ -53,8 +51,7 @@ public final class DoomPlayerCamera {
         float validEyeHeight = requireFinite(eyeHeight, "eyeHeight");
         float validPitch = requireFinite(pitchRadians, "pitchRadians");
         validCamera.setPosition(0.0F, validEyeHeight, 0.0F);
-        validCamera.setQuaternion(new Quaternionf()
-                .rotationY(-(float) Math.PI / 2.0F)
-                .rotateX(validPitch));
+        validCamera.setQuaternion(
+                new Quaternionf().rotationY(-(float) Math.PI / 2.0F).rotateX(validPitch));
     }
 }

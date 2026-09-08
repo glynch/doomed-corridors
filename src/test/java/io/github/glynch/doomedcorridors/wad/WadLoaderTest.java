@@ -17,8 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /** Tests bounded WAD container validation independently of rendering and game rules. */
 final class WadLoaderTest {
-    private static final String FREEDOOM_SHA256 =
-            "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
+    private static final String FREEDOOM_SHA256 = "a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b";
 
     @TempDir
     Path temporaryDirectory;
@@ -112,7 +111,8 @@ final class WadLoaderTest {
     private Path writeWad(String filename, String signature, List<TestLump> lumps) throws IOException {
         int contentSize = lumps.stream().mapToInt(item -> item.content().length).sum();
         int directoryOffset = 12 + contentSize;
-        ByteBuffer bytes = ByteBuffer.allocate(directoryOffset + lumps.size() * 16).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer bytes =
+                ByteBuffer.allocate(directoryOffset + lumps.size() * 16).order(ByteOrder.LITTLE_ENDIAN);
         bytes.put(signature.getBytes(StandardCharsets.US_ASCII));
         bytes.putInt(lumps.size());
         bytes.putInt(directoryOffset);

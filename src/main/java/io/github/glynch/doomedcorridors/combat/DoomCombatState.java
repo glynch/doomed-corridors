@@ -103,8 +103,7 @@ public final class DoomCombatState {
         for (Integer thingIndex : copy) {
             Objects.requireNonNull(thingIndex, "collected pickup thing index");
             if (thingIndex < 0 || !unique.add(thingIndex)) {
-                throw new IllegalArgumentException(
-                        "collected pickup thing indices must be non-negative and unique");
+                throw new IllegalArgumentException("collected pickup thing indices must be non-negative and unique");
             }
         }
         return copy;
