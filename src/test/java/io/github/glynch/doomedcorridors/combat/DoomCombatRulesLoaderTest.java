@@ -35,6 +35,8 @@ final class DoomCombatRulesLoaderTest {
             assertThat(rules.primaryWeaponId()).isEqualTo("pistol");
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
             assertThat(rules.pickupDefinitionCount()).isEqualTo(6);
+            assertThat(rules.findCombatantBounds("zombieman")).contains(new DoomCombatRules.CombatantBounds(20, 56));
+            assertThat(rules.findCombatantBounds("stimpack")).isEmpty();
         });
     }
 

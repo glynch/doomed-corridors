@@ -75,6 +75,14 @@ public final class DoomCombatRules {
         return combatants.containsKey(Objects.requireNonNull(actorId, "actorId"));
     }
 
+    /** Finds the provider-defined solid collision bounds for one combatant actor identity. */
+    public Optional<CombatantBounds> findCombatantBounds(String actorId) {
+        CombatantDefinition definition = combatants.get(Objects.requireNonNull(actorId, "actorId"));
+        return definition == null
+                ? Optional.empty()
+                : Optional.of(new CombatantBounds(definition.radius(), definition.height()));
+    }
+
     /** Returns the initial weapon rules to the combat implementation. */
     WeaponDefinition primaryWeapon() {
         return primaryWeapon;
@@ -246,6 +254,16 @@ public final class DoomCombatRules {
     public enum PickupResource {
         HEALTH,
         BULLETS
+    }
+
+    /** Provider-authored cylindrical collision dimensions for one solid combatant. */
+    public record CombatantBounds(int radius, int height) {
+        /** Retains only positive source-unit dimensions. */
+        public CombatantBounds {
+            if (radius <= 0 || height <= 0) {
+                throw new IllegalArgumentException("combatant collision dimensions must be positive");
+            }
+        }
     }
 
     /** Validated awareness, movement, timing, and hitscan damage for one enemy. */

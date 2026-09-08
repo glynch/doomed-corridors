@@ -19,6 +19,7 @@ import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
 import io.github.glynch.jscene3d.project.entity.EntityId;
 import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
+import io.github.glynch.jscene3d.project.physics3d.CollisionShape3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
@@ -58,6 +59,10 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/transform");
     private static final ComponentId ZOMBIEMAN_BILLBOARD =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/billboard");
+    private static final ComponentId ZOMBIEMAN_SHAPE =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-shape");
+    private static final ComponentId ZOMBIEMAN_BODY =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-body");
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
@@ -111,9 +116,9 @@ final class ProjectHostIntegrationTest {
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(26);
+                    .isEqualTo(37);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(26);
+                    .isEqualTo(37);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -153,12 +158,17 @@ final class ProjectHostIntegrationTest {
             billboard = zombieman
                     .component(ZOMBIEMAN_BILLBOARD, BillboardRenderer3d.class)
                     .orElseThrow();
+            CollisionShape3d shape =
+                    zombieman.component(ZOMBIEMAN_SHAPE, CollisionShape3d.class).orElseThrow();
+            CharacterBody3d body =
+                    zombieman.component(ZOMBIEMAN_BODY, CharacterBody3d.class).orElseThrow();
 
             assertThat(actors.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(actors.instantiatedDefinition()).contains(ACTOR_MAP_DEFINITION);
             assertThat(actors.children()).hasSize(119);
             assertThat(zombieman.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
-            assertThat(zombieman.componentIds()).containsExactly(ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD);
+            assertThat(zombieman.componentIds())
+                    .containsExactly(ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD, ZOMBIEMAN_SHAPE, ZOMBIEMAN_BODY);
             assertThat(actorTransform.position().x()).isFinite();
             assertThat(actorTransform.position().y()).isFinite();
             assertThat(actorTransform.position().z()).isFinite();
@@ -166,6 +176,18 @@ final class ProjectHostIntegrationTest {
             assertThat(billboard.size().x()).isPositive();
             assertThat(billboard.size().y()).isPositive();
             assertThat(billboard.isVisible()).isTrue();
+            assertThat(shape.localPosition().y()).isEqualTo(0.875F);
+            assertThat(body.isClosed()).isFalse();
+
+            loaded.world().activate();
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+            CollisionRaycastHit3d combatant = physics.raycast(
+                            new Vector3f(actorTransform.position()).add(0.0F, 3.0F, 0.0F),
+                            new Vector3f(0.0F, -1.0F, 0.0F),
+                            4.0F)
+                    .orElseThrow();
+            assertThat(combatant.object().componentId()).isEqualTo(ZOMBIEMAN_BODY);
+            assertThat(combatant.shape().componentId()).isEqualTo(ZOMBIEMAN_SHAPE);
         }
 
         assertThat(billboard.isClosed()).isTrue();

@@ -19,7 +19,9 @@ material, texture, and independently published collision resources. The
 game-owned
 [`imports/freedoom-map01-actors.import.json`](imports/freedoom-map01-actors.import.json)
 publishes the visible normal-skill MAP01 things as placements of reusable actor
-definitions backed by generic billboard components. The authored world places
+definitions backed by generic billboard components. Configured combatants also
+own provider-sized capsule shapes and movable solid bodies, while pickups use
+non-blocking contact sensors. The authored world places
 both generated definitions alongside a composed Player entity. The
 Player owns its transform, capsule shape, character body, generic first-person controller,
 and a child view containing the primary camera; the generic desktop project host
@@ -73,7 +75,8 @@ descriptor-declared player controller, which moves the capsule through the
 engine character-body API, resolves floor and wall collision, slides along
 obstacles, and keeps the child camera attached. Health and bullet pickups use
 authored sensors and signal connections to update the player-resource
-capability and disappear only when useful. Enemy behavior, doors, combat,
+capability and disappear only when useful. Solid enemies block player movement;
+enemy behavior, doors, combat,
 audio, and the HUD have not yet been connected to the new entity-component
 runtime.
 

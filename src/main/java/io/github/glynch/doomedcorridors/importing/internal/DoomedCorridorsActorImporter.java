@@ -293,15 +293,20 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         Map<String, DoomActorDefinition> definitions = selectedDefinitions(actors, sprites);
         for (DoomActorDefinition definition : definitions.values()) {
             Optional<DoomCombatRules.PickupDefinition> pickup = rules.findPickup(definition.id());
+            Optional<DoomCombatRules.CombatantBounds> combatant = rules.findCombatantBounds(definition.id());
             if (pickup.isPresent()) {
                 publishPickupShape(context, prefix, definition, pickup.orElseThrow());
+            }
+            if (combatant.isPresent()) {
+                publishCombatantShape(context, prefix, definition, combatant.orElseThrow());
             }
             publishActorDefinition(
                     context,
                     prefix,
                     definition,
                     sprites.get(definition.spriteFrame().orElseThrow()),
-                    pickup);
+                    pickup,
+                    combatant);
         }
         publishActorPlacements(context, prefix, actors, definitions);
     }
@@ -356,13 +361,29 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 output -> Physics3dResourceWriter.writeSphere(output, DoomUnits.toWorld(pickup.radius())));
     }
 
+    /** Publishes one provider-sized capsule used by every placement of a solid combatant definition. */
+    private static void publishCombatantShape(
+            ImportPreparationContext context,
+            String prefix,
+            DoomActorDefinition actor,
+            DoomCombatRules.CombatantBounds bounds)
+            throws IOException {
+        float radius = DoomUnits.toWorld(bounds.radius());
+        float segmentLength = DoomUnits.toWorld(bounds.height() - 2.0F * bounds.radius());
+        String identity = collisionShapeIdentity(prefix, actor.id());
+        context.artifact(
+                ImportArtifactDescriptor.resource(identity, Physics3dDescriptors.capsuleResourceType(), List.of()),
+                output -> Physics3dResourceWriter.writeCapsule(output, radius, segmentLength));
+    }
+
     /** Publishes one reusable provider actor definition backed by its shared idle-frame material. */
     private static void publishActorDefinition(
             ImportPreparationContext context,
             String prefix,
             DoomActorDefinition actor,
             ImportedSprite sprite,
-            Optional<DoomCombatRules.PickupDefinition> pickup)
+            Optional<DoomCombatRules.PickupDefinition> pickup,
+            Optional<DoomCombatRules.CombatantBounds> combatant)
             throws IOException {
         String definitionIdentity = actorDefinitionIdentity(prefix, actor.id());
         AssetId definitionId = assetId(context.definition().id(), definitionIdentity);
@@ -404,6 +425,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 rule,
                 components,
                 connections,
+                references));
+        combatant.ifPresent(bounds -> addCombatantComponents(
+                new CombatantPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
+                bounds,
+                components,
                 references));
         EntityContract contract = new EntityContract(
                 List.of(new EntityContract.Parameter(
@@ -464,6 +490,33 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 EndpointTarget.component(publication.rootId(), sensorId, Physics3dDescriptors.overlapEnteredSignal()),
                 EndpointTarget.component(
                         publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_OVERLAP_ACTION)));
+        references.add(shapeIdentity);
+    }
+
+    /** Adds an explicitly shaped movable solid body to one configured combatant definition. */
+    private static void addCombatantComponents(
+            CombatantPublication publication,
+            DoomCombatRules.CombatantBounds bounds,
+            List<ComponentDefinition> components,
+            List<String> references) {
+        String importId = publication.importId();
+        String rootLocator = publication.rootLocator();
+        ComponentId shapeId = componentId(importId, rootLocator + "/combatant-shape");
+        String shapeIdentity =
+                collisionShapeIdentity(publication.prefix(), publication.actor().id());
+        components.add(component(
+                importId,
+                rootLocator + "/combatant-shape",
+                Physics3dDescriptors.collisionShapeType(),
+                Map.of(
+                        Physics3dDescriptors.shapeProperty(), reference(importId, shapeIdentity),
+                        Physics3dDescriptors.localPositionProperty(),
+                                numbers(0.0F, DoomUnits.toWorld(bounds.height()) / 2.0F, 0.0F))));
+        components.add(component(
+                importId,
+                rootLocator + "/combatant-body",
+                Physics3dDescriptors.characterBodyType(),
+                Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
         references.add(shapeIdentity);
     }
 
@@ -628,9 +681,14 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return prefix + "/actors/resources/materials/" + frame.toLowerCase(Locale.ROOT);
     }
 
+    /** Returns the provider-sized collision-resource identity for one actor definition. */
+    private static String collisionShapeIdentity(String prefix, String actorId) {
+        return prefix + "/actors/resources/collision/" + actorId;
+    }
+
     /** Returns the provider-sized collision-resource identity for one pickup definition. */
     private static String pickupShapeIdentity(String prefix, String actorId) {
-        return prefix + "/actors/resources/collision/" + actorId;
+        return collisionShapeIdentity(prefix, actorId);
     }
 
     /** Formats source thing indices so lexical and source order agree. */
@@ -690,6 +748,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
 
     /** Stable inputs identifying where pickup components are published in one actor definition. */
     private record PickupPublication(
+            String importId, String prefix, DoomActorDefinition actor, String rootLocator, EntityId rootId) {}
+
+    /** Stable inputs identifying where solid combatant components are published in one actor definition. */
+    private record CombatantPublication(
             String importId, String prefix, DoomActorDefinition actor, String rootLocator, EntityId rootId) {}
 
     /** One decoded actor frame retained only while artifacts are being published. */

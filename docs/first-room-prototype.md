@@ -83,6 +83,13 @@ the resulting 119 placements. The entry world places that definition, and the
 generic 3D runtime displays the actors through alpha-masked cylindrical
 billboard components with WAD-derived anchors and scale.
 
+Configured combatants now also publish their provider-authored radius and height
+as a shared capsule collision resource. Each reusable combatant definition owns
+an independently positioned collision-shape component and a movable solid
+character body, so every placement blocks the player while remaining ready for
+later component-driven enemy movement. Pickups, corpses, and decorative actors
+do not acquire blocking bodies merely because they have visible billboards.
+
 The first imported actor behavior now also runs through the project runtime.
 The player owns a game-specific state component initialized from the declared
 actor catalog and combat-rules source assets before world activation. Pickup
