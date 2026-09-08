@@ -121,15 +121,15 @@ final class ProjectManifestTest {
                 .containsExactly(new InputBinding.KeyboardKey("E"), new InputBinding.GamepadButton("button-west"));
     }
 
-    /** Keeps collision tolerance above MAP01's 16-unit stairs and below its 24-unit low ledges. */
+    /** Preserves MAP01's authored 16-unit step rule without embedding collision tolerance in project data. */
     @Test
-    void configuresDoomStairAllowanceWithoutClimbingLowLedges() throws Exception {
+    void configuresExactDoomStepHeight() throws Exception {
         JsonNode world =
                 new ObjectMapper().readTree(Path.of("worlds/map01.world.json").toFile());
         float maximumStepHeight =
                 world.at("/roots/0/components/2/properties/maximum-step-height").floatValue();
 
-        assertThat(maximumStepHeight).isGreaterThan(16.0F / 32.0F).isLessThan(24.0F / 32.0F);
+        assertThat(maximumStepHeight).isEqualTo(16.0F / 32.0F);
     }
 
     /** Loads the application descriptor alongside its engine-owned Doom importer declaration. */

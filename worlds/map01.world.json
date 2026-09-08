@@ -43,7 +43,7 @@
             ],
             "gravity": 18,
             "jump-speed": 0,
-            "maximum-step-height": 0.53125,
+            "maximum-step-height": 0.5,
             "ground-snap-distance": 0.25
           }
         },
