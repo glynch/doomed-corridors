@@ -73,6 +73,15 @@
             "pointer-sensitivity": 0.0015,
             "maximum-pitch-degrees": 85
           }
+        },
+        {
+          "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+          "type": "io.github.glynch.doomed-corridors/player-state",
+          "typeVersion": 1,
+          "properties": {
+            "actor-catalog": {"$ref": "asset:actors"},
+            "combat-rules": {"$ref": "asset:combat"}
+          }
         }
       ],
       "children": [

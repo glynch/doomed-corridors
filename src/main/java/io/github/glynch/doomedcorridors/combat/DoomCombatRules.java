@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /** Immutable provider rules needed to initialize the first headless combat loop. */
@@ -87,6 +88,11 @@ public final class DoomCombatRules {
     /** Returns matching pickup rules or {@code null} for a non-collectable actor definition. */
     PickupDefinition pickup(String actorId) {
         return pickups.get(actorId);
+    }
+
+    /** Finds the provider rules for one collectable actor identity. */
+    public Optional<PickupDefinition> findPickup(String actorId) {
+        return Optional.ofNullable(pickups.get(Objects.requireNonNull(actorId, "actorId")));
     }
 
     /** Returns configured actor identifiers for cross-catalog validation. */
@@ -225,9 +231,9 @@ public final class DoomCombatRules {
     }
 
     /** Validated resource effect and contact radius for one collectable actor identity. */
-    record PickupDefinition(String actorId, PickupResource resource, int amount, int limit, int radius) {
+    public record PickupDefinition(String actorId, PickupResource resource, int amount, int limit, int radius) {
         /** Validates the provider actor identity and positive effect values. */
-        PickupDefinition {
+        public PickupDefinition {
             requireId(actorId, "pickup actor");
             Objects.requireNonNull(resource, "resource");
             if (amount <= 0 || limit <= 0 || radius <= 0) {
@@ -237,7 +243,7 @@ public final class DoomCombatRules {
     }
 
     /** Player resource modified by one collectable actor. */
-    enum PickupResource {
+    public enum PickupResource {
         HEALTH,
         BULLETS
     }

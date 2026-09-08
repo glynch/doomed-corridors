@@ -80,8 +80,20 @@ with that catalog, applies normal-skill and single-player placement flags, and
 grounds visible actors through the map BSP. It publishes the 21 shared spawn
 frames and reusable actor definitions plus an aggregate definition containing
 the resulting 119 placements. The entry world places that definition, and the
-generic 3D runtime displays the inert actors through alpha-masked cylindrical
+generic 3D runtime displays the actors through alpha-masked cylindrical
 billboard components with WAD-derived anchors and scale.
+
+The first imported actor behavior now also runs through the project runtime.
+The player owns a game-specific state component initialized from the declared
+actor catalog and combat-rules source assets before world activation. Pickup
+definitions named by those rules contain provider-sized generic collision
+shapes, non-blocking sensors, and an authored connection from the sensor's
+typed overlap signal to game-owned pickup behavior. A useful health or bullet
+pickup updates the player state and destroys its complete entity exactly once;
+an item which cannot change the current resource remains in the world. Hosted
+MAP01 tests exercise publication, composition, physical overlap, signal
+delivery, state mutation, and deferred destruction without the standalone
+combat session.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

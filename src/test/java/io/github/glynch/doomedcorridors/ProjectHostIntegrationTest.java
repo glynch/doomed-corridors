@@ -57,6 +57,8 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/transform");
     private static final ComponentId ZOMBIEMAN_BILLBOARD =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/billboard");
+    private static final ComponentId STIMPACK_PICKUP =
+            actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
@@ -108,9 +110,9 @@ final class ProjectHostIntegrationTest {
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(2);
+                    .isEqualTo(26);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(2);
+                    .isEqualTo(26);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -166,6 +168,70 @@ final class ProjectHostIntegrationTest {
         }
 
         assertThat(billboard.isClosed()).isTrue();
+    }
+
+    /** Collects one useful imported stimpack through its authored physics-signal connection. */
+    @Test
+    void collectsUsefulPickupThroughHostedWorld() {
+        Path cache = temporaryDirectory.resolve("useful-pickup-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState state = player.component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class)
+                    .orElseThrow();
+            Transform3d playerTransform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            Entity stimpack = actor(actors, "Stimpack 86");
+            DoomPickup pickup =
+                    stimpack.component(STIMPACK_PICKUP, DoomPickup.class).orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+            state.damage(10);
+
+            assertThat(state.health()).isEqualTo(90);
+            assertThat(stimpack.isDestroyed()).isFalse();
+
+            loaded.world().activate();
+            input.publish(
+                    ActionSnapshot.builder().axis2d(MOVE, -1.0F, 1.0F / 6.0F).build());
+            advanceFixed(loaded, 40);
+
+            assertThat(state.health())
+                    .as("player position %s", playerTransform.position())
+                    .isEqualTo(100);
+            assertThat(pickup.isCollected()).isTrue();
+            assertThat(stimpack.isDestroyed()).isTrue();
+            assertThat(actors.children()).hasSize(118);
+        }
+    }
+
+    /** Leaves an ordinary health pickup present while the player is already at its configured limit. */
+    @Test
+    void retainsPickupWhichCannotChangePlayerState() {
+        Path cache = temporaryDirectory.resolve("limited-pickup-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState state = player.component(DoomPlayerState.COMPONENT_ID, DoomPlayerState.class)
+                    .orElseThrow();
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            Entity stimpack = actor(actors, "Stimpack 86");
+            DoomPickup pickup =
+                    stimpack.component(STIMPACK_PICKUP, DoomPickup.class).orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            loaded.world().activate();
+            input.publish(
+                    ActionSnapshot.builder().axis2d(MOVE, -1.0F, 1.0F / 6.0F).build());
+            advanceFixed(loaded, 40);
+
+            assertThat(state.health()).isEqualTo(100);
+            assertThat(pickup.isCollected()).isFalse();
+            assertThat(stimpack.isDestroyed()).isFalse();
+            assertThat(actors.children()).hasSize(119);
+        }
     }
 
     /** Moves the composed player from semantic input while its child camera follows the resolved body pose. */
@@ -268,6 +334,14 @@ final class ProjectHostIntegrationTest {
     private static Entity root(HostedProject loaded, EntityId authoredId) {
         return loaded.world().roots().stream()
                 .filter(entity -> entity.authoredId().equals(authoredId))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** Finds one imported actor placement by its exact provider display name. */
+    private static Entity actor(Entity actors, String name) {
+        return actors.children().stream()
+                .filter(entity -> entity.name().orElseThrow().equals(name))
                 .findFirst()
                 .orElseThrow();
     }

@@ -6,6 +6,7 @@
   "importer": "io.github.glynch.doomed-corridors/actors",
   "selection": ["maps/MAP01"],
   "settings": {
-    "actor-catalog": "actors"
+    "actor-catalog": "actors",
+    "combat-rules": "combat"
   }
 }

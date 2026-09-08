@@ -12,6 +12,10 @@ import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
 import io.github.glynch.doomedcorridors.actor.DoomActorDiagnostic;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.doomedcorridors.world.DoomActorResolver;
 import io.github.glynch.jscene3d.diagnostic.DiagnosticCode;
 import io.github.glynch.jscene3d.doom.diagnostic.DoomDiagnostic;
@@ -32,12 +36,15 @@ import io.github.glynch.jscene3d.project.component.ComponentId;
 import io.github.glynch.jscene3d.project.component.ComponentType;
 import io.github.glynch.jscene3d.project.component.PropertyId;
 import io.github.glynch.jscene3d.project.contract.EntityContract;
+import io.github.glynch.jscene3d.project.entity.ComponentTarget;
+import io.github.glynch.jscene3d.project.entity.EndpointTarget;
 import io.github.glynch.jscene3d.project.entity.EntityDefinition;
 import io.github.glynch.jscene3d.project.entity.EntityEntry;
 import io.github.glynch.jscene3d.project.entity.EntityId;
 import io.github.glynch.jscene3d.project.entity.EntityPlacement;
 import io.github.glynch.jscene3d.project.entity.LocalEntity;
 import io.github.glynch.jscene3d.project.entity.PropertyTarget;
+import io.github.glynch.jscene3d.project.entity.SignalConnection;
 import io.github.glynch.jscene3d.project.extension.ProjectValueKind;
 import io.github.glynch.jscene3d.project.importing.ImportArtifactDescriptor;
 import io.github.glynch.jscene3d.project.importing.SourceItem;
@@ -45,6 +52,8 @@ import io.github.glynch.jscene3d.project.importing.extension.ImportInspectionCon
 import io.github.glynch.jscene3d.project.importing.extension.ImportPreparationContext;
 import io.github.glynch.jscene3d.project.importing.extension.ProjectImporter;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dDescriptors;
+import io.github.glynch.jscene3d.project.physics3d.Physics3dResourceWriter;
 import io.github.glynch.jscene3d.project.spatial3d.Spatial3dDescriptors;
 import io.github.glynch.jscene3d.project.spatial3d.Spatial3dResourceWriter;
 import io.github.glynch.jscene3d.project.value.ProjectValue;
@@ -76,9 +85,12 @@ import java.util.UUID;
 final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final String ITEM_KIND = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-map";
     private static final String ACTOR_CATALOG_TYPE = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-catalog";
+    private static final String COMBAT_RULES_TYPE = DoomedCorridorsImportExtension.EXTENSION_ID + "/combat-rules";
     private static final String ACTOR_CATALOG_SETTING = "actor-catalog";
+    private static final String COMBAT_RULES_SETTING = "combat-rules";
     private static final String TEXTURE_MEDIA_TYPE = "application/vnd.jscene3d.rgba8-v1";
     private static final int PALETTE_SIZE = 256 * 3;
+    private static final float PICKUP_SENSOR_CENTER_HEIGHT = DoomUnits.toWorld(28.0F);
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
     private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
     private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
@@ -93,16 +105,18 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         Optional<WadArchive> loadedArchive = loadArchive(context);
         loadedArchive.ifPresent(archive -> describeMaps(context, archive));
         Optional<DoomActorCatalog> loadedCatalog = loadCatalog(context);
-        if (loadedArchive.isEmpty() || loadedCatalog.isEmpty()) {
+        Optional<DoomCombatRules> loadedRules = loadedCatalog.flatMap(catalog -> loadCombatRules(context, catalog));
+        if (loadedArchive.isEmpty() || loadedCatalog.isEmpty() || loadedRules.isEmpty()) {
             return;
         }
         WadArchive archive = loadedArchive.orElseThrow();
         DoomActorCatalog catalog = loadedCatalog.orElseThrow();
+        DoomCombatRules rules = loadedRules.orElseThrow();
         Set<String> selection = Set.copyOf(context.definition().selection());
         for (String mapName : new DoomMapDecoder().discover(archive)) {
             String identity = mapIdentity(mapName);
             if (selection.contains(identity)) {
-                prepareMap(context, archive, catalog, mapName, identity);
+                prepareMap(context, archive, catalog, rules, mapName, identity);
             }
         }
     }
@@ -158,11 +172,55 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return result.isValid() ? result.catalog() : Optional.empty();
     }
 
+    /** Loads the provider combat rules selected by the recipe and records them as an import dependency. */
+    private static Optional<DoomCombatRules> loadCombatRules(
+            ImportPreparationContext context, DoomActorCatalog catalog) {
+        Optional<GameProject.AssetSource> selected = configuredAsset(
+                context,
+                COMBAT_RULES_SETTING,
+                COMBAT_RULES_TYPE,
+                ActorImportDiagnosticCode.COMBAT_RULES_SETTING_INVALID);
+        if (selected.isEmpty()) {
+            return Optional.empty();
+        }
+        GameProject.AssetSource source = selected.orElseThrow();
+        context.dependency(source.path());
+        DoomCombatRulesLoadResult result = new DoomCombatRulesLoader().load(source.path(), catalog);
+        result.diagnostics()
+                .forEach(diagnostic -> context.error(
+                        ActorImportDiagnosticCode.COMBAT_RULES_INVALID,
+                        diagnostic.location(),
+                        Map.of("sourceCode", diagnostic.code(), "message", diagnostic.message())));
+        return result.isValid() ? result.rules() : Optional.empty();
+    }
+
+    /** Resolves one recipe setting to a declared source asset of the required type. */
+    private static Optional<GameProject.AssetSource> configuredAsset(
+            ImportPreparationContext context,
+            String settingId,
+            String assetType,
+            ActorImportDiagnosticCode diagnosticCode) {
+        ProjectValue setting = context.definition().settings().get(settingId);
+        if (!(setting instanceof ProjectValue.TextValue(String assetId))) {
+            context.error(diagnosticCode, "/settings/" + settingId, Map.of("expected", "declared " + assetType));
+            return Optional.empty();
+        }
+        Optional<GameProject.AssetSource> selected = context.project().assets().stream()
+                .filter(asset -> asset.id().equals(assetId) && asset.type().equals(assetType))
+                .findFirst();
+        if (selected.isEmpty()) {
+            context.error(
+                    diagnosticCode, "/settings/" + settingId, Map.of("asset", assetId, "expectedType", assetType));
+        }
+        return selected;
+    }
+
     /** Decodes, resolves, and publishes one selected map's visible normal-skill actors. */
     private static void prepareMap(
             ImportPreparationContext context,
             WadArchive archive,
             DoomActorCatalog catalog,
+            DoomCombatRules rules,
             String mapName,
             String prefix)
             throws IOException {
@@ -178,7 +236,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         if (imported.isEmpty()) {
             return;
         }
-        publishMap(context, prefix, resolution.actors(), imported.orElseThrow());
+        publishMap(context, prefix, resolution.actors(), imported.orElseThrow(), rules);
     }
 
     /** Imports every unique selected spawn frame while preserving classic patch origin metadata. */
@@ -226,18 +284,24 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             ImportPreparationContext context,
             String prefix,
             List<DoomActor> actors,
-            Map<String, ImportedSprite> sprites)
+            Map<String, ImportedSprite> sprites,
+            DoomCombatRules rules)
             throws IOException {
         for (ImportedSprite sprite : sprites.values()) {
             publishSprite(context, prefix, sprite);
         }
         Map<String, DoomActorDefinition> definitions = selectedDefinitions(actors, sprites);
         for (DoomActorDefinition definition : definitions.values()) {
+            Optional<DoomCombatRules.PickupDefinition> pickup = rules.findPickup(definition.id());
+            if (pickup.isPresent()) {
+                publishPickupShape(context, prefix, definition, pickup.orElseThrow());
+            }
             publishActorDefinition(
                     context,
                     prefix,
                     definition,
-                    sprites.get(definition.spriteFrame().orElseThrow()));
+                    sprites.get(definition.spriteFrame().orElseThrow()),
+                    pickup);
         }
         publishActorPlacements(context, prefix, actors, definitions);
     }
@@ -279,9 +343,26 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         }
     }
 
+    /** Publishes the provider-sized non-blocking contact volume shared by one pickup definition's instances. */
+    private static void publishPickupShape(
+            ImportPreparationContext context,
+            String prefix,
+            DoomActorDefinition actor,
+            DoomCombatRules.PickupDefinition pickup)
+            throws IOException {
+        String identity = pickupShapeIdentity(prefix, actor.id());
+        context.artifact(
+                ImportArtifactDescriptor.resource(identity, Physics3dDescriptors.sphereResourceType(), List.of()),
+                output -> Physics3dResourceWriter.writeSphere(output, DoomUnits.toWorld(pickup.radius())));
+    }
+
     /** Publishes one reusable provider actor definition backed by its shared idle-frame material. */
     private static void publishActorDefinition(
-            ImportPreparationContext context, String prefix, DoomActorDefinition actor, ImportedSprite sprite)
+            ImportPreparationContext context,
+            String prefix,
+            DoomActorDefinition actor,
+            ImportedSprite sprite,
+            Optional<DoomCombatRules.PickupDefinition> pickup)
             throws IOException {
         String definitionIdentity = actorDefinitionIdentity(prefix, actor.id());
         AssetId definitionId = assetId(context.definition().id(), definitionIdentity);
@@ -311,6 +392,19 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                         (sprite.image().height() - sprite.topOffset())
                                                 / (float) sprite.image().height()),
                         Spatial3dDescriptors.alignmentProperty(), new ProjectValue.TextValue("cylindrical")));
+        List<ComponentDefinition> components = new ArrayList<>();
+        components.add(transform);
+        components.add(billboard);
+        List<SignalConnection> connections = new ArrayList<>();
+        List<String> references = new ArrayList<>();
+        String materialIdentity = materialIdentity(prefix, sprite.frame());
+        references.add(materialIdentity);
+        pickup.ifPresent(rule -> addPickupComponents(
+                new PickupPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
+                rule,
+                components,
+                connections,
+                references));
         EntityContract contract = new EntityContract(
                 List.of(new EntityContract.Parameter(
                         POSITION_ARGUMENT,
@@ -322,12 +416,55 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 List.of(),
                 List.of(),
                 List.of());
-        LocalEntity root = new LocalEntity(rootId, actor.name(), true, List.of(transform, billboard), List.of());
-        EntityDefinition definition = new EntityDefinition(definitionId, actor.name(), contract, List.of(), root);
-        String materialIdentity = materialIdentity(prefix, sprite.frame());
+        LocalEntity root = new LocalEntity(rootId, actor.name(), true, components, List.of());
+        EntityDefinition definition = new EntityDefinition(definitionId, actor.name(), contract, connections, root);
         context.artifact(
-                ImportArtifactDescriptor.entityDefinition(definitionIdentity, definitionId, List.of(materialIdentity)),
+                ImportArtifactDescriptor.entityDefinition(definitionIdentity, definitionId, references),
                 output -> DefinitionWriter.write(output, definition));
+    }
+
+    /** Adds generic sensor composition and its game-owned response to one collectable actor definition. */
+    private static void addPickupComponents(
+            PickupPublication publication,
+            DoomCombatRules.PickupDefinition pickup,
+            List<ComponentDefinition> components,
+            List<SignalConnection> connections,
+            List<String> references) {
+        String importId = publication.importId();
+        String rootLocator = publication.rootLocator();
+        ComponentId shapeId = componentId(importId, rootLocator + "/pickup-shape");
+        ComponentId sensorId = componentId(importId, rootLocator + "/pickup-sensor");
+        ComponentId behaviorId = componentId(importId, rootLocator + "/pickup");
+        String shapeIdentity =
+                pickupShapeIdentity(publication.prefix(), publication.actor().id());
+        components.add(component(
+                importId,
+                rootLocator + "/pickup-shape",
+                Physics3dDescriptors.collisionShapeType(),
+                Map.of(
+                        Physics3dDescriptors.shapeProperty(), reference(importId, shapeIdentity),
+                        Physics3dDescriptors.localPositionProperty(),
+                                numbers(0.0F, PICKUP_SENSOR_CENTER_HEIGHT, 0.0F))));
+        components.add(component(
+                importId,
+                rootLocator + "/pickup-sensor",
+                Physics3dDescriptors.collisionSensorType(),
+                Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
+        components.add(new ComponentDefinition(
+                behaviorId,
+                DoomedCorridorsRuntimeTypes.PICKUP_TYPE.id(),
+                DoomedCorridorsRuntimeTypes.PICKUP_TYPE.version(),
+                Map.of(
+                        DoomedCorridorsRuntimeTypes.PICKUP_RESOURCE_PROPERTY,
+                                new ProjectValue.TextValue(
+                                        pickup.resource().name().toLowerCase(Locale.ROOT)),
+                        DoomedCorridorsRuntimeTypes.PICKUP_AMOUNT_PROPERTY, number(pickup.amount()),
+                        DoomedCorridorsRuntimeTypes.PICKUP_LIMIT_PROPERTY, number(pickup.limit()))));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(publication.rootId(), sensorId, Physics3dDescriptors.overlapEnteredSignal()),
+                EndpointTarget.component(
+                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_OVERLAP_ACTION)));
+        references.add(shapeIdentity);
     }
 
     /** Publishes one hierarchy whose children place shared actor definitions at resolved WAD thing positions. */
@@ -438,6 +575,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return new ProjectValue.ReferenceValue(ResourceReference.imported(importId + '/' + identity));
     }
 
+    /** Creates one portable component-target array for explicit collision-shape membership. */
+    private static ProjectValue.ArrayValue componentTargets(EntityId entity, ComponentId... components) {
+        List<ProjectValue> targets = new ArrayList<>(components.length);
+        for (ComponentId component : components) {
+            targets.add(new ProjectValue.ComponentTargetValue(new ComponentTarget(entity, component)));
+        }
+        return new ProjectValue.ArrayValue(targets);
+    }
+
     /** Creates one imported resource reference for the active recipe. */
     private static ResourceReference imported(ImportPreparationContext context, String identity) {
         return ResourceReference.imported(context.definition().id() + '/' + identity);
@@ -450,6 +596,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             result.add(new ProjectValue.NumberValue(new BigDecimal(Float.toString(value))));
         }
         return new ProjectValue.ArrayValue(result);
+    }
+
+    /** Creates one portable exact integer number. */
+    private static ProjectValue.NumberValue number(int value) {
+        return new ProjectValue.NumberValue(BigDecimal.valueOf(value));
     }
 
     /** Returns the stable source-item prefix for one map. */
@@ -475,6 +626,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Returns one shared sprite-material output identity. */
     private static String materialIdentity(String prefix, String frame) {
         return prefix + "/actors/resources/materials/" + frame.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns the provider-sized collision-resource identity for one pickup definition. */
+    private static String pickupShapeIdentity(String prefix, String actorId) {
+        return prefix + "/actors/resources/collision/" + actorId;
     }
 
     /** Formats source thing indices so lexical and source order agree. */
@@ -532,6 +688,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         }
     }
 
+    /** Stable inputs identifying where pickup components are published in one actor definition. */
+    private record PickupPublication(
+            String importId, String prefix, DoomActorDefinition actor, String rootLocator, EntityId rootId) {}
+
     /** One decoded actor frame retained only while artifacts are being published. */
     private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}
 
@@ -539,6 +699,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private enum ActorImportDiagnosticCode implements DiagnosticCode {
         CATALOG_SETTING_INVALID(
                 "doomed-corridors.actor-import.catalog-setting", "The actor import requires an actor catalog asset"),
+        COMBAT_RULES_SETTING_INVALID(
+                "doomed-corridors.actor-import.combat-rules-setting", "The actor import requires a combat-rules asset"),
+        COMBAT_RULES_INVALID("doomed-corridors.actor-import.combat-rules", "The actor import combat rules are invalid"),
         ACTOR_INVALID("doomed-corridors.actor-import.actor", "An actor catalog or placement is invalid"),
         PALETTE_MISSING("doomed-corridors.actor-import.palette-missing", "The WAD has no PLAYPAL palette"),
         PALETTE_INVALID("doomed-corridors.actor-import.palette-invalid", "The WAD PLAYPAL palette is incomplete"),

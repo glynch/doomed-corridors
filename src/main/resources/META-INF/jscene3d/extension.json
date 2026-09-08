@@ -13,5 +13,71 @@
       "scope": "importer",
       "displayName": "Doomed Corridors actors"
     }
+  ],
+  "components": [
+    {
+      "id": "io.github.glynch.doomed-corridors/player-state",
+      "typeVersion": 1,
+      "displayName": "Doom Player State",
+      "description": "Holds mutable player health and ammunition initialized from provider rules.",
+      "properties": [
+        {
+          "id": "actor-catalog",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Actor Catalog",
+          "description": "Provider actor catalog used to validate the combat rules.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "combat-rules",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Combat Rules",
+          "description": "Provider rules supplying initial resources and capacities.",
+          "acceptedReferences": ["asset"]
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/pickup",
+      "typeVersion": 1,
+      "displayName": "Doom Pickup",
+      "description": "Applies one provider-defined resource effect to an overlapping player.",
+      "properties": [
+        {
+          "id": "resource",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Resource",
+          "description": "Player resource changed by this pickup."
+        },
+        {
+          "id": "amount",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Amount",
+          "description": "Maximum resource amount granted by this pickup."
+        },
+        {
+          "id": "limit",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Limit",
+          "description": "Resource ceiling enforced by this pickup type."
+        }
+      ],
+      "actions": [
+        {
+          "id": "receive-overlap",
+          "payload": {
+            "type": "io.github.glynch.jscene3d.physics3d/collision-overlap-3d",
+            "typeVersion": 1
+          },
+          "displayName": "Receive Overlap",
+          "description": "Receives the pickup sensor's precise overlap transition."
+        }
+      ]
+    }
   ]
 }

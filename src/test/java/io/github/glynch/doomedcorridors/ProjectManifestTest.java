@@ -99,7 +99,7 @@ final class ProjectManifestTest {
         assertThat(definition.selection()).containsExactly("maps/MAP01");
     }
 
-    /** Loads the game-owned MAP01 actor publication recipe and its actor-catalog dependency. */
+    /** Loads the game-owned MAP01 actor publication recipe and its provider-data dependencies. */
     @Test
     void loadsFreedoomMapActorImport() {
         GameProject project = loadProject().project().orElseThrow();
@@ -113,7 +113,9 @@ final class ProjectManifestTest {
         assertThat(definition.asset().id()).isEqualTo("freedoom");
         assertThat(definition.importer()).isEqualTo(EXTENSION_ID + "/actors");
         assertThat(definition.selection()).containsExactly("maps/MAP01");
-        assertThat(definition.settings()).containsEntry("actor-catalog", new ProjectValue.TextValue("actors"));
+        assertThat(definition.settings())
+                .containsEntry("actor-catalog", new ProjectValue.TextValue("actors"))
+                .containsEntry("combat-rules", new ProjectValue.TextValue("combat"));
     }
 
     /** Loads the semantic input map independently of platform controls. */
@@ -167,7 +169,9 @@ final class ProjectManifestTest {
         assertThat(result.catalog().types())
                 .extracting(type -> type.type().id())
                 .contains("io.github.glynch.jscene3d.doom/maps", EXTENSION_ID + "/actors");
-        assertThat(result.catalog().componentTypes()).isEmpty();
+        assertThat(result.catalog().componentTypes())
+                .extracting(type -> type.type().id().value())
+                .containsExactly(EXTENSION_ID + "/player-state", EXTENSION_ID + "/pickup");
     }
 
     /** Loads the repository's project manifest. */
