@@ -8,6 +8,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.jscene3d.doom.runtime.DoomDoor;
+import io.github.glynch.jscene3d.doom.runtime.DoomDoorDescriptors;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
@@ -33,6 +35,7 @@ import io.github.glynch.jscene3d.project.spatial3d.Mesh3dResource;
 import io.github.glynch.jscene3d.project.spatial3d.MeshRenderer3d;
 import io.github.glynch.jscene3d.project.spatial3d.Spatial3dWorldModule;
 import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
+import io.github.glynch.jscene3d.project.spatial3d.descriptor.Spatial3dDescriptors;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -96,6 +99,7 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
+    private static final ComponentId DOOR_INTERACTOR = ComponentId.from("2b67d91b-24ac-4f1c-94e7-8308dfc2ed70");
     private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
     private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
     private static final ComponentId PLAYER_PRESENTATION = ComponentId.from("7be3f3e4-e576-4710-8382-260037317921");
@@ -106,6 +110,7 @@ final class ProjectHostIntegrationTest {
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
     private static final InputAction FIRE_PRIMARY = new InputAction("fire-primary");
+    private static final InputAction INTERACT = new InputAction("interact");
     private static final Path PROJECT_ROOT = Path.of(".").toAbsolutePath().normalize();
 
     @TempDir
@@ -144,20 +149,24 @@ final class ProjectHostIntegrationTest {
             assertThat(player.componentIds())
                     .contains(PLAYER_WEAPON, WEAPON_PRESENTATION, PLAYER_PRESENTATION, PLAYER_LIFECYCLE)
                     .doesNotContain(PLAYER_CONTROLLER);
-            assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
-            assertThat(playerTransform.position().y()).isEqualTo(0.875F);
-            assertThat(playerTransform.position().z()).isEqualTo(6.0F);
+            assertThat(new float[] {
+                        playerTransform.position().x(),
+                        playerTransform.position().y(),
+                        playerTransform.position().z()
+                    })
+                    .containsExactly(-6.0F, 0.875F, 6.0F);
             assertThat(viewTransform.position().y()).isEqualTo(0.40625F);
             assertThat(placement.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(placement.instantiatedDefinition()).contains(MAP_DEFINITION);
-            assertThat(placement.componentIds()).hasSize(82);
+            assertThat(placement.componentIds()).hasSize(81);
+            assertThat(placement.children()).hasSize(4);
             assertThat(renderer.isVisible()).isTrue();
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(37);
+                    .isEqualTo(41);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(37);
+                    .isEqualTo(41);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -339,8 +348,8 @@ final class ProjectHostIntegrationTest {
             assertThat(body.isClosed()).isTrue();
             assertThat(zombieman.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(36);
-            assertThat(physics.collisionShapeCount()).isEqualTo(36);
+            assertThat(physics.collisionObjectCount()).isEqualTo(40);
+            assertThat(physics.collisionShapeCount()).isEqualTo(40);
             assertThat(presentationWorld.positionalRestarts()).isEqualTo(2);
 
             loaded.world().advanceFrame(Duration.ofMillis(560), 0.0F);
@@ -447,8 +456,8 @@ final class ProjectHostIntegrationTest {
             assertThat(playerState.bullets()).isEqualTo(44);
             assertThat(target.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(36);
-            assertThat(physics.collisionShapeCount()).isEqualTo(36);
+            assertThat(physics.collisionObjectCount()).isEqualTo(40);
+            assertThat(physics.collisionShapeCount()).isEqualTo(40);
             assertThat(presentation.restarts()).isEqualTo(6);
         }
         assertThat(presentation.overlayCount()).isZero();
@@ -483,7 +492,7 @@ final class ProjectHostIntegrationTest {
 
             loaded.world().activate();
             assertThat(presentationWorld.overlayCount()).isEqualTo(3);
-            assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER);
+            assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER, DOOR_INTERACTOR);
             assertThat(state.damage(10)).isEqualTo(10);
             assertThat(presentation.isDead()).isFalse();
             assertThat(presentation.currentRedOpacity()).isEqualTo(0.32F);
@@ -695,7 +704,6 @@ final class ProjectHostIntegrationTest {
             CollisionRaycastHit3d wall = physics.raycast(
                             new Vector3f(-5.4F, 0.875F, 6.0F), new Vector3f(1.0F, 0.0F, 0.0F), 64.0F)
                     .orElseThrow();
-            assertThat(wall.shape().componentId()).isEqualTo(STATIC_COLLISION_SHAPE);
             float wallLimit = wall.point(new Vector3f()).x - 0.4375F;
 
             input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
@@ -709,6 +717,106 @@ final class ProjectHostIntegrationTest {
 
             assertThat(playerTransform.position().x()).isCloseTo(blockedX, within(0.05F));
             assertThat(Math.abs(playerTransform.position().z() - beforeSlideZ)).isGreaterThan(0.25F);
+        }
+    }
+
+    /** Activates imported movable geometry through the authored interaction action and declared door capability. */
+    @Test
+    void opensPublishedDoorThroughPlayerInteraction() {
+        Path cache = temporaryDirectory.resolve("door-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Transform3d view = player.children()
+                    .getFirst()
+                    .component(VIEW_TRANSFORM, Transform3d.class)
+                    .orElseThrow();
+            Entity doorEntity = root(loaded, MAP_PLACEMENT).children().getFirst();
+            DoomDoor door = doorEntity
+                    .capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
+                    .orElseThrow();
+            Transform3d doorTransform = doorEntity
+                    .capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                    .orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            loaded.world().activate();
+            CollisionRaycastHit3d hit = findDoorSurface(physics, doorEntity);
+            Vector3f normal = hit.normal(new Vector3f());
+            Vector3f origin = hit.point(new Vector3f()).fma(0.5F, normal);
+            Vector3f direction = normal.negate(new Vector3f());
+            view.setWorldPose(origin, new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), direction));
+            float closedHeight = doorTransform.position().y();
+
+            input.publish(ActionSnapshot.builder().pressed(INTERACT).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            input.publish(ActionSnapshot.empty());
+
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.OPENING);
+            assertThat(doorTransform.position().y()).isGreaterThan(closedHeight);
+
+            advanceFixed(loaded, 25);
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.WAITING);
+            assertThat(physics.raycast(origin, direction, 1.0F)
+                            .map(result -> result.object().owner())
+                            .filter(doorEntity::equals))
+                    .isEmpty();
+            advanceFixed(loaded, 200);
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.CLOSED);
+            assertThat(doorTransform.position().y()).isEqualTo(closedHeight);
+            assertThat(physics.raycast(origin, direction, 1.0F))
+                    .hasValueSatisfying(
+                            result -> assertThat(result.object().owner()).isSameAs(doorEntity));
+        }
+    }
+
+    /** Composes generated doors closed before activation so the editor preview starts from authored state. */
+    @Test
+    void composesClosedDoorPreviewState() {
+        Path cache = temporaryDirectory.resolve("door-preview-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            assertThat(root(loaded, MAP_PLACEMENT).children()).hasSize(4).allSatisfy(entity -> {
+                DoomDoor door = entity.capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
+                        .orElseThrow();
+                Transform3d transform = entity.capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                        .orElseThrow();
+                assertThat(door.phase()).isEqualTo(DoomDoor.Phase.CLOSED);
+                assertThat(transform.position().y()).isEqualTo(door.currentHeight());
+            });
+        }
+    }
+
+    /** Leaves an imported door closed when a nearer non-player solid obstructs the authored interaction ray. */
+    @Test
+    void doesNotActivateDoorThroughNearerWall() {
+        Path cache = temporaryDirectory.resolve("obstructed-door-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Transform3d view = player.children()
+                    .getFirst()
+                    .component(VIEW_TRANSFORM, Transform3d.class)
+                    .orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            loaded.world().activate();
+            InteractionLine line = findObstructedDoorLine(physics, root(loaded, MAP_PLACEMENT), player);
+            DoomDoor door = line.door()
+                    .capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
+                    .orElseThrow();
+            view.setWorldPose(
+                    line.origin(), new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), line.direction()));
+
+            input.publish(ActionSnapshot.builder().pressed(INTERACT).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.CLOSED);
         }
     }
 
@@ -732,6 +840,62 @@ final class ProjectHostIntegrationTest {
                 .filter(entity -> entity.authoredId().equals(authoredId))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    /** Finds a horizontal collision sample owned by one generated door without encoding map coordinates in the test. */
+    private static CollisionRaycastHit3d findDoorSurface(Physics3dWorldModule physics, Entity door) {
+        List<Vector3f> directions = List.of(
+                new Vector3f(1.0F, 0.0F, 0.0F),
+                new Vector3f(-1.0F, 0.0F, 0.0F),
+                new Vector3f(0.0F, 0.0F, 1.0F),
+                new Vector3f(0.0F, 0.0F, -1.0F));
+        for (int x = -64; x <= 64; x++) {
+            for (int z = -64; z <= 64; z++) {
+                Vector3f origin = new Vector3f(x, 0.5F, z);
+                for (Vector3f direction : directions) {
+                    Optional<CollisionRaycastHit3d> hit = physics.raycast(origin, direction, 1.0F);
+                    if (hit.map(result -> result.object().owner() == door).orElse(false)) {
+                        return hit.orElseThrow();
+                    }
+                }
+            }
+        }
+        throw new AssertionError("no collision surface found for generated door " + door.authoredId());
+    }
+
+    /** Finds a short ray which reaches one generated door only after crossing a nearer static solid. */
+    private static InteractionLine findObstructedDoorLine(Physics3dWorldModule physics, Entity map, Entity player) {
+        List<Vector3f> directions = List.of(
+                new Vector3f(1.0F, 0.0F, 0.0F),
+                new Vector3f(-1.0F, 0.0F, 0.0F),
+                new Vector3f(0.0F, 0.0F, 1.0F),
+                new Vector3f(0.0F, 0.0F, -1.0F));
+        for (int x = -64; x <= 64; x++) {
+            for (int z = -64; z <= 64; z++) {
+                Vector3f origin = new Vector3f(x, 0.5F, z);
+                for (Vector3f direction : directions) {
+                    Optional<CollisionRaycastHit3d> first = physics.raycast(origin, direction, 2.0F);
+                    if (first.isEmpty()
+                            || first.orElseThrow().object().owner() == player
+                            || map.children()
+                                    .contains(first.orElseThrow().object().owner())) {
+                        continue;
+                    }
+                    float advance = first.orElseThrow().distance() + 0.01F;
+                    if (advance >= 2.0F) {
+                        continue;
+                    }
+                    Vector3f beyondBlocker = new Vector3f(origin).fma(advance, direction);
+                    Optional<Entity> door = physics.raycast(beyondBlocker, direction, 2.0F - advance)
+                            .map(result -> result.object().owner())
+                            .filter(map.children()::contains);
+                    if (door.isPresent()) {
+                        return new InteractionLine(door.orElseThrow(), origin, direction);
+                    }
+                }
+            }
+        }
+        throw new AssertionError("MAP01 has no short interaction line with a wall before a generated door");
     }
 
     /** Finds one direct child by its stable authored identity. */
@@ -842,4 +1006,7 @@ final class ProjectHostIntegrationTest {
 
     /** One verified unobstructed weapon ray used by the host integration test. */
     private record ShotLine(Entity target, Vector3f origin, Vector3f direction) {}
+
+    /** One player-facing test ray with a static obstruction before the selected generated door. */
+    private record InteractionLine(Entity door, Vector3f origin, Vector3f direction) {}
 }

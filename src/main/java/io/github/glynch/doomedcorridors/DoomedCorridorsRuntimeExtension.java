@@ -103,6 +103,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         validRegistry.register(
                 DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE, context -> new DoomPlayerLifecycle(context.world()));
         validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE, context -> new DoomPlayerHud());
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.DOOR_INTERACTOR_TYPE,
+                context -> new DoomDoorInteractor(
+                        context.world().requireModule(InputWorldModule.class),
+                        context.world().requireModule(Physics3dWorldModule.class),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.INTERACTION_ACTION_PROPERTY),
+                        RuntimeProperties.positiveFloat(
+                                context.properties(),
+                                DoomedCorridorsRuntimeTypes.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
     }
 
     /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */

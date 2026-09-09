@@ -2,5 +2,5 @@
  * Copyright 2026 Graham Lynch
  * SPDX-License-Identifier: Apache-2.0
  */
-/** JScene3D scene, overlay, animation, and audio adapters for Doom game data. */
+/** Provider-authored presentation rules and imported audio or sprite content. */
 package io.github.glynch.doomedcorridors.presentation;

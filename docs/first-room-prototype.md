@@ -30,6 +30,7 @@ truth.
   needed by `MAP01`.
 - Spawn the player from the map's player-start thing.
 - Support Doom-style horizontal movement, collision, mouse look, and hitscan fire.
+- Publish supported manual doors as movable render and collision entities.
 - Import enough sprites, sounds, one weapon, one enemy, health, and ammo behavior
   for a coherent encounter.
 - Surface unsupported map constructs and missing lumps as structured diagnostics.
@@ -69,8 +70,7 @@ authored `move` and `look` actions, submits planar velocity to the engine-owned
 character body, and applies bounded yaw and pitch to the view. Hosted-project
 acceptance tests cover grounding, movement, MAP01 wall blocking and sliding, and
 camera attachment. This replaces the earlier standalone movement runtime; the
-older headless Doom models remain domain prototypes for later gameplay migration,
-not an alternative game host.
+descriptor-composed World is the only game runtime.
 
 The visible-actor project-runtime slice is also complete. The project declares a
 provider-owned, versioned actor catalog that assigns stable identities,
@@ -153,15 +153,14 @@ the fatal red response fades into a subtle dark shade, the view descends from th
 classic 41-unit standing height to the 6-unit death height, and the weapon moves
 below the viewport while the world and HUD remain visible.
 
-The headless combat-model slice is also complete. A project-declared, versioned
-combat document defines the player's initial health and ammunition, the pistol's
-range and discrete damage values, and the zombieman's health, collision cylinder,
-awareness, movement, reaction time, attack cadence, and damage. A deterministic
-35 Hz session consumes that provider data, traces pitched hitscan rays against
-living actors and map openings, applies wall occlusion and nearest-target
-selection, advances collision-aware pursuit toward the last visible player
-position, and applies attacks to player health. It emits immutable state plus
-presentation-neutral events and requires no graphics or audio device in tests.
+The combat-model slice is also complete. A project-declared, versioned combat
+document defines the player's initial health and ammunition, the pistol's range
+and discrete damage values, and the zombieman's health, collision cylinder,
+awareness, movement, reaction time, attack cadence, and damage. Descriptor-selected
+World components consume that provider data, use the engine physics module for
+pitched hitscan and collision-aware pursuit, and communicate through declared
+capabilities, signals, and actions. Unit tests exercise their deterministic rules
+without a graphics or audio device; hosted-project tests exercise their composition.
 
 The combat-presentation slice is also complete. Its separately versioned project
 asset binds combat identities to exact WAD patches, sounds, animation timing, and
@@ -174,18 +173,28 @@ health and ammunition, and terminal player and enemy death.
 
 The health-and-ammunition pickup slice is complete. Versioned provider rules
 declare the player's absolute health and bullet capacities plus per-actor amounts,
-ordinary or bonus limits, and contact radii. The same deterministic combat session
-collects useful overlapping items once by stable WAD thing index and emits the
-applied resource amount without depending on rendering. Presentation hides the
-collected billboard, updates the descriptor-authored HUD numbers, and plays the
-imported `DSITEMUP` effect. The HUD is an ordinary entity hierarchy built from
+ordinary or bonus limits, and contact radii. Descriptor-authored pickup sensors
+collect useful overlapping items once by entity identity and signal the applied
+resource amount without depending on rendering. Presentation hides the collected
+billboard, updates the descriptor-authored HUD numbers, and plays the imported
+`DSITEMUP` effect. The HUD is an ordinary entity hierarchy built from
 generic screen-canvas, screen-region, and bitmap-number components; its
 Doom-specific binding component only copies player health and ammunition into
 explicitly targeted number components. Stimpacks, medikits, health bonuses, soulspheres, ammunition
 clips, and bullet boxes are active; shell, rocket, and cell inventory follows with
-the weapons that consume those resources. Doors, lifts, navigation beyond
-last-visible-position pursuit, and other sector specials remain later vertical
-slices.
+the weapons that consume those resources.
+
+Supported manual doors are also descriptor-driven. The engine Doom importer
+recognizes classic open-stay and blaze raise specials, removes their surfaces from
+the static map batches, and publishes a child entity with its own transform,
+material-batched meshes, collision body, and Doom door component. The authored
+Player Controls entity owns an interaction component whose `interact` action
+activates only the nearest unobstructed entity declaring the Doom door capability.
+Normal doors remain open; blaze doors open, wait, and close at source-derived
+speeds. Hosted-project tests prove wall obstruction, collision-free traversal while
+open, collision restoration after closing, and closed initial editor-preview state.
+Lifts, navigation beyond last-visible-position pursuit, and other sector specials
+remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable
@@ -195,15 +204,16 @@ maps until the complete Freedoom campaign is covered.
 
 ```text
 io.github.glynch.doomedcorridors
-|-- app           native host, project loading, runtime wiring, lifecycle
+|-- (root)        descriptor-selected gameplay components and runtime extension
 |-- actor         provider definitions, resolved placements, skill filtering, sprites
 |-- wad           Doom WAD container access and source adapter
 |-- map           immutable decoded classic-map records
 |-- material      renderer-independent imported images and smoke outputs
-|-- combat        weapons, damage, health, pickups, and encounter rules
+|-- combat        immutable weapons, damage, health, pickup, and encounter rules
 |-- input         game actions and bindings
-|-- world         imported map runtime, collision, doors, lifts, and triggers
-`-- presentation  camera, meshes, sprites, HUD, effects, and audio bindings
+|-- importing     provider composition over generic Doom and project importers
+|-- world         import-time actor grounding against decoded map BSP data
+`-- presentation  immutable sprite, HUD, animation, and audio import rules
 ```
 
 Game-specific rules and Doom compatibility remain in this repository. Generic

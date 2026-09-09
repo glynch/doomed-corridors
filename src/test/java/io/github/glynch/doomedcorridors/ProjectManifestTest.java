@@ -177,6 +177,7 @@ final class ProjectManifestTest {
         assertThat(result.catalog().componentTypes())
                 .extracting(type -> type.type().id().value())
                 .containsExactly(
+                        "io.github.glynch.jscene3d.doom/door",
                         EXTENSION_ID + "/player-state",
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",
@@ -187,7 +188,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/weapon-presentation",
                         EXTENSION_ID + "/player-presentation",
                         EXTENSION_ID + "/player-lifecycle",
-                        EXTENSION_ID + "/player-hud");
+                        EXTENSION_ID + "/player-hud",
+                        EXTENSION_ID + "/door-interactor");
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
                         .orElseThrow())

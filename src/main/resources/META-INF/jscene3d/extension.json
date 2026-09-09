@@ -671,6 +671,44 @@
           "displayName": "Ammo Number"
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/door-interactor",
+      "typeVersion": 1,
+      "displayName": "Doom Door Interactor",
+      "description": "Activates the nearest unobstructed imported Doom door using an authored input action.",
+      "updatePhases": ["before-physics"],
+      "properties": [
+        {
+          "id": "view-transform",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "View Transform",
+          "description": "Exact transform supplying the interaction ray origin and direction."
+        },
+        {
+          "id": "ignored-entity",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Ignored Entity",
+          "description": "Exact player entity whose collision may contain the ray origin."
+        },
+        {
+          "id": "action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Action",
+          "description": "Semantic input action requesting interaction."
+        },
+        {
+          "id": "maximum-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Maximum Distance",
+          "description": "Positive interaction distance in project world units.",
+          "editor": {"minimum-exclusive": 0}
+        }
+      ]
     }
   ]
 }

@@ -6,8 +6,6 @@ package io.github.glynch.doomedcorridors.world;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
-import io.github.glynch.doomedcorridors.presentation.DoomMapPresentation;
 import io.github.glynch.jscene3d.doom.geometry.DoomGeometryBuildResult;
 import io.github.glynch.jscene3d.doom.geometry.DoomPlayerStart;
 import io.github.glynch.jscene3d.doom.geometry.DoomStaticGeometry;
@@ -21,8 +19,6 @@ import io.github.glynch.jscene3d.wad.WadArchive;
 import io.github.glynch.jscene3d.wad.WadLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -51,13 +47,5 @@ final class FreedoomStaticGeometryBuilderTest {
                 .filteredOn(surface -> surface.type() == DoomSurface.Type.MIDDLE_WALL)
                 .isNotEmpty();
         assertThat(geometry.playerStart()).isEqualTo(new DoomPlayerStart(-6.0F, 41.0F / 32.0F, 6.0F, 0.0F));
-        DoomGameSession session = DoomGameSession.create(map, geometry.playerStart());
-        DoomPlayerState moved =
-                session.advance(new DoomPlayerCommand(1.0F, 0.0F, 0.0F, 0.0F, 0.0F), Duration.ofMillis(100));
-        assertThat(moved.x()).isGreaterThan(geometry.playerStart().x());
-        try (DoomMapPresentation presentation = DoomMapPresentation.create(
-                geometry, materials, List.of(), new DoomActorSprites(java.util.Map.of()), 16.0F / 9.0F)) {
-            assertThat(presentation.scene().children()).hasSameSizeAs(geometry.surfaces());
-        }
     }
 }

@@ -86,26 +86,29 @@ The descriptor-authored MAP01 world currently provides:
 - enemies with authored sight, pursuit, collision, attacks, pain, death,
   positional audio, and non-blocking corpses;
 - useful-only health and bullet pickup collection through authored sensors;
-- a descriptor-authored HUD showing live health and bullet ammunition; and
+- a descriptor-authored HUD showing live health and bullet ammunition;
 - player pain and death presentation, including local audio, damage flashes, a
   lowered death view, hidden weapon, disabled controls, and retained world and
-  HUD presentation.
+  HUD presentation;
+- manual open-stay and blaze raise/wait/close doors published as independently
+  movable render and collision entities.
 
 Component participation, references, signals, actions, and update phases come
 from project and generated descriptors. Game-specific Java code is supplied by
 the manifest-selected Doomed Corridors runtime extension; the desktop launcher
 contains no knowledge of this game.
 
-Only MAP01 is currently selected. Doors, lifts, navigation beyond
-last-visible-position pursuit, other sector specials, and restarting after
-player death remain later vertical slices.
+Only MAP01 is currently selected. Lifts, navigation beyond last-visible-position
+pursuit, other sector specials, and restarting after player death remain later
+vertical slices.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the
 left/right arrow keys turn. The left mouse button fires while the pointer is
 captured. Held keyboard turning accelerates from the authored initial rate to its
 authored maximum; releasing or reversing the key resets that rate. Close the
-application with the native window close control.
+application with the native window close control. E activates the nearest
+unobstructed supported door within the authored interaction range.
 
 ## Previewing in the editor
 

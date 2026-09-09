@@ -27,7 +27,7 @@ public final class DoomActorResolver {
         DoomMap validMap = Objects.requireNonNull(map, "map");
         DoomActorCatalog validCatalog = Objects.requireNonNull(catalog, "catalog");
         DoomSkillLevel validSkillLevel = Objects.requireNonNull(skillLevel, "skillLevel");
-        DoomCollisionWorld world = new DoomCollisionWorld(validMap);
+        DoomFloorResolver floors = new DoomFloorResolver(validMap);
         List<DoomActor> actors = new ArrayList<>();
         List<DoomActorDiagnostic> diagnostics = new ArrayList<>();
         for (int index = 0; index < validMap.things().size(); index++) {
@@ -40,7 +40,7 @@ public final class DoomActorResolver {
             if (definition == null) {
                 diagnostics.add(unsupported(normalizedSource, index, thing.type()));
             } else if (definition.spriteFrame().isPresent()) {
-                actors.add(resolve(index, thing, definition, world));
+                actors.add(resolve(index, thing, definition, floors));
             }
         }
         return new DoomActorResolution(actors, diagnostics);
@@ -48,10 +48,10 @@ public final class DoomActorResolver {
 
     /** Converts one selected visible thing into engine world coordinates. */
     private static DoomActor resolve(
-            int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomCollisionWorld world) {
+            int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomFloorResolver floors) {
         float x = DoomUnits.toWorld(thing.x());
         float z = DoomUnits.yToWorldZ(thing.y());
-        return new DoomActor(index, definition, x, world.floorHeight(x, z), z, (float) Math.toRadians(thing.angle()));
+        return new DoomActor(index, definition, x, floors.floorHeight(x, z), z, (float) Math.toRadians(thing.angle()));
     }
 
     /** Creates a stable warning for one selected but undefined classic thing type. */

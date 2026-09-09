@@ -60,6 +60,9 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type binding mutable player resources into generic screen-number components. */
     public static final ComponentType PLAYER_HUD_TYPE = ComponentType.of(EXTENSION_ID + "/player-hud", 1);
 
+    /** Runtime type for the player-facing interaction ray used to activate imported doors. */
+    public static final ComponentType DOOR_INTERACTOR_TYPE = ComponentType.of(EXTENSION_ID + "/door-interactor", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
@@ -216,6 +219,18 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Explicit generic screen-number target displaying bullet ammunition. */
     public static final PropertyId HUD_AMMO_NUMBER_PROPERTY = new PropertyId("ammo-number");
+
+    /** Explicit component target supplying the interaction ray origin and direction. */
+    public static final PropertyId INTERACTION_VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
+
+    /** Explicit entity whose collision may contain the interaction ray origin. */
+    public static final PropertyId INTERACTION_IGNORED_ENTITY_PROPERTY = new PropertyId("ignored-entity");
+
+    /** Semantic input action which requests interaction. */
+    public static final PropertyId INTERACTION_ACTION_PROPERTY = new PropertyId("action");
+
+    /** Maximum interaction ray distance in project world units. */
+    public static final PropertyId INTERACTION_MAXIMUM_DISTANCE_PROPERTY = new PropertyId("maximum-distance");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");
