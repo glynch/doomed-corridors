@@ -127,6 +127,9 @@ final class DoomHitscanWeapon
         DoomPlayerState player = owner.capability(
                         DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .orElseThrow(() -> new IllegalStateException("weapon owner has no player resources"));
+        if (player.health() == 0) {
+            return;
+        }
         if (!player.spendBullets(ammunitionPerShot)) {
             return;
         }

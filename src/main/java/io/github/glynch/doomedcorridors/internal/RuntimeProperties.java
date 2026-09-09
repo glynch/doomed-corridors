@@ -51,6 +51,15 @@ public final class RuntimeProperties {
         return converted;
     }
 
+    /** Converts one descriptor-validated number into a finite float in the closed unit interval. */
+    public static float unitIntervalFloat(ComponentProperties properties, PropertyId property) {
+        float converted = finiteFloat(properties, property);
+        if (converted < 0.0F || converted > 1.0F) {
+            throw new IllegalArgumentException(property + " must be in [0, 1]");
+        }
+        return converted;
+    }
+
     /** Converts one homogeneous descriptor-validated array into immutable resource references. */
     public static List<ResourceReference> resourceReferences(ComponentProperties properties, PropertyId property) {
         ProjectValue value =

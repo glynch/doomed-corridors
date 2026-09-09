@@ -146,8 +146,11 @@ and attack signals. The imported actor definition connects them to a presentatio
 component whose sight and attack audio plus idle, looping walk, attack, pain, and
 terminal death frames are all explicit properties. Death and pain take visual
 priority over attacks, which take priority over movement and idle. Player pain,
-death presentation, and terminal control handling remain a separate presentation
-and lifecycle increment.
+death presentation, and terminal control handling are separately authored
+presentation and lifecycle components. Player-state signals activate their
+explicit actions; terminal damage disables only the Player Controls child while
+the view and HUD remain active, the fatal red response fades into a subtle dark
+shade, and the weapon rejects firing at zero health.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

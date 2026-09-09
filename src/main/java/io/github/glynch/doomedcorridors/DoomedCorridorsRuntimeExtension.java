@@ -99,6 +99,9 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         context.properties().text(DoomedCorridorsRuntimeTypes.WEAPON_ID_PROPERTY),
                         context.properties().text(DoomedCorridorsRuntimeTypes.FIRE_ACTION_PROPERTY)));
         validRegistry.register(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
+        validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_PRESENTATION_TYPE, new PlayerPresentationFactory());
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE, context -> new DoomPlayerLifecycle(context.world()));
         validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE, context -> new DoomPlayerHud());
     }
 
@@ -276,6 +279,49 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     fireSound,
                     frameDuration,
                     hitIndicatorDuration);
+        }
+    }
+
+    /** Resolves immutable player sounds before constructing listener-relative damage presentation. */
+    private static final class PlayerPresentationFactory implements ComponentFactory<DoomPlayerPresentation> {
+        @Override
+        public void prepare(ComponentPreparationContext context) {
+            ComponentProperties properties = context.properties();
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+        }
+
+        @Override
+        public DoomPlayerPresentation create(ComponentFactoryContext context) {
+            ComponentProperties properties = context.properties();
+            PcmAudioResource painSound = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            PcmAudioResource deathSound = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            Duration painFlashDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY));
+            Duration deathFlashDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY));
+            return new DoomPlayerPresentation(
+                    context.world().requireModule(PresentationWorldModule.class),
+                    painSound,
+                    deathSound,
+                    new DoomPlayerPresentation.Flash(
+                            painFlashDuration,
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_OPACITY_PROPERTY)),
+                    new DoomPlayerPresentation.Flash(
+                            deathFlashDuration,
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY)),
+                    RuntimeProperties.unitIntervalFloat(
+                            properties, DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY));
         }
     }
 }

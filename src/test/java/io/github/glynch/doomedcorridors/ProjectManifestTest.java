@@ -185,6 +185,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/enemy-behavior",
                         EXTENSION_ID + "/hitscan-weapon",
                         EXTENSION_ID + "/weapon-presentation",
+                        EXTENSION_ID + "/player-presentation",
+                        EXTENSION_ID + "/player-lifecycle",
                         EXTENSION_ID + "/player-hud");
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
@@ -248,6 +250,43 @@ final class ProjectManifestTest {
                                     DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY);
+                });
+    }
+
+    /** Declares independently authored player damage presentation and terminal lifecycle behavior. */
+    @Test
+    void declaresPlayerPresentationAndLifecycleContracts() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_PRESENTATION_TYPE)
+                        .orElseThrow())
+                .satisfies(presentation -> {
+                    assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
+                    assertThat(presentation.properties())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_OPACITY_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY);
+                    assertThat(presentation.actions())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_HURT_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                });
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE)
+                        .orElseThrow())
+                .satisfies(lifecycle -> {
+                    assertThat(lifecycle.properties())
+                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.PLAYER_CONTROL_ENTITY_PROPERTY);
+                    assertThat(lifecycle.actions())
+                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
                 });
     }
 

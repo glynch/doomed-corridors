@@ -335,7 +335,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             return;
         }
         publishMap(context, prefix, resolution.actors(), imported.orElseThrow(), rules, presentation);
-        publishWeaponPresentation(context, prefix, presentation);
+        publishPlayerPresentationResources(context, prefix, presentation);
     }
 
     /** Imports every unique selected spawn frame while preserving classic patch origin metadata. */
@@ -455,8 +455,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         }
     }
 
-    /** Publishes the selected weapon, HUD images, and local firing sound for this slice. */
-    private static void publishWeaponPresentation(
+    /** Publishes the selected weapon, HUD images, and listener-relative player sounds. */
+    private static void publishPlayerPresentationResources(
             ImportPreparationContext context, String prefix, CombatPresentationAssets assets) throws IOException {
         DoomCombatPresentationRules.Weapon weapon = assets.presentation().weapon();
         List<String> frames = new ArrayList<>();
@@ -477,6 +477,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 context,
                 weaponSoundIdentity(prefix, weapon.fireSound()),
                 assets.sounds().get(weapon.fireSound()));
+        DoomCombatPresentationRules.Player player = assets.presentation().player();
+        publishSound(
+                context,
+                playerSoundIdentity(prefix, player.painSound()),
+                assets.sounds().get(player.painSound()));
+        publishSound(
+                context,
+                playerSoundIdentity(prefix, player.deathSound()),
+                assets.sounds().get(player.deathSound()));
     }
 
     /** Publishes one exact WAD patch as a generic immutable screen image. */
@@ -1204,6 +1213,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Returns one selected weapon local-sound identity. */
     private static String weaponSoundIdentity(String prefix, String sound) {
         return prefix + "/presentation/weapons/audio/" + sound.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one selected player-local sound identity. */
+    private static String playerSoundIdentity(String prefix, String sound) {
+        return prefix + "/presentation/player/audio/" + sound.toLowerCase(Locale.ROOT);
     }
 
     /** Returns one actor-specific positional sound identity. */

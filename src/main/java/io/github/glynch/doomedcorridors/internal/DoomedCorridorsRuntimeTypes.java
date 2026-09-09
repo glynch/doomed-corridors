@@ -50,6 +50,13 @@ public final class DoomedCorridorsRuntimeTypes {
     public static final ComponentType WEAPON_PRESENTATION_TYPE =
             ComponentType.of(EXTENSION_ID + "/weapon-presentation", 1);
 
+    /** Runtime type for listener-relative player pain and death feedback. */
+    public static final ComponentType PLAYER_PRESENTATION_TYPE =
+            ComponentType.of(EXTENSION_ID + "/player-presentation", 1);
+
+    /** Runtime type applying terminal player lifecycle changes to explicit entity targets. */
+    public static final ComponentType PLAYER_LIFECYCLE_TYPE = ComponentType.of(EXTENSION_ID + "/player-lifecycle", 1);
+
     /** Runtime type binding mutable player resources into generic screen-number components. */
     public static final ComponentType PLAYER_HUD_TYPE = ComponentType.of(EXTENSION_ID + "/player-hud", 1);
 
@@ -161,6 +168,31 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Duration of the successful-hit indicator in milliseconds. */
     public static final PropertyId HIT_INDICATOR_MILLISECONDS_PROPERTY = new PropertyId("hit-indicator-milliseconds");
 
+    /** Listener-relative PCM resource played after non-fatal player damage. */
+    public static final PropertyId PLAYER_PAIN_SOUND_PROPERTY = new PropertyId("pain-sound");
+
+    /** Listener-relative PCM resource played after terminal player damage. */
+    public static final PropertyId PLAYER_DEATH_SOUND_PROPERTY = new PropertyId("death-sound");
+
+    /** Duration of one non-fatal red damage response. */
+    public static final PropertyId PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY = new PropertyId("pain-flash-milliseconds");
+
+    /** Maximum opacity of one non-fatal red damage response. */
+    public static final PropertyId PLAYER_PAIN_FLASH_OPACITY_PROPERTY = new PropertyId("pain-flash-opacity");
+
+    /** Duration of the terminal red damage response. */
+    public static final PropertyId PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY =
+            new PropertyId("death-flash-milliseconds");
+
+    /** Maximum opacity of the terminal red damage response. */
+    public static final PropertyId PLAYER_DEATH_FLASH_OPACITY_PROPERTY = new PropertyId("death-flash-opacity");
+
+    /** Persistent dark-shade opacity after terminal damage. */
+    public static final PropertyId PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY = new PropertyId("terminal-shade-opacity");
+
+    /** Explicit entity containing input-driven player controls disabled on death. */
+    public static final PropertyId PLAYER_CONTROL_ENTITY_PROPERTY = new PropertyId("control-entity");
+
     /** Explicit player-state target displayed by the HUD behavior. */
     public static final PropertyId HUD_PLAYER_STATE_PROPERTY = new PropertyId("player-state");
 
@@ -193,6 +225,12 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Presentation action receiving one shot which applied damage. */
     public static final EndpointId RECEIVE_WEAPON_HIT_ACTION = new EndpointId("receive-hit");
+
+    /** Player presentation action receiving non-fatal damage. */
+    public static final EndpointId RECEIVE_PLAYER_HURT_ACTION = new EndpointId("receive-hurt");
+
+    /** Player presentation or lifecycle action receiving terminal damage. */
+    public static final EndpointId RECEIVE_PLAYER_DIED_ACTION = new EndpointId("receive-died");
 
     /** Signal emitted after non-fatal damage is applied to a damageable state component. */
     public static final EndpointId HURT_SIGNAL = new EndpointId("hurt");

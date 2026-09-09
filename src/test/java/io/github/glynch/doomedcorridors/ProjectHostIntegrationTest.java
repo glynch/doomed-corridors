@@ -52,6 +52,7 @@ final class ProjectHostIntegrationTest {
     private static final AssetId MAP_DEFINITION = AssetId.from("15a64477-b57f-3ae3-bf65-33cd6baab7b6");
     private static final AssetId ACTOR_MAP_DEFINITION = AssetId.from("d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe");
     private static final EntityId PLAYER_ENTITY = EntityId.from("0b295328-b5a3-4f41-9f34-e9b4abc430a7");
+    private static final EntityId PLAYER_CONTROLS = EntityId.from("5c76aa79-5270-4b2a-83c2-7451c50a7c40");
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
     private static final EntityId PLAYER_HUD = EntityId.from("c4f5ca56-661a-424d-aec2-b423d299af47");
@@ -97,6 +98,8 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
     private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
+    private static final ComponentId PLAYER_PRESENTATION = ComponentId.from("7be3f3e4-e576-4710-8382-260037317921");
+    private static final ComponentId PLAYER_LIFECYCLE = ComponentId.from("10bfeecd-9583-4182-8f0c-1165e98fc714");
     private static final ComponentId HEALTH_NUMBER = ComponentId.from("2313f424-d11e-4c6b-95a2-1c8dbe583b7d");
     private static final ComponentId AMMO_NUMBER = ComponentId.from("00f54e60-dd1c-47e2-a180-83bfcefdc2d9");
     private static final InputAction MOVE = new InputAction("move");
@@ -138,7 +141,9 @@ final class ProjectHostIntegrationTest {
                     .extracting(entity -> entity.name().orElseThrow())
                     .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors", "Player HUD");
             assertThat(character.isClosed()).isFalse();
-            assertThat(player.componentIds()).contains(PLAYER_CONTROLLER, PLAYER_WEAPON);
+            assertThat(player.componentIds())
+                    .contains(PLAYER_WEAPON, WEAPON_PRESENTATION, PLAYER_PRESENTATION, PLAYER_LIFECYCLE)
+                    .doesNotContain(PLAYER_CONTROLLER);
             assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
             assertThat(playerTransform.position().y()).isEqualTo(0.875F);
             assertThat(playerTransform.position().z()).isEqualTo(6.0F);
@@ -387,7 +392,7 @@ final class ProjectHostIntegrationTest {
             loaded.world().advanceFrame(Duration.ZERO, 0.0F);
             assertThat(healthNumber.value()).isEqualTo(100);
             assertThat(ammoNumber.value()).isEqualTo(50);
-            assertThat(presentation.overlayCount()).isEqualTo(2);
+            assertThat(presentation.overlayCount()).isEqualTo(3);
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
             input.publish(ActionSnapshot.empty());
@@ -448,6 +453,74 @@ final class ProjectHostIntegrationTest {
         }
         assertThat(presentation.overlayCount()).isZero();
         assertThat(presentation.soundClosed()).isTrue();
+    }
+
+    /** Presents player damage and disables only input-driven controls when health reaches zero. */
+    @Test
+    void presentsPlayerDamageAndAppliesTerminalLifecycle() {
+        Path cache = temporaryDirectory.resolve("player-presentation-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        TestPresentationWorldModule presentationWorld = new TestPresentationWorldModule();
+
+        try (HostedProject loaded = load(cache, presentationWorld)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Entity controls = child(player, PLAYER_CONTROLS);
+            Entity view = player.children().stream()
+                    .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
+                    .findFirst()
+                    .orElseThrow();
+            Entity hud = root(loaded, PLAYER_HUD);
+            DoomPlayerState state = player.component(
+                            ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
+                    .orElseThrow();
+            DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
+                    .orElseThrow();
+            DoomPlayerLifecycle lifecycle = player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class)
+                    .orElseThrow();
+            Transform3d transform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            loaded.world().activate();
+            assertThat(presentationWorld.overlayCount()).isEqualTo(3);
+            assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER);
+            assertThat(state.damage(10)).isEqualTo(10);
+            assertThat(presentation.isDead()).isFalse();
+            assertThat(presentation.currentRedOpacity()).isEqualTo(0.32F);
+            assertThat(presentation.currentShadeOpacity()).isZero();
+            assertThat(presentationWorld.restarts()).isEqualTo(1);
+            assertThat(controls.isEnabled()).isTrue();
+
+            loaded.world().advanceFrame(Duration.ofMillis(250), 0.0F);
+            assertThat(presentation.currentRedOpacity()).isZero();
+
+            assertThat(state.damage(90)).isEqualTo(90);
+            assertThat(presentation.isDead()).isTrue();
+            assertThat(presentation.currentRedOpacity()).isEqualTo(0.45F);
+            assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
+            assertThat(presentationWorld.restarts()).isEqualTo(2);
+            assertThat(lifecycle.isDead()).isTrue();
+            assertThat(controls.isLocallyEnabled()).isFalse();
+            assertThat(view.isEnabled()).isTrue();
+            assertThat(hud.isEnabled()).isTrue();
+
+            Vector3f position = new Vector3f(transform.position());
+            int bullets = state.bullets();
+            input.publish(ActionSnapshot.builder()
+                    .axis2d(MOVE, 0.0F, 1.0F)
+                    .pressed(FIRE_PRIMARY)
+                    .build());
+            loaded.world().advanceFixed(Duration.ofMillis(100));
+            assertThat(transform.position()).isEqualTo(position);
+            assertThat(state.bullets()).isEqualTo(bullets);
+
+            loaded.world().advanceFrame(Duration.ofMillis(500), 0.0F);
+            assertThat(presentation.currentRedOpacity()).isZero();
+            assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
+        }
+
+        assertThat(presentationWorld.overlayCount()).isZero();
+        assertThat(presentationWorld.soundClosed()).isTrue();
     }
 
     /** Collects one useful imported stimpack through its authored physics-signal connection. */
@@ -620,6 +693,14 @@ final class ProjectHostIntegrationTest {
     /** Finds one authored world root by its stable placement identity. */
     private static Entity root(HostedProject loaded, EntityId authoredId) {
         return loaded.world().roots().stream()
+                .filter(entity -> entity.authoredId().equals(authoredId))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** Finds one direct child by its stable authored identity. */
+    private static Entity child(Entity parent, EntityId authoredId) {
+        return parent.children().stream()
                 .filter(entity -> entity.authoredId().equals(authoredId))
                 .findFirst()
                 .orElseThrow();

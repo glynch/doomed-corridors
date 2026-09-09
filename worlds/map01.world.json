@@ -28,6 +28,42 @@
         "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
         "endpointId": "receive-hit"
       }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+        "endpointId": "hurt"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "7be3f3e4-e576-4710-8382-260037317921",
+        "endpointId": "receive-hurt"
+      }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+        "endpointId": "died"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "7be3f3e4-e576-4710-8382-260037317921",
+        "endpointId": "receive-died"
+      }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+        "endpointId": "died"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "10bfeecd-9583-4182-8f0c-1165e98fc714",
+        "endpointId": "receive-died"
+      }
     }
   ],
   "roots": [
@@ -70,35 +106,6 @@
             "jump-speed": 0,
             "maximum-step-height": 0.5,
             "ground-snap-distance": 0.25
-          }
-        },
-        {
-          "componentId": "486f49a3-fe97-4a6c-b92d-533a1995493c",
-          "type": "io.github.glynch.jscene3d.game3d/first-person-character-controller-3d",
-          "typeVersion": 1,
-          "properties": {
-            "body": {
-              "$target": {
-                "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
-                "componentId": "4d8cae80-322d-4bdf-b8c0-5703699de177"
-              }
-            },
-            "view-transform": {
-              "$target": {
-                "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
-                "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
-              }
-            },
-            "move-action": "move",
-            "look-action": "look",
-            "turn-left-action": "turn-left",
-            "turn-right-action": "turn-right",
-            "move-speed": 8,
-            "turn-speed-degrees": 180,
-            "maximum-keyboard-turn-speed-degrees": 360,
-            "keyboard-turn-acceleration-degrees": 540,
-            "pointer-sensitivity": 0.0015,
-            "maximum-pitch-degrees": 85
           }
         },
         {
@@ -161,6 +168,36 @@
             "frame-milliseconds": 70,
             "hit-indicator-milliseconds": 120
           }
+        },
+        {
+          "componentId": "7be3f3e4-e576-4710-8382-260037317921",
+          "type": "io.github.glynch.doomed-corridors/player-presentation",
+          "typeVersion": 1,
+          "properties": {
+            "pain-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/player/audio/dsplpain"
+            },
+            "death-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/player/audio/dspldeth"
+            },
+            "pain-flash-milliseconds": 250,
+            "pain-flash-opacity": 0.32,
+            "death-flash-milliseconds": 500,
+            "death-flash-opacity": 0.45,
+            "terminal-shade-opacity": 0.18
+          }
+        },
+        {
+          "componentId": "10bfeecd-9583-4182-8f0c-1165e98fc714",
+          "type": "io.github.glynch.doomed-corridors/player-lifecycle",
+          "typeVersion": 1,
+          "properties": {
+            "control-entity": {
+              "$target": {
+                "entityId": "5c76aa79-5270-4b2a-83c2-7451c50a7c40"
+              }
+            }
+          }
         }
       ],
       "children": [
@@ -188,6 +225,44 @@
                 "near": 0.05,
                 "far": 256,
                 "primary": true
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "5c76aa79-5270-4b2a-83c2-7451c50a7c40",
+          "name": "Player Controls",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "486f49a3-fe97-4a6c-b92d-533a1995493c",
+              "type": "io.github.glynch.jscene3d.game3d/first-person-character-controller-3d",
+              "typeVersion": 1,
+              "properties": {
+                "body": {
+                  "$target": {
+                    "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                    "componentId": "4d8cae80-322d-4bdf-b8c0-5703699de177"
+                  }
+                },
+                "view-transform": {
+                  "$target": {
+                    "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+                    "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
+                  }
+                },
+                "move-action": "move",
+                "look-action": "look",
+                "turn-left-action": "turn-left",
+                "turn-right-action": "turn-right",
+                "move-speed": 8,
+                "turn-speed-degrees": 180,
+                "maximum-keyboard-turn-speed-degrees": 360,
+                "keyboard-turn-acceleration-degrees": 540,
+                "pointer-sensitivity": 0.0015,
+                "maximum-pitch-degrees": 85
               }
             }
           ],

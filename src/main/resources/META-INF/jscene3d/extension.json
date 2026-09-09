@@ -511,6 +511,105 @@
       ]
     },
     {
+      "id": "io.github.glynch.doomed-corridors/player-presentation",
+      "typeVersion": 1,
+      "displayName": "Doom Player Presentation",
+      "description": "Presents descriptor-connected player pain and terminal death through local audio and a screen tint.",
+      "updatePhases": ["frame-update"],
+      "properties": [
+        {
+          "id": "pain-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Pain Sound",
+          "description": "Imported listener-relative PCM effect played after non-fatal damage.",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "death-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Death Sound",
+          "description": "Imported listener-relative PCM effect played after terminal damage.",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "pain-flash-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Pain Flash Duration",
+          "description": "Positive duration of the non-fatal red response in milliseconds.",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "pain-flash-opacity",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Pain Flash Opacity",
+          "description": "Maximum opacity of the non-fatal red response.",
+          "editor": {"minimum-exclusive": 0, "maximum-inclusive": 1}
+        },
+        {
+          "id": "death-flash-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Death Flash Duration",
+          "description": "Positive duration of the terminal red response in milliseconds.",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "death-flash-opacity",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Death Flash Opacity",
+          "description": "Maximum opacity of the terminal red response.",
+          "editor": {"minimum-exclusive": 0, "maximum-inclusive": 1}
+        },
+        {
+          "id": "terminal-shade-opacity",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Terminal Shade Opacity",
+          "description": "Persistent dark-shade opacity after the player dies.",
+          "editor": {"minimum-inclusive": 0, "maximum-inclusive": 1}
+        }
+      ],
+      "actions": [
+        {
+          "id": "receive-hurt",
+          "displayName": "Receive Hurt",
+          "description": "Starts the authored non-fatal pain response."
+        },
+        {
+          "id": "receive-died",
+          "displayName": "Receive Died",
+          "description": "Starts the authored terminal death response."
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/player-lifecycle",
+      "typeVersion": 1,
+      "displayName": "Doom Player Lifecycle",
+      "description": "Disables an explicitly targeted player-controls entity after terminal damage.",
+      "properties": [
+        {
+          "id": "control-entity",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Control Entity",
+          "description": "Exact input-driven entity disabled when the player dies."
+        }
+      ],
+      "actions": [
+        {
+          "id": "receive-died",
+          "displayName": "Receive Died",
+          "description": "Applies the terminal lifecycle transition exactly once."
+        }
+      ]
+    },
+    {
       "id": "io.github.glynch.doomed-corridors/player-hud",
       "typeVersion": 1,
       "displayName": "Doom Player HUD",
