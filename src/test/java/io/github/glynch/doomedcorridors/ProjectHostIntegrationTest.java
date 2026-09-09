@@ -15,7 +15,6 @@ import io.github.glynch.jscene3d.game.input.ProjectInput;
 import io.github.glynch.jscene3d.objects.BillboardAlignment;
 import io.github.glynch.jscene3d.project.asset.AssetId;
 import io.github.glynch.jscene3d.project.component.ComponentId;
-import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
 import io.github.glynch.jscene3d.project.entity.EntityId;
 import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
@@ -72,6 +71,7 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
+    private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
@@ -214,8 +214,9 @@ final class ProjectHostIntegrationTest {
     void firesPlayerWeaponThroughHostedWorld() {
         Path cache = temporaryDirectory.resolve("weapon-import-cache");
         DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        TestPresentationWorldModule presentation = new TestPresentationWorldModule();
 
-        try (HostedProject loaded = load(cache)) {
+        try (HostedProject loaded = load(cache, presentation)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             DoomPlayerState playerState = player.capability(
                             DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
@@ -227,12 +228,17 @@ final class ProjectHostIntegrationTest {
             Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
             Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+            DoomWeaponPresentation weaponPresentation = player.component(
+                            WEAPON_PRESENTATION, DoomWeaponPresentation.class)
+                    .orElseThrow();
 
             loaded.world().activate();
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
             input.publish(ActionSnapshot.empty());
             assertThat(playerState.bullets()).isEqualTo(49);
+            assertThat(presentation.restarts()).isEqualTo(1);
+            assertThat(weaponPresentation.isFiring()).isTrue();
 
             ShotLine firingLine = unobstructedShot(actors, physics);
             Entity target = firingLine.target();
@@ -250,7 +256,10 @@ final class ProjectHostIntegrationTest {
             assertThat(actors.children()).hasSize(118);
             assertThat(physics.collisionObjectCount()).isEqualTo(36);
             assertThat(physics.collisionShapeCount()).isEqualTo(36);
+            assertThat(presentation.restarts()).isEqualTo(5);
         }
+        assertThat(presentation.overlay()).isNull();
+        assertThat(presentation.soundClosed()).isTrue();
     }
 
     /** Collects one useful imported stimpack through its authored physics-signal connection. */
@@ -408,10 +417,15 @@ final class ProjectHostIntegrationTest {
 
     /** Loads the authored project through the same generic host used by desktop exports. */
     private static HostedProject load(Path cache) {
+        return load(cache, new TestPresentationWorldModule());
+    }
+
+    /** Loads through a desktop-equivalent environment with native presentation replaced by an observable test seam. */
+    private static HostedProject load(Path cache, TestPresentationWorldModule presentation) {
         ProjectHost host = new ProjectRuntimeHost(
                 ENGINE_VERSION,
                 ProjectHostIntegrationTest.class.getClassLoader(),
-                new StandardProjectEnvironment(cache));
+                new TestProjectEnvironment(cache, presentation));
         return host.load(PROJECT_ROOT);
     }
 

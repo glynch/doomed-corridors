@@ -13,14 +13,22 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.doomedcorridors.internal.RuntimeProperties;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
+import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
+import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
 import io.github.glynch.jscene3d.project.runtime.extension.ApplicationRuntimeExtension;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentFactory;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentFactoryContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentFactoryRegistry;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentPreparationContext;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentProperties;
+import io.github.glynch.jscene3d.project.spatial3d.Texture3dResource;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,6 +87,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
                         context.properties().text(DoomedCorridorsRuntimeTypes.WEAPON_ID_PROPERTY),
                         context.properties().text(DoomedCorridorsRuntimeTypes.FIRE_ACTION_PROPERTY)));
+        validRegistry.register(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
     }
 
     /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */
@@ -149,6 +158,48 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         private RuleSources {
             Objects.requireNonNull(actorCatalog, "actorCatalog");
             Objects.requireNonNull(combatRules, "combatRules");
+        }
+    }
+
+    /** Resolves all immutable presentation resources before constructing a weapon overlay. */
+    private static final class WeaponPresentationFactory implements ComponentFactory<DoomWeaponPresentation> {
+        @Override
+        public void prepare(ComponentPreparationContext context) {
+            ComponentProperties properties = context.properties();
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.READY_FRAME_PROPERTY),
+                    Texture3dResource.class);
+            for (ResourceReference reference : RuntimeProperties.resourceReferences(
+                    properties, DoomedCorridorsRuntimeTypes.FIRE_FRAMES_PROPERTY)) {
+                context.resolveResource(reference, Texture3dResource.class);
+            }
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.FIRE_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+        }
+
+        @Override
+        public DoomWeaponPresentation create(ComponentFactoryContext context) {
+            ComponentProperties properties = context.properties();
+            Texture3dResource readyFrame = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.READY_FRAME_PROPERTY),
+                    Texture3dResource.class);
+            List<Texture3dResource> fireFrames =
+                    RuntimeProperties.resourceReferences(properties, DoomedCorridorsRuntimeTypes.FIRE_FRAMES_PROPERTY)
+                            .stream()
+                            .map(reference -> context.resolveResource(reference, Texture3dResource.class))
+                            .toList();
+            PcmAudioResource fireSound = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.FIRE_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            Duration frameDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.FRAME_MILLISECONDS_PROPERTY));
+            return new DoomWeaponPresentation(
+                    context.world().requireModule(PresentationWorldModule.class),
+                    readyFrame,
+                    fireFrames,
+                    fireSound,
+                    frameDuration);
         }
     }
 }

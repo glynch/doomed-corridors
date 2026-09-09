@@ -158,6 +158,60 @@
           "displayName": "Fire Action",
           "description": "Semantic button action which fires one shot when pressed."
         }
+      ],
+      "signals": [
+        {
+          "id": "fired",
+          "displayName": "Fired",
+          "description": "Emitted after ammunition is consumed and one shot is resolved."
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/weapon-presentation",
+      "typeVersion": 1,
+      "displayName": "Doom Weapon Presentation",
+      "description": "Displays and animates one first-person weapon and plays its local firing sound.",
+      "updatePhases": ["frame-update"],
+      "properties": [
+        {
+          "id": "ready-frame",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Ready Frame",
+          "description": "Imported overlay texture displayed while idle.",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "fire-frames",
+          "valueKind": "array",
+          "elementKind": "reference",
+          "required": true,
+          "displayName": "Fire Frames",
+          "description": "Ordered imported overlay textures displayed after an accepted shot."
+        },
+        {
+          "id": "fire-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Fire Sound",
+          "description": "Imported listener-relative PCM firing effect.",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "frame-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Frame Duration",
+          "description": "Positive duration of each firing frame in milliseconds."
+        }
+      ],
+      "actions": [
+        {
+          "id": "receive-fired",
+          "displayName": "Receive Fired",
+          "description": "Restarts the firing animation and sound for one accepted shot."
+        }
       ]
     }
   ]

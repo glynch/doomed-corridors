@@ -32,6 +32,10 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type for one input-driven hitscan weapon. */
     public static final ComponentType HITSCAN_WEAPON_TYPE = ComponentType.of(EXTENSION_ID + "/hitscan-weapon", 1);
 
+    /** Runtime type for first-person weapon overlay and local firing sound. */
+    public static final ComponentType WEAPON_PRESENTATION_TYPE =
+            ComponentType.of(EXTENSION_ID + "/weapon-presentation", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
@@ -59,6 +63,18 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Semantic input action which fires the weapon. */
     public static final PropertyId FIRE_ACTION_PROPERTY = new PropertyId("fire-action");
 
+    /** Ready overlay texture displayed while the weapon is idle. */
+    public static final PropertyId READY_FRAME_PROPERTY = new PropertyId("ready-frame");
+
+    /** Ordered overlay textures displayed after an accepted shot. */
+    public static final PropertyId FIRE_FRAMES_PROPERTY = new PropertyId("fire-frames");
+
+    /** Listener-relative PCM resource played after an accepted shot. */
+    public static final PropertyId FIRE_SOUND_PROPERTY = new PropertyId("fire-sound");
+
+    /** Duration of each firing overlay frame in milliseconds. */
+    public static final PropertyId FRAME_MILLISECONDS_PROPERTY = new PropertyId("frame-milliseconds");
+
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");
 
@@ -70,6 +86,12 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Pickup action receiving the generic physics overlap payload. */
     public static final EndpointId RECEIVE_OVERLAP_ACTION = new EndpointId("receive-overlap");
+
+    /** Signal emitted exactly once after a weapon accepts and resolves one shot. */
+    public static final EndpointId WEAPON_FIRED_SIGNAL = new EndpointId("fired");
+
+    /** Presentation action receiving one accepted weapon shot. */
+    public static final EndpointId RECEIVE_WEAPON_FIRED_ACTION = new EndpointId("receive-fired");
 
     /** Prevents construction of this identity container. */
     private DoomedCorridorsRuntimeTypes() {

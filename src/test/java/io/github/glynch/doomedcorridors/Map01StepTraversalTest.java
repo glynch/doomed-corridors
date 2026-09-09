@@ -17,7 +17,6 @@ import io.github.glynch.jscene3d.physics.movement.KinematicMoveSettings;
 import io.github.glynch.jscene3d.physics.shapes.CapsuleShape;
 import io.github.glynch.jscene3d.physics.shapes.TriangleMeshShape;
 import io.github.glynch.jscene3d.project.component.ComponentId;
-import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
 import io.github.glynch.jscene3d.project.entity.EntityId;
 import io.github.glynch.jscene3d.project.physics3d.CollisionShape3d;
 import io.github.glynch.jscene3d.project.physics3d.TriangleMeshCollisionShape3dResource;
@@ -238,7 +237,9 @@ final class Map01StepTraversalTest {
     /** Loads the authored project through the generic project host. */
     private HostedProject load(Path cache) {
         ProjectHost host = new ProjectRuntimeHost(
-                ENGINE_VERSION, Map01StepTraversalTest.class.getClassLoader(), new StandardProjectEnvironment(cache));
+                ENGINE_VERSION,
+                Map01StepTraversalTest.class.getClassLoader(),
+                new TestProjectEnvironment(cache, new TestPresentationWorldModule()));
         return host.load(PROJECT_ROOT);
     }
 

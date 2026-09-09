@@ -13,6 +13,9 @@ import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.FixedUpdateContext;
+import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
@@ -25,7 +28,8 @@ import java.util.random.RandomGenerator;
 import org.joml.Vector3f;
 
 /** Input-driven Doom hitscan weapon using the authored player view as its firing pose. */
-final class DoomHitscanWeapon implements DoomRuleConsumer, ComponentReferenceBinder, ComponentUpdateCallbacks {
+final class DoomHitscanWeapon
+        implements DoomRuleConsumer, ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks {
     private static final float SELF_HIT_ADVANCE = 1.0E-4F;
 
     private final Entity owner;
@@ -37,6 +41,7 @@ final class DoomHitscanWeapon implements DoomRuleConsumer, ComponentReferenceBin
     private final InputAction fireAction;
     private final RandomGenerator random;
     private Optional<Transform3d> viewTransform = Optional.empty();
+    private RuntimeSignal fired;
     private int ammunitionPerShot;
     private float range;
     private DoomCombatRules rules;
@@ -91,6 +96,12 @@ final class DoomHitscanWeapon implements DoomRuleConsumer, ComponentReferenceBin
                 .component(DoomedCorridorsRuntimeTypes.VIEW_TRANSFORM_PROPERTY, Transform3d.class));
     }
 
+    /** Binds the descriptor-declared successful-shot signal. */
+    @Override
+    public void bindEndpoints(ComponentEndpoints endpoints) {
+        fired = Objects.requireNonNull(endpoints, "endpoints").signal(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
+    }
+
     @Override
     public void onAfterPhysics(FixedUpdateContext update) {
         Objects.requireNonNull(update, "update");
@@ -104,6 +115,7 @@ final class DoomHitscanWeapon implements DoomRuleConsumer, ComponentReferenceBin
             return;
         }
         fire();
+        requiredFiredSignal().emit();
     }
 
     /** Traces the authored view ray, skipping only this weapon owner's own collision body. */
@@ -143,6 +155,14 @@ final class DoomHitscanWeapon implements DoomRuleConsumer, ComponentReferenceBin
 
     private Transform3d requiredViewTransform() {
         return viewTransform.orElseThrow(() -> new IllegalStateException("view transform has not been bound"));
+    }
+
+    /** Requires endpoint binding before the active world accepts input. */
+    private RuntimeSignal requiredFiredSignal() {
+        if (fired == null) {
+            throw new IllegalStateException("weapon fired signal has not been bound");
+        }
+        return fired;
     }
 
     private static ResourceReference requireSourceAsset(ResourceReference reference, String name) {

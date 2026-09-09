@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /** Decodes classic Doom DMX format-three unsigned 8-bit mono sound lumps. */
-final class DoomDmxSoundDecoder {
+public final class DoomDmxSoundDecoder {
     private static final int HEADER_SIZE = 8;
     private static final int DMX_FORMAT = 3;
 
@@ -18,8 +18,15 @@ final class DoomDmxSoundDecoder {
         throw new AssertionError("DoomDmxSoundDecoder cannot be instantiated");
     }
 
-    /** Converts one complete DMX sound lump into signed 16-bit engine PCM. */
-    static PcmAudio decode(byte[] data, String name) {
+    /**
+     * Converts one complete DMX sound lump into signed 16-bit engine PCM.
+     *
+     * @param data complete DMX lump bytes
+     * @param name source lump name used in diagnostics
+     * @return immutable mono PCM
+     * @throws DoomPatchDataException when the DMX envelope is malformed or unsupported
+     */
+    public static PcmAudio decode(byte[] data, String name) {
         if (data.length < HEADER_SIZE) {
             throw invalid(name, "header is shorter than eight bytes");
         }

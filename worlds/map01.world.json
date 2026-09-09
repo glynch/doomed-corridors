@@ -4,7 +4,20 @@
   "assetType": "world-definition",
   "formatVersion": 1,
   "name": "MAP01",
-  "connections": [],
+  "connections": [
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
+        "endpointId": "fired"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
+        "endpointId": "receive-fired"
+      }
+    }
+  ],
   "roots": [
     {
       "entryType": "local",
@@ -98,6 +111,34 @@
               }
             },
             "fire-action": "fire-primary"
+          }
+        },
+        {
+          "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
+          "type": "io.github.glynch.doomed-corridors/weapon-presentation",
+          "typeVersion": 1,
+          "properties": {
+            "ready-frame": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisga0"
+            },
+            "fire-frames": [
+              {
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgb0"
+              },
+              {
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgc0"
+              },
+              {
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgd0"
+              },
+              {
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisge0"
+              }
+            ],
+            "fire-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/audio/dspistol"
+            },
+            "frame-milliseconds": 70
           }
         }
       ],

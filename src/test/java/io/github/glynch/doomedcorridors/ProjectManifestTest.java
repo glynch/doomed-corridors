@@ -117,7 +117,8 @@ final class ProjectManifestTest {
         assertThat(definition.selection()).containsExactly("maps/MAP01");
         assertThat(definition.settings())
                 .containsEntry("actor-catalog", new ProjectValue.TextValue("actors"))
-                .containsEntry("combat-rules", new ProjectValue.TextValue("combat"));
+                .containsEntry("combat-rules", new ProjectValue.TextValue("combat"))
+                .containsEntry("combat-presentation", new ProjectValue.TextValue("combat-presentation"));
     }
 
     /** Loads the semantic input map independently of platform controls. */
@@ -179,7 +180,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/player-state",
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",
-                        EXTENSION_ID + "/hitscan-weapon");
+                        EXTENSION_ID + "/hitscan-weapon",
+                        EXTENSION_ID + "/weapon-presentation");
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
                         .orElseThrow()
@@ -199,6 +201,15 @@ final class ProjectManifestTest {
                     assertThat(weapon.requiredCapabilities())
                             .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
                     assertThat(weapon.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
+                    assertThat(weapon.signals()).containsOnlyKeys(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
+                });
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE)
+                        .orElseThrow())
+                .satisfies(presentation -> {
+                    assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
+                    assertThat(presentation.actions())
+                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION);
                 });
     }
 

@@ -16,7 +16,12 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoadResult;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoader;
+import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationRules;
+import io.github.glynch.doomedcorridors.wad.DoomDmxSoundDecoder;
 import io.github.glynch.doomedcorridors.world.DoomActorResolver;
+import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.diagnostic.DiagnosticCode;
 import io.github.glynch.jscene3d.doom.diagnostic.DoomDiagnostic;
 import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
@@ -26,6 +31,8 @@ import io.github.glynch.jscene3d.doom.material.DoomPatchDataException;
 import io.github.glynch.jscene3d.doom.material.DoomPatchDecoder;
 import io.github.glynch.jscene3d.doom.material.DoomPatchImage;
 import io.github.glynch.jscene3d.doom.material.RgbaImage;
+import io.github.glynch.jscene3d.game.presentation.GamePresentationDescriptors;
+import io.github.glynch.jscene3d.game.presentation.GamePresentationResourceWriter;
 import io.github.glynch.jscene3d.materials.AlphaMode;
 import io.github.glynch.jscene3d.materials.BasicMaterial;
 import io.github.glynch.jscene3d.project.asset.AssetId;
@@ -86,9 +93,13 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final String ITEM_KIND = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-map";
     private static final String ACTOR_CATALOG_TYPE = DoomedCorridorsImportExtension.EXTENSION_ID + "/actor-catalog";
     private static final String COMBAT_RULES_TYPE = DoomedCorridorsImportExtension.EXTENSION_ID + "/combat-rules";
+    private static final String COMBAT_PRESENTATION_TYPE =
+            DoomedCorridorsImportExtension.EXTENSION_ID + "/combat-presentation";
     private static final String ACTOR_CATALOG_SETTING = "actor-catalog";
     private static final String COMBAT_RULES_SETTING = "combat-rules";
+    private static final String COMBAT_PRESENTATION_SETTING = "combat-presentation";
     private static final String TEXTURE_MEDIA_TYPE = "application/vnd.jscene3d.rgba8-v1";
+    private static final String PCM_MEDIA_TYPE = "application/vnd.jscene3d.pcm16le-v1";
     private static final int PALETTE_SIZE = 256 * 3;
     private static final float PICKUP_SENSOR_CENTER_HEIGHT = DoomUnits.toWorld(28.0F);
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
@@ -106,17 +117,28 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         loadedArchive.ifPresent(archive -> describeMaps(context, archive));
         Optional<DoomActorCatalog> loadedCatalog = loadCatalog(context);
         Optional<DoomCombatRules> loadedRules = loadedCatalog.flatMap(catalog -> loadCombatRules(context, catalog));
-        if (loadedArchive.isEmpty() || loadedCatalog.isEmpty() || loadedRules.isEmpty()) {
+        Optional<DoomCombatPresentationRules> loadedPresentation =
+                loadedRules.flatMap(rules -> loadCombatPresentation(context, rules));
+        if (loadedArchive.isEmpty()
+                || loadedCatalog.isEmpty()
+                || loadedRules.isEmpty()
+                || loadedPresentation.isEmpty()) {
             return;
         }
         WadArchive archive = loadedArchive.orElseThrow();
         DoomActorCatalog catalog = loadedCatalog.orElseThrow();
         DoomCombatRules rules = loadedRules.orElseThrow();
+        DoomCombatPresentationRules presentation = loadedPresentation.orElseThrow();
+        Optional<WeaponPresentationAssets> loadedAssets = importWeaponAssets(context, archive, presentation);
+        if (loadedAssets.isEmpty()) {
+            return;
+        }
+        WeaponPresentationAssets assets = loadedAssets.orElseThrow();
         Set<String> selection = Set.copyOf(context.definition().selection());
         for (String mapName : new DoomMapDecoder().discover(archive)) {
             String identity = mapIdentity(mapName);
             if (selection.contains(identity)) {
-                prepareMap(context, archive, catalog, rules, mapName, identity);
+                prepareMap(context, archive, catalog, rules, assets, mapName, identity);
             }
         }
     }
@@ -194,6 +216,67 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return result.isValid() ? result.rules() : Optional.empty();
     }
 
+    /** Loads the provider presentation rules selected by the recipe and records them as a dependency. */
+    private static Optional<DoomCombatPresentationRules> loadCombatPresentation(
+            ImportPreparationContext context, DoomCombatRules combatRules) {
+        Optional<GameProject.AssetSource> selected = configuredAsset(
+                context,
+                COMBAT_PRESENTATION_SETTING,
+                COMBAT_PRESENTATION_TYPE,
+                ActorImportDiagnosticCode.COMBAT_PRESENTATION_SETTING_INVALID);
+        if (selected.isEmpty()) {
+            return Optional.empty();
+        }
+        GameProject.AssetSource source = selected.orElseThrow();
+        context.dependency(source.path());
+        DoomCombatPresentationLoadResult result = new DoomCombatPresentationLoader().load(source.path(), combatRules);
+        result.diagnostics()
+                .forEach(diagnostic -> context.error(
+                        ActorImportDiagnosticCode.COMBAT_PRESENTATION_INVALID,
+                        diagnostic.location(),
+                        Map.of("sourceCode", diagnostic.code(), "message", diagnostic.message())));
+        return result.isValid() ? result.rules() : Optional.empty();
+    }
+
+    /** Decodes only the selected weapon assets so runtime publication never needs the source WAD. */
+    private static Optional<WeaponPresentationAssets> importWeaponAssets(
+            ImportPreparationContext context, WadArchive archive, DoomCombatPresentationRules presentation) {
+        DoomCombatPresentationRules.Weapon weapon = presentation.weapon();
+        try {
+            WadLump paletteLump = requiredLump(archive, "PLAYPAL");
+            byte[] palette = archive.readAllBytes(paletteLump, paletteLump.size());
+            if (palette.length < PALETTE_SIZE) {
+                throw new DoomPatchDataException("PLAYPAL is shorter than one complete palette");
+            }
+            Map<String, RgbaImage> frames = new LinkedHashMap<>();
+            List<String> requiredFrames = new ArrayList<>();
+            requiredFrames.add(weapon.readyFrame());
+            requiredFrames.addAll(weapon.fireFrames());
+            for (String frame : requiredFrames) {
+                WadLump lump = requiredLump(archive, frame);
+                DoomPatchImage patch =
+                        DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name());
+                frames.put(frame, patch.image());
+            }
+            WadLump soundLump = requiredLump(archive, weapon.fireSound());
+            PcmAudio sound =
+                    DoomDmxSoundDecoder.decode(archive.readAllBytes(soundLump, soundLump.size()), soundLump.name());
+            return Optional.of(new WeaponPresentationAssets(weapon, frames, sound));
+        } catch (IOException | DoomPatchDataException | IllegalArgumentException exception) {
+            context.error(
+                    ActorImportDiagnosticCode.COMBAT_PRESENTATION_INVALID,
+                    "/presentation/weapon",
+                    Map.of("message", String.valueOf(exception.getMessage())));
+            return Optional.empty();
+        }
+    }
+
+    /** Resolves one exact required lump using normal WAD override semantics. */
+    private static WadLump requiredLump(WadArchive archive, String name) {
+        return archive.lastLumpNamed(name)
+                .orElseThrow(() -> new IllegalArgumentException("required WAD lump is missing: " + name));
+    }
+
     /** Resolves one recipe setting to a declared source asset of the required type. */
     private static Optional<GameProject.AssetSource> configuredAsset(
             ImportPreparationContext context,
@@ -221,6 +304,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             WadArchive archive,
             DoomActorCatalog catalog,
             DoomCombatRules rules,
+            WeaponPresentationAssets presentation,
             String mapName,
             String prefix)
             throws IOException {
@@ -237,6 +321,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             return;
         }
         publishMap(context, prefix, resolution.actors(), imported.orElseThrow(), rules);
+        publishWeaponPresentation(context, prefix, presentation);
     }
 
     /** Imports every unique selected spawn frame while preserving classic patch origin metadata. */
@@ -348,6 +433,51 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                             List.of(textureIdentity)),
                     output -> Spatial3dResourceWriter.writeBasicMaterial(output, material, colorMap));
         }
+    }
+
+    /** Publishes only the selected weapon's overlay frames and local firing sound for this slice. */
+    private static void publishWeaponPresentation(
+            ImportPreparationContext context, String prefix, WeaponPresentationAssets assets) throws IOException {
+        DoomCombatPresentationRules.Weapon weapon = assets.weapon();
+        List<String> frames = new ArrayList<>();
+        frames.add(weapon.readyFrame());
+        frames.addAll(weapon.fireFrames());
+        for (String frame : frames) {
+            publishWeaponFrame(context, prefix, frame, assets.frames().get(frame));
+        }
+        publishWeaponSound(context, prefix, weapon.fireSound(), assets.fireSound());
+    }
+
+    /** Publishes one exact WAD patch as a generic sRGB texture resource for screen presentation. */
+    private static void publishWeaponFrame(
+            ImportPreparationContext context, String prefix, String frame, RgbaImage image) throws IOException {
+        String textureIdentity = weaponTextureIdentity(prefix, frame);
+        String payloadIdentity = textureIdentity + ".rgba8";
+        try (Texture texture = createTexture(image)) {
+            context.artifact(
+                    ImportArtifactDescriptor.payload(payloadIdentity, TEXTURE_MEDIA_TYPE),
+                    output -> Spatial3dResourceWriter.writeTexturePayload(output, texture));
+            context.artifact(
+                    ImportArtifactDescriptor.resource(
+                            textureIdentity, Spatial3dDescriptors.textureResourceType(), List.of(payloadIdentity)),
+                    output -> Spatial3dResourceWriter.writeTextureDefinition(
+                            output, texture, imported(context, payloadIdentity)));
+        }
+    }
+
+    /** Publishes one decoded local sound as a generic signed PCM resource. */
+    private static void publishWeaponSound(
+            ImportPreparationContext context, String prefix, String soundName, PcmAudio audio) throws IOException {
+        String resourceIdentity = weaponSoundIdentity(prefix, soundName);
+        String payloadIdentity = resourceIdentity + ".pcm16le";
+        context.artifact(
+                ImportArtifactDescriptor.payload(payloadIdentity, PCM_MEDIA_TYPE),
+                output -> GamePresentationResourceWriter.writePcmAudioPayload(output, audio));
+        context.artifact(
+                ImportArtifactDescriptor.resource(
+                        resourceIdentity, GamePresentationDescriptors.pcmAudioResourceType(), List.of(payloadIdentity)),
+                output -> GamePresentationResourceWriter.writePcmAudioDefinition(
+                        output, audio, imported(context, payloadIdentity)));
     }
 
     /** Publishes the provider-sized non-blocking contact volume shared by one pickup definition's instances. */
@@ -712,6 +842,16 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return prefix + "/actors/resources/materials/" + frame.toLowerCase(Locale.ROOT);
     }
 
+    /** Returns one selected weapon overlay-texture identity. */
+    private static String weaponTextureIdentity(String prefix, String frame) {
+        return prefix + "/presentation/weapons/textures/" + frame.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one selected weapon local-sound identity. */
+    private static String weaponSoundIdentity(String prefix, String sound) {
+        return prefix + "/presentation/weapons/audio/" + sound.toLowerCase(Locale.ROOT);
+    }
+
     /** Returns the provider-sized collision-resource identity for one actor definition. */
     private static String collisionShapeIdentity(String prefix, String actorId) {
         return prefix + "/actors/resources/collision/" + actorId;
@@ -791,6 +931,14 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** One decoded actor frame retained only while artifacts are being published. */
     private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}
 
+    /** Build-time assets required by the descriptor-selected first-person weapon presentation. */
+    private record WeaponPresentationAssets(
+            DoomCombatPresentationRules.Weapon weapon, Map<String, RgbaImage> frames, PcmAudio fireSound) {
+        private WeaponPresentationAssets {
+            frames = Map.copyOf(frames);
+        }
+    }
+
     /** Stable game-owned actor-import diagnostics. */
     private enum ActorImportDiagnosticCode implements DiagnosticCode {
         CATALOG_SETTING_INVALID(
@@ -798,6 +946,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         COMBAT_RULES_SETTING_INVALID(
                 "doomed-corridors.actor-import.combat-rules-setting", "The actor import requires a combat-rules asset"),
         COMBAT_RULES_INVALID("doomed-corridors.actor-import.combat-rules", "The actor import combat rules are invalid"),
+        COMBAT_PRESENTATION_SETTING_INVALID(
+                "doomed-corridors.actor-import.combat-presentation-setting",
+                "The actor import requires a combat-presentation asset"),
+        COMBAT_PRESENTATION_INVALID(
+                "doomed-corridors.actor-import.combat-presentation", "The actor import combat presentation is invalid"),
         ACTOR_INVALID("doomed-corridors.actor-import.actor", "An actor catalog or placement is invalid"),
         PALETTE_MISSING("doomed-corridors.actor-import.palette-missing", "The WAD has no PLAYPAL palette"),
         PALETTE_INVALID("doomed-corridors.actor-import.palette-invalid", "The WAD PLAYPAL palette is incomplete"),
