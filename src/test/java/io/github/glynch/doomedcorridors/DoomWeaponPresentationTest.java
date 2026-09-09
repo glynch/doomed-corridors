@@ -44,9 +44,17 @@ final class DoomWeaponPresentationTest {
         PcmAudioResource sound = PcmAudioResource.owning(PcmAudio.mono16(11_025, new short[] {1, 2}));
 
         DoomWeaponPresentation component = new DoomWeaponPresentation(
-                presentation, ready, List.of(first, second), sound, Duration.ofMillis(70), Duration.ofMillis(120));
+                presentation,
+                ready,
+                List.of(first, second),
+                sound,
+                Duration.ofMillis(70),
+                Duration.ofMillis(120),
+                Duration.ofSeconds(1));
         component.bindEndpoints(endpoints);
         var readyImage = component.currentFrame();
+
+        assertThat(endpoints.died).isNotNull();
 
         endpoints.fired.execute();
 
@@ -64,6 +72,14 @@ final class DoomWeaponPresentationTest {
         assertThat(component.isHitIndicatorVisible()).isTrue();
         component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(120), Duration.ZERO, 0.0F));
         assertThat(component.isHitIndicatorVisible()).isFalse();
+
+        endpoints.died.execute();
+        assertThat(component.isVisible()).isTrue();
+        assertThat(component.deathLowerProgress()).isZero();
+        component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(500), Duration.ZERO, 0.0F));
+        assertThat(component.deathLowerProgress()).isEqualTo(0.5F);
+        component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(500), Duration.ZERO, 0.0F));
+        assertThat(component.isVisible()).isFalse();
 
         component.close();
         component.close();
@@ -83,6 +99,7 @@ final class DoomWeaponPresentationTest {
     /** Captures the one action implemented by the component. */
     private static final class RecordingEndpoints implements ComponentEndpoints {
         private RuntimeAction fired;
+        private RuntimeAction died;
         private RuntimePayloadAction hit;
 
         @Override
@@ -94,6 +111,8 @@ final class DoomWeaponPresentationTest {
         public void action(EndpointId endpoint, RuntimeAction implementation) {
             if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION)) {
                 fired = implementation;
+            } else if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION)) {
+                died = implementation;
             } else {
                 throw new AssertionError("unexpected endpoint: " + endpoint);
             }

@@ -64,6 +64,18 @@
         "componentId": "10bfeecd-9583-4182-8f0c-1165e98fc714",
         "endpointId": "receive-died"
       }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+        "endpointId": "died"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
+        "endpointId": "receive-died"
+      }
     }
   ],
   "roots": [
@@ -166,7 +178,8 @@
               "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/audio/dspistol"
             },
             "frame-milliseconds": 70,
-            "hit-indicator-milliseconds": 120
+            "hit-indicator-milliseconds": 120,
+            "death-lower-milliseconds": 1000
           }
         },
         {
@@ -184,7 +197,15 @@
             "pain-flash-opacity": 0.32,
             "death-flash-milliseconds": 500,
             "death-flash-opacity": 0.45,
-            "terminal-shade-opacity": 0.18
+            "terminal-shade-opacity": 0.18,
+            "view-transform": {
+              "$target": {
+                "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+                "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
+              }
+            },
+            "death-view-drop-distance": 1.09375,
+            "death-view-drop-milliseconds": 1000
           }
         },
         {

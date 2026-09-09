@@ -523,6 +523,42 @@ final class ProjectHostIntegrationTest {
         assertThat(presentationWorld.soundClosed()).isTrue();
     }
 
+    /** Lowers the authored view and first-person weapon through their terminal transitions. */
+    @Test
+    void lowersViewAndWeaponAfterPlayerDeath() {
+        Path cache = temporaryDirectory.resolve("player-terminal-transition-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache, new TestPresentationWorldModule())) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Entity view = player.children().stream()
+                    .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
+                    .findFirst()
+                    .orElseThrow();
+            DoomPlayerState state = player.component(
+                            ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
+                    .orElseThrow();
+            DoomWeaponPresentation weapon = player.component(WEAPON_PRESENTATION, DoomWeaponPresentation.class)
+                    .orElseThrow();
+            Transform3d viewTransform =
+                    view.component(VIEW_TRANSFORM, Transform3d.class).orElseThrow();
+
+            loaded.world().activate();
+            float standingViewY = viewTransform.position().y();
+            assertThat(state.damage(100)).isEqualTo(100);
+            assertThat(weapon.isVisible()).isTrue();
+            assertThat(weapon.deathLowerProgress()).isZero();
+
+            loaded.world().advanceFrame(Duration.ofMillis(500), 0.0F);
+            assertThat(viewTransform.position().y()).isEqualTo(standingViewY - 35.0F / 64.0F);
+            assertThat(weapon.deathLowerProgress()).isEqualTo(0.5F);
+
+            loaded.world().advanceFrame(Duration.ofMillis(500), 0.0F);
+            assertThat(viewTransform.position().y()).isEqualTo(standingViewY - 35.0F / 32.0F);
+            assertThat(weapon.isVisible()).isFalse();
+        }
+    }
+
     /** Collects one useful imported stimpack through its authored physics-signal connection. */
     @Test
     void collectsUsefulPickupThroughHostedWorld() {

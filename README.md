@@ -103,8 +103,9 @@ looping walk frames, and attack animation and sound. Pain and death retain highe
 visual priority, after which a living enemy returns to its latest moving or idle
 state. Player-state signals drive listener-relative pain and death sounds, timed
 non-fatal and fatal red responses, and a subtle terminal dark shade. Death disables
-the explicitly authored Player Controls child while leaving the camera and HUD active;
-the player weapon also rejects input at zero health. Doors have not yet been
+the explicitly authored Player Controls child, lowers the camera from Doom's 41-unit
+standing view height to its 6-unit death height, and moves the first-person weapon
+below the viewport while leaving the world and HUD visible. Doors have not yet been
 connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without

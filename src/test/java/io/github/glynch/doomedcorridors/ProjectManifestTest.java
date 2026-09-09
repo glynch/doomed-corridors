@@ -233,7 +233,10 @@ final class ProjectManifestTest {
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
                                     DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION);
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                    assertThat(presentation.properties())
+                            .containsKey(DoomedCorridorsRuntimeTypes.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY);
                     assertThat(presentation
                                     .actions()
                                     .get(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)
@@ -273,7 +276,10 @@ final class ProjectManifestTest {
                                     DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_OPACITY_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY);
+                                    DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_VIEW_TRANSFORM_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY);
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
                                     DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_HURT_ACTION,

@@ -36,12 +36,15 @@ final class DoomWeaponPresentation
     private final List<OverlayImage> fireFrames;
     private final Duration frameDuration;
     private final Duration hitIndicatorDuration;
+    private final Duration deathLowerDuration;
     private final LocalSound fireSound;
     private final OverlayRegistration overlayRegistration;
     private Duration frameElapsed = Duration.ZERO;
     private Duration hitIndicatorRemaining = Duration.ZERO;
+    private Duration deathLowerElapsed = Duration.ZERO;
     private Optional<DoomWeaponHit> hitIndicator = Optional.empty();
     private int fireFrameIndex = -1;
+    private boolean dead;
     private boolean closed;
 
     /** Converts shared texture resources and acquires component-owned host presentation handles. */
@@ -51,7 +54,8 @@ final class DoomWeaponPresentation
             List<OverlayImageResource> fireFrames,
             PcmAudioResource fireSound,
             Duration frameDuration,
-            Duration hitIndicatorDuration) {
+            Duration hitIndicatorDuration,
+            Duration deathLowerDuration) {
         PresentationWorldModule validPresentation = Objects.requireNonNull(presentation, "presentation");
         this.readyFrame = Objects.requireNonNull(readyFrame, "readyFrame").image();
         this.fireFrames = List.copyOf(Objects.requireNonNull(fireFrames, "fireFrames")).stream()
@@ -68,6 +72,10 @@ final class DoomWeaponPresentation
         if (hitIndicatorDuration.isZero() || hitIndicatorDuration.isNegative()) {
             throw new IllegalArgumentException("hitIndicatorDuration must be positive");
         }
+        this.deathLowerDuration = Objects.requireNonNull(deathLowerDuration, "deathLowerDuration");
+        if (deathLowerDuration.isZero() || deathLowerDuration.isNegative()) {
+            throw new IllegalArgumentException("deathLowerDuration must be positive");
+        }
         this.fireSound = validPresentation.createLocalSound(
                 Objects.requireNonNull(fireSound, "fireSound"), AudioCategory.EFFECTS);
         try {
@@ -78,18 +86,23 @@ final class DoomWeaponPresentation
         }
     }
 
-    /** Binds the descriptor-declared successful-shot receiver. */
+    /** Binds the descriptor-declared firing, hit, and terminal-player receivers. */
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
         validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION, this::receiveFired);
         validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION, this::receiveHit);
+        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION, this::receivePlayerDied);
     }
 
     /** Advances the active firing sequence using real presentation time. */
     @Override
     public void onFrameUpdate(FrameUpdateContext update) {
         Objects.requireNonNull(update, "update");
+        if (dead) {
+            deathLowerElapsed = addCeiling(deathLowerElapsed, update.elapsed(), deathLowerDuration);
+            return;
+        }
         if (fireFrameIndex >= 0) {
             frameElapsed = frameElapsed.plus(update.elapsed());
             while (fireFrameIndex >= 0 && frameElapsed.compareTo(frameDuration) >= 0) {
@@ -108,6 +121,9 @@ final class DoomWeaponPresentation
     @Override
     public void paint(OverlayCanvas canvas, int width, int height) {
         Objects.requireNonNull(canvas, "canvas");
+        if (!isVisible()) {
+            return;
+        }
         OverlayImage frame = currentFrame();
         float scale = Math.min(width / REFERENCE_WIDTH, height / REFERENCE_HEIGHT);
         scale = Math.max(1.0F, scale);
@@ -116,7 +132,7 @@ final class DoomWeaponPresentation
         canvas.image(
                 frame.fullRegion(),
                 (width - frameWidth) * 0.5F,
-                height - frameHeight,
+                height - frameHeight + frameHeight * deathLowerProgress(),
                 frameWidth,
                 frameHeight,
                 Color.WHITE,
@@ -139,6 +155,19 @@ final class DoomWeaponPresentation
     /** Returns whether the short successful-hit confirmation is currently visible. */
     boolean isHitIndicatorVisible() {
         return !hitIndicatorRemaining.isZero() && hitIndicator.isPresent();
+    }
+
+    /** Returns whether any part of the first-person weapon remains in its terminal transition. */
+    boolean isVisible() {
+        return !dead || deathLowerElapsed.compareTo(deathLowerDuration) < 0;
+    }
+
+    /** Returns the normalized progress of the terminal weapon-lowering transition. */
+    float deathLowerProgress() {
+        if (!dead) {
+            return 0.0F;
+        }
+        return (float) ((double) deathLowerElapsed.toNanos() / deathLowerDuration.toNanos());
     }
 
     /** Returns the current successful-hit marker position for deterministic presentation verification. */
@@ -165,6 +194,9 @@ final class DoomWeaponPresentation
         if (closed) {
             throw new IllegalStateException("weapon presentation is closed");
         }
+        if (dead) {
+            return;
+        }
         fireFrameIndex = 0;
         frameElapsed = Duration.ZERO;
         fireSound.restart();
@@ -184,6 +216,22 @@ final class DoomWeaponPresentation
         hitIndicatorRemaining = hitIndicatorDuration;
     }
 
+    /** Cancels transient weapon feedback and begins moving the weapon below the viewport. */
+    private void receivePlayerDied() {
+        if (closed) {
+            throw new IllegalStateException("weapon presentation is closed");
+        }
+        if (dead) {
+            return;
+        }
+        dead = true;
+        fireFrameIndex = -1;
+        frameElapsed = Duration.ZERO;
+        hitIndicatorRemaining = Duration.ZERO;
+        hitIndicator = Optional.empty();
+        deathLowerElapsed = Duration.ZERO;
+    }
+
     /** Draws a compact red X at the perspective-projected successful-hit location. */
     private static void paintHitIndicator(OverlayCanvas canvas, int width, int height, DoomWeaponHit hit) {
         Vector2f position = hit.project(width, height);
@@ -197,5 +245,11 @@ final class DoomWeaponPresentation
     /** Subtracts elapsed presentation time without permitting a negative duration. */
     private static Duration subtractFloorZero(Duration remaining, Duration elapsed) {
         return remaining.compareTo(elapsed) <= 0 ? Duration.ZERO : remaining.minus(elapsed);
+    }
+
+    /** Adds elapsed presentation time without exceeding one terminal transition duration. */
+    private static Duration addCeiling(Duration value, Duration elapsed, Duration ceiling) {
+        Duration sum = value.plus(elapsed);
+        return sum.compareTo(ceiling) >= 0 ? ceiling : sum;
     }
 }

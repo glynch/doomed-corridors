@@ -272,13 +272,16 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     properties, DoomedCorridorsRuntimeTypes.FRAME_MILLISECONDS_PROPERTY));
             Duration hitIndicatorDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
                     properties, DoomedCorridorsRuntimeTypes.HIT_INDICATOR_MILLISECONDS_PROPERTY));
+            Duration deathLowerDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY));
             return new DoomWeaponPresentation(
                     context.world().requireModule(PresentationWorldModule.class),
                     readyFrame,
                     fireFrames,
                     fireSound,
                     frameDuration,
-                    hitIndicatorDuration);
+                    hitIndicatorDuration,
+                    deathLowerDuration);
         }
     }
 
@@ -320,6 +323,12 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                             deathFlashDuration,
                             RuntimeProperties.positiveFloat(
                                     properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY)),
+                    new DoomPlayerPresentation.ViewDrop(
+                            Duration.ofMillis(RuntimeProperties.positiveInteger(
+                                    properties,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY)),
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY)),
                     RuntimeProperties.unitIntervalFloat(
                             properties, DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY));
         }

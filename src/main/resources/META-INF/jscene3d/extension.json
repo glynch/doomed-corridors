@@ -491,6 +491,14 @@
           "required": true,
           "displayName": "Hit Indicator Duration",
           "description": "Positive duration of the successful-hit indicator in milliseconds."
+        },
+        {
+          "id": "death-lower-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Death Lower Duration",
+          "description": "Positive duration over which the weapon moves below the viewport after player death.",
+          "editor": {"minimum-exclusive": 0}
         }
       ],
       "actions": [
@@ -507,6 +515,11 @@
           },
           "displayName": "Receive Hit",
           "description": "Places and restarts visual confirmation at the successful impact location."
+        },
+        {
+          "id": "receive-died",
+          "displayName": "Receive Player Died",
+          "description": "Cancels transient feedback and lowers the weapon below the viewport."
         }
       ]
     },
@@ -572,6 +585,29 @@
           "displayName": "Terminal Shade Opacity",
           "description": "Persistent dark-shade opacity after the player dies.",
           "editor": {"minimum-inclusive": 0, "maximum-inclusive": 1}
+        },
+        {
+          "id": "view-transform",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "View Transform",
+          "description": "Exact camera transform lowered during the terminal presentation."
+        },
+        {
+          "id": "death-view-drop-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Death View Drop Distance",
+          "description": "Positive world distance through which the view descends after death.",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "death-view-drop-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Death View Drop Duration",
+          "description": "Positive duration over which the view descends after death.",
+          "editor": {"minimum-exclusive": 0}
         }
       ],
       "actions": [

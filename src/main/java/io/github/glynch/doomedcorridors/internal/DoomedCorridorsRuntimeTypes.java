@@ -168,6 +168,10 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Duration of the successful-hit indicator in milliseconds. */
     public static final PropertyId HIT_INDICATOR_MILLISECONDS_PROPERTY = new PropertyId("hit-indicator-milliseconds");
 
+    /** Duration over which the first-person weapon moves below the viewport after death. */
+    public static final PropertyId WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY =
+            new PropertyId("death-lower-milliseconds");
+
     /** Listener-relative PCM resource played after non-fatal player damage. */
     public static final PropertyId PLAYER_PAIN_SOUND_PROPERTY = new PropertyId("pain-sound");
 
@@ -189,6 +193,17 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Persistent dark-shade opacity after terminal damage. */
     public static final PropertyId PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY = new PropertyId("terminal-shade-opacity");
+
+    /** Explicit view transform lowered by terminal player presentation. */
+    public static final PropertyId PLAYER_VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
+
+    /** World distance through which the player view drops after death. */
+    public static final PropertyId PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY =
+            new PropertyId("death-view-drop-distance");
+
+    /** Duration over which the player view drops after death. */
+    public static final PropertyId PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY =
+            new PropertyId("death-view-drop-milliseconds");
 
     /** Explicit entity containing input-driven player controls disabled on death. */
     public static final PropertyId PLAYER_CONTROL_ENTITY_PROPERTY = new PropertyId("control-entity");

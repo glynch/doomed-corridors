@@ -149,8 +149,9 @@ priority over attacks, which take priority over movement and idle. Player pain,
 death presentation, and terminal control handling are separately authored
 presentation and lifecycle components. Player-state signals activate their
 explicit actions; terminal damage disables only the Player Controls child while
-the view and HUD remain active, the fatal red response fades into a subtle dark
-shade, and the weapon rejects firing at zero health.
+the fatal red response fades into a subtle dark shade, the view descends from the
+classic 41-unit standing height to the 6-unit death height, and the weapon moves
+below the viewport while the world and HUD remain visible.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

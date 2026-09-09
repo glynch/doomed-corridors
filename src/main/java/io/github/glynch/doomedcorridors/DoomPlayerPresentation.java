@@ -14,23 +14,31 @@ import io.github.glynch.jscene3d.math.Color;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
+import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.OverlayCanvas;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Presents descriptor-connected player pain and terminal death through local audio and screen color. */
 final class DoomPlayerPresentation
-        implements Overlay, ComponentEndpointBinder, ComponentUpdateCallbacks, AutoCloseable {
+        implements Overlay, ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks, AutoCloseable {
     private final Flash painFlash;
     private final Flash deathFlash;
+    private final ViewDrop deathViewDrop;
     private final float terminalShadeOpacity;
     private final LocalSound painSound;
     private final LocalSound deathSound;
     private final OverlayRegistration overlayRegistration;
     private Duration painFlashRemaining = Duration.ZERO;
     private Duration deathFlashRemaining = Duration.ZERO;
+    private Duration deathViewElapsed = Duration.ZERO;
+    private Optional<Transform3d> viewTransform = Optional.empty();
+    private float standingViewY;
     private boolean dead;
     private boolean closed;
 
@@ -41,10 +49,12 @@ final class DoomPlayerPresentation
             PcmAudioResource deathSound,
             Flash painFlash,
             Flash deathFlash,
+            ViewDrop deathViewDrop,
             float terminalShadeOpacity) {
         PresentationWorldModule validPresentation = Objects.requireNonNull(presentation, "presentation");
         this.painFlash = Objects.requireNonNull(painFlash, "painFlash");
         this.deathFlash = Objects.requireNonNull(deathFlash, "deathFlash");
+        this.deathViewDrop = Objects.requireNonNull(deathViewDrop, "deathViewDrop");
         this.terminalShadeOpacity = requireUnitInterval(terminalShadeOpacity, "terminalShadeOpacity");
         Handles handles = Handles.acquire(
                 validPresentation,
@@ -54,6 +64,13 @@ final class DoomPlayerPresentation
         this.painSound = handles.painSound();
         this.deathSound = handles.deathSound();
         overlayRegistration = handles.overlayRegistration();
+    }
+
+    /** Binds the exact authored view transform moved by terminal presentation. */
+    @Override
+    public void bindReferences(ComponentReferenceResolver references) {
+        viewTransform = Optional.of(Objects.requireNonNull(references, "references")
+                .component(DoomedCorridorsRuntimeTypes.PLAYER_VIEW_TRANSFORM_PROPERTY, Transform3d.class));
     }
 
     /** Binds the descriptor-declared player-state reactions. */
@@ -70,6 +87,7 @@ final class DoomPlayerPresentation
         Objects.requireNonNull(update, "update");
         if (dead) {
             deathFlashRemaining = subtractFloorZero(deathFlashRemaining, update.elapsed());
+            advanceDeathView(update.elapsed());
         } else {
             painFlashRemaining = subtractFloorZero(painFlashRemaining, update.elapsed());
         }
@@ -135,8 +153,27 @@ final class DoomPlayerPresentation
             dead = true;
             painFlashRemaining = Duration.ZERO;
             deathFlashRemaining = deathFlash.duration();
+            deathViewElapsed = Duration.ZERO;
+            standingViewY = requiredViewTransform().position().y();
             deathSound.restart();
         }
+    }
+
+    /** Advances the camera from its standing height toward the authored terminal height. */
+    private void advanceDeathView(Duration elapsed) {
+        deathViewElapsed = addCeiling(deathViewElapsed, elapsed, deathViewDrop.duration());
+        float progress = (float)
+                ((double) deathViewElapsed.toNanos() / deathViewDrop.duration().toNanos());
+        Transform3d view = requiredViewTransform();
+        var position = view.position();
+        view.setPosition(
+                position.x(),
+                standingViewY - deathViewDrop.distance() * Math.clamp(progress, 0.0F, 1.0F),
+                position.z());
+    }
+
+    private Transform3d requiredViewTransform() {
+        return viewTransform.orElseThrow(() -> new IllegalStateException("player view transform has not been bound"));
     }
 
     private void requireOpen() {
@@ -150,6 +187,11 @@ final class DoomPlayerPresentation
             return Duration.ZERO;
         }
         return value.minus(elapsed);
+    }
+
+    private static Duration addCeiling(Duration value, Duration elapsed, Duration ceiling) {
+        Duration sum = value.plus(elapsed);
+        return sum.compareTo(ceiling) >= 0 ? ceiling : sum;
     }
 
     private static float opacity(Duration remaining, Flash flash) {
@@ -186,6 +228,24 @@ final class DoomPlayerPresentation
         private static void requireOpacity(float value, String name) {
             if (!Float.isFinite(value) || value <= 0.0F || value > 1.0F) {
                 throw new IllegalArgumentException(name + " must be finite and in (0, 1]");
+            }
+        }
+    }
+
+    /** One finite downward view transition expressed in engine-world units. */
+    record ViewDrop(Duration duration, float distance) {
+        ViewDrop {
+            requirePositive(duration, "duration");
+            if (!Float.isFinite(distance) || distance <= 0.0F) {
+                throw new IllegalArgumentException("distance must be finite and positive");
+            }
+        }
+
+        /** Rejects null, zero, and negative transition durations. */
+        private static void requirePositive(Duration value, String name) {
+            Objects.requireNonNull(value, name);
+            if (value.isZero() || value.isNegative()) {
+                throw new IllegalArgumentException(name + " must be positive");
             }
         }
     }
