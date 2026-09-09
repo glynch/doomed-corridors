@@ -182,11 +182,14 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Presentation action receiving one shot which applied damage. */
     public static final EndpointId RECEIVE_WEAPON_HIT_ACTION = new EndpointId("receive-hit");
 
-    /** Signal emitted after non-fatal damage is applied to a combatant. */
-    public static final EndpointId COMBATANT_HURT_SIGNAL = new EndpointId("hurt");
+    /** Signal emitted after non-fatal damage is applied to a damageable state component. */
+    public static final EndpointId HURT_SIGNAL = new EndpointId("hurt");
 
-    /** Signal emitted exactly once when a combatant reaches zero health. */
-    public static final EndpointId COMBATANT_DIED_SIGNAL = new EndpointId("died");
+    /** Signal emitted exactly once when a damageable state component reaches zero health. */
+    public static final EndpointId DIED_SIGNAL = new EndpointId("died");
+
+    /** Signal emitted whenever an enemy executes one provider-authorized attack. */
+    public static final EndpointId ENEMY_ATTACKED_SIGNAL = new EndpointId("attacked");
 
     /** Presentation action receiving a non-fatal combatant hit. */
     public static final EndpointId RECEIVE_COMBATANT_HURT_ACTION = new EndpointId("receive-hurt");

@@ -95,8 +95,11 @@ left and bullet ammunition at the lower right. Configured enemies use an
 explicitly authored player reference, provider-defined sight and movement rules,
 and physics raycasts for wall occlusion. After their reaction delay they pursue
 the last visible player position through collision-aware character bodies and
-stop at their preferred visible range. Enemy attacks and doors have not yet been
-connected to the new entity-component runtime.
+stop at their preferred visible range. While the living player remains visible
+and within the configured attack range, enemies apply provider-authored damage
+at the configured interval; the existing HUD reflects the resulting health.
+Enemy attack presentation, terminal player control handling, and doors have not
+yet been connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the

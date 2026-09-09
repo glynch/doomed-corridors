@@ -19,8 +19,11 @@
       "id": "io.github.glynch.doomed-corridors/player-state",
       "typeVersion": 1,
       "displayName": "Doom Player State",
-      "description": "Holds mutable player health and ammunition initialized from provider rules.",
-      "providedCapabilities": ["io.github.glynch.doomed-corridors/player-resources"],
+      "description": "Holds mutable damageable player health and ammunition initialized from provider rules.",
+      "providedCapabilities": [
+        "io.github.glynch.doomed-corridors/player-resources",
+        "io.github.glynch.doomed-corridors/damageable"
+      ],
       "properties": [
         {
           "id": "actor-catalog",
@@ -37,6 +40,18 @@
           "displayName": "Combat Rules",
           "description": "Provider rules supplying initial resources and capacities.",
           "acceptedReferences": ["asset"]
+        }
+      ],
+      "signals": [
+        {
+          "id": "hurt",
+          "displayName": "Hurt",
+          "description": "Emitted after non-fatal damage is applied to the player."
+        },
+        {
+          "id": "died",
+          "displayName": "Died",
+          "description": "Emitted exactly once when player health reaches zero."
         }
       ]
     },
@@ -240,7 +255,7 @@
       "id": "io.github.glynch.doomed-corridors/enemy-behavior",
       "typeVersion": 1,
       "displayName": "Doom Enemy Behavior",
-      "description": "Observes and pursues an explicitly targeted player using provider combat rules.",
+      "description": "Observes, pursues, and attacks an explicitly targeted player using provider combat rules.",
       "providedCapabilities": ["io.github.glynch.doomed-corridors/enemy-behavior"],
       "requiredCapabilities": ["io.github.glynch.jscene3d.spatial3d/spatial-3d"],
       "updatePhases": ["before-physics"],
@@ -258,7 +273,7 @@
           "valueKind": "reference",
           "required": true,
           "displayName": "Combat Rules",
-          "description": "Provider rules supplying awareness, reaction, and movement tuning.",
+          "description": "Provider rules supplying awareness, reaction, movement, and attack tuning.",
           "acceptedReferences": ["asset"]
         },
         {
@@ -288,6 +303,13 @@
           "required": true,
           "displayName": "Body",
           "description": "Exact character body moved through collision-aware physics."
+        }
+      ],
+      "signals": [
+        {
+          "id": "attacked",
+          "displayName": "Attacked",
+          "description": "Emitted whenever this enemy executes one provider-authorized attack."
         }
       ]
     },

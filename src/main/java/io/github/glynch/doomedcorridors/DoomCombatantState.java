@@ -53,8 +53,8 @@ final class DoomCombatantState
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.COMBATANT_HURT_SIGNAL);
-        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.COMBATANT_DIED_SIGNAL);
+        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.HURT_SIGNAL);
+        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
     }
 
     @Override

@@ -42,6 +42,7 @@ final class DoomCombatRulesLoaderTest {
             assertThat(rules.rollWeaponDamage("pistol", new Random(0L))).isIn(5, 10, 15);
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
             assertThat(rules.combatantStartingHealth("zombieman")).isEqualTo(20);
+            assertThat(rules.rollEnemyDamage("zombieman", new Random(0L))).isIn(3, 6, 9, 12, 15);
             assertThat(rules.pickupDefinitionCount()).isEqualTo(6);
             assertThat(rules.findCombatantBounds("zombieman")).contains(new DoomCombatRules.CombatantBounds(20, 56));
             assertThat(rules.findCombatantBounds("stimpack")).isEmpty();

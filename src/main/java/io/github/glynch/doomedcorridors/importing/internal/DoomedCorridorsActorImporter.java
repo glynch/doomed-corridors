@@ -780,13 +780,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                 number(DOOM_SOUND_ROLLOFF_FACTOR),
                         DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY, frameMilliseconds)));
         connections.add(new SignalConnection(
-                EndpointTarget.component(
-                        publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.COMBATANT_HURT_SIGNAL),
+                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.HURT_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION)));
         connections.add(new SignalConnection(
-                EndpointTarget.component(
-                        publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.COMBATANT_DIED_SIGNAL),
+                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.DIED_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION)));
         references.add(combatantSoundIdentity(

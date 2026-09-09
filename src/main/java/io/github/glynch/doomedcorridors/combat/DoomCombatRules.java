@@ -127,6 +127,14 @@ public final class DoomCombatRules {
         return requireCombatant(actorId).behavior();
     }
 
+    /** Rolls one configured enemy's inclusive discrete attack-damage sequence. */
+    public int rollEnemyDamage(String actorId, RandomGenerator random) {
+        EnemyBehavior behavior = requireCombatant(actorId).behavior();
+        DamageDefinition damage = behavior.damage();
+        int valueIndex = Objects.requireNonNull(random, "random").nextInt(behavior.damageValueCount());
+        return damage.minimum() + valueIndex * damage.step();
+    }
+
     /** Requires matching combatant rules for a descriptor-validated actor identity. */
     private CombatantDefinition requireCombatant(String actorId) {
         String validActorId = Objects.requireNonNull(actorId, "actorId");

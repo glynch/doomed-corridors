@@ -332,6 +332,9 @@ final class ProjectHostIntegrationTest {
             DoomPlayerState playerState = player.capability(
                             DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
+            assertThat(player.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+                            .orElseThrow())
+                    .isSameAs(playerState);
             Transform3d view = player.children()
                     .getFirst()
                     .component(VIEW_TRANSFORM, Transform3d.class)
@@ -437,12 +440,12 @@ final class ProjectHostIntegrationTest {
             DoomPickup pickup =
                     stimpack.component(STIMPACK_PICKUP, DoomPickup.class).orElseThrow();
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+            loaded.world().activate();
             state.damage(10);
 
             assertThat(state.health()).isEqualTo(90);
             assertThat(stimpack.isDestroyed()).isFalse();
 
-            loaded.world().activate();
             input.publish(
                     ActionSnapshot.builder().axis2d(MOVE, -1.0F, 1.0F / 6.0F).build());
             advanceFixed(loaded, 40);

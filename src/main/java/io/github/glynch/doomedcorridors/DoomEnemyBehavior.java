@@ -11,6 +11,9 @@ import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.FixedUpdateContext;
+import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
@@ -19,10 +22,13 @@ import io.github.glynch.jscene3d.project.spatial3d.descriptor.Spatial3dDescripto
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Random;
+import java.util.random.RandomGenerator;
 import org.joml.Vector3f;
 
 /** Descriptor-backed awareness and collision-aware pursuit for one configured Doom enemy. */
-final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBinder, ComponentUpdateCallbacks {
+final class DoomEnemyBehavior
+        implements DoomRuleConsumer, ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks {
     private static final float SELF_HIT_ADVANCE = 1.0E-4F;
     private static final float POSITION_TOLERANCE = 1.0E-5F;
 
@@ -31,12 +37,16 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private final String actorId;
+    private final RandomGenerator random;
     private Entity targetProvider;
     private DoomCombatantState state;
     private CharacterBody3d body;
     private Transform3d transform;
     private float sightRange;
     private DoomEnemyPursuit pursuit;
+    private DoomEnemyAttack attack;
+    private DoomCombatRules rules;
+    private RuntimeSignal attackedSignal;
     private boolean configured;
 
     /** Retains authored rule identities and the world physics seam used for sight and movement. */
@@ -51,6 +61,8 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
         this.actorCatalog = requireSourceAsset(actorCatalog, "actor-catalog");
         this.combatRules = requireSourceAsset(combatRules, "combat-rules");
         this.actorId = requireText(actorId, "actor-id");
+        random = new Random(owner.authoredId().value().getMostSignificantBits()
+                ^ owner.authoredId().value().getLeastSignificantBits());
     }
 
     @Override
@@ -72,17 +84,25 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
     }
 
     @Override
+    public void bindEndpoints(ComponentEndpoints endpoints) {
+        attackedSignal = Objects.requireNonNull(endpoints, "endpoints")
+                .signal(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
+    }
+
+    @Override
     public void configure(DoomCombatRules rules) {
         if (configured) {
             throw new IllegalStateException("enemy behavior is already configured");
         }
-        DoomCombatRules.EnemyBehavior behavior =
-                Objects.requireNonNull(rules, "rules").enemyBehavior(actorId);
+        this.rules = Objects.requireNonNull(rules, "rules");
+        DoomCombatRules.EnemyBehavior behavior = this.rules.enemyBehavior(actorId);
         sightRange = DoomUnits.toWorld(behavior.sightRange());
         pursuit = new DoomEnemyPursuit(
                 DoomUnits.toWorld(behavior.preferredRange()),
                 DoomUnits.toWorld(behavior.moveSpeed()),
                 Duration.ofMillis(behavior.reactionMilliseconds()));
+        attack = new DoomEnemyAttack(
+                DoomUnits.toWorld(behavior.attackRange()), Duration.ofMillis(behavior.attackIntervalMilliseconds()));
         transform = owner.capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
                 .orElseThrow(() -> new IllegalStateException("enemy entity has no spatial-3d capability"));
         configured = true;
@@ -95,7 +115,9 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
         if (requiredState().health() == 0) {
             return;
         }
-        Entity player = requiredTarget().player();
+        DoomEnemyTarget target = requiredTarget();
+        Entity player = target.player();
+        DoomDamageable playerState = target.damageable();
         Vector3f enemyPosition = requiredTransform().worldMatrix().getTranslation(new Vector3f());
         Vector3f playerPosition = playerTransform(player).worldMatrix().getTranslation(new Vector3f());
         float horizontalDistance = horizontalDistance(enemyPosition, playerPosition);
@@ -103,6 +125,16 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
         Vector3f velocity = requiredPursuit().advance(enemyPosition, playerPosition, visible, validUpdate.step());
         if (requiredPursuit().isAlerted()) {
             requiredBody().move(velocity, validUpdate.step());
+        }
+        if (requiredAttack()
+                .advance(
+                        requiredPursuit().isReady(),
+                        visible,
+                        playerState.health() > 0,
+                        horizontalDistance,
+                        validUpdate.step())) {
+            requiredAttackedSignal().emit();
+            playerState.damage(requiredRules().rollEnemyDamage(actorId, random));
         }
     }
 
@@ -203,5 +235,26 @@ final class DoomEnemyBehavior implements DoomRuleConsumer, ComponentReferenceBin
             throw new IllegalStateException("enemy pursuit has not been configured");
         }
         return pursuit;
+    }
+
+    private DoomEnemyAttack requiredAttack() {
+        if (attack == null) {
+            throw new IllegalStateException("enemy attack has not been configured");
+        }
+        return attack;
+    }
+
+    private DoomCombatRules requiredRules() {
+        if (rules == null) {
+            throw new IllegalStateException("enemy combat rules have not been configured");
+        }
+        return rules;
+    }
+
+    private RuntimeSignal requiredAttackedSignal() {
+        if (attackedSignal == null) {
+            throw new IllegalStateException("enemy attacked signal has not been bound");
+        }
+        return attackedSignal;
     }
 }

@@ -125,7 +125,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
     private static void collectRuleConsumers(Entity entity, List<DoomRuleConsumer> destination) {
         entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .ifPresent(destination::add);
-        entity.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomCombatantState.class)
+        entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomCombatantState.class)
                 .ifPresent(destination::add);
         entity.capability(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
                 .ifPresent(destination::add);

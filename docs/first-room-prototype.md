@@ -136,8 +136,14 @@ reference to it through its public contract. Enemy behavior therefore requires
 no global entity lookup or hierarchy convention. Physics raycasts determine
 line of sight, provider combat rules supply sight distance, preferred distance,
 reaction delay, and speed, and the character body pursues the last observed
-position while respecting map and combatant collision. Attacks remain the next
-runtime behavior increment.
+position while respecting map and combatant collision. The same behavior uses
+the provider-authored attack range, repeat interval, and discrete damage sequence
+to damage the explicitly targeted Player only while line of sight remains clear.
+Player state exposes damage through descriptor metadata, emits non-fatal and
+terminal signals, clamps health at zero, and drives the existing HUD without a
+parallel combat runtime. Attack animation and sound plus player pain, death
+presentation, and terminal control handling remain a separate presentation and
+lifecycle increment.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

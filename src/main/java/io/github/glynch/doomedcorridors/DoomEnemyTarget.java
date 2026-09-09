@@ -32,4 +32,10 @@ final class DoomEnemyTarget implements ComponentReferenceBinder {
         }
         return player;
     }
+
+    /** Returns the damageable state capability on the exact authored player entity. */
+    DoomDamageable damageable() {
+        return player().capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+                .orElseThrow(() -> new IllegalStateException("enemy player target has no damageable capability"));
+    }
 }

@@ -24,6 +24,7 @@ final class DoomEnemyPursuitTest {
         Vector3f velocity = pursuit.advance(ENEMY, TARGET, false, Duration.ofSeconds(1));
 
         assertThat(pursuit.isAlerted()).isFalse();
+        assertThat(pursuit.isReady()).isFalse();
         assertThat(velocity).isEqualTo(new Vector3f());
     }
 
@@ -36,6 +37,7 @@ final class DoomEnemyPursuitTest {
         Vector3f moving = pursuit.advance(ENEMY, new Vector3f(20.0F, 4.0F, -5.0F), false, Duration.ofMillis(1));
 
         assertThat(pursuit.isAlerted()).isTrue();
+        assertThat(pursuit.isReady()).isTrue();
         assertThat(waiting).isEqualTo(new Vector3f());
         assertThat(moving).satisfies(velocity -> {
             assertThat(velocity.length()).isCloseTo(3.0F, within(1.0E-6F));

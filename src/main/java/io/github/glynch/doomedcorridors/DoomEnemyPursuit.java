@@ -71,6 +71,11 @@ final class DoomEnemyPursuit {
         return alerted;
     }
 
+    /** Returns whether the one-time reaction delay has elapsed. */
+    boolean isReady() {
+        return alerted && remainingReactionNanos == 0L;
+    }
+
     /** Starts the one-time reaction delay upon first observation. */
     private void alert() {
         if (!alerted) {

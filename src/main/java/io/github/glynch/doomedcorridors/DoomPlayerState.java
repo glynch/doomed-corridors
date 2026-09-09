@@ -5,17 +5,23 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.util.Objects;
 
 /** Mutable project-runtime health and ammunition state for one player entity. */
-final class DoomPlayerState implements DoomRuleConsumer {
+final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, ComponentEndpointBinder {
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private int health;
     private int maximumHealth;
     private int bullets;
     private int maximumBullets;
+    private RuntimeSignal hurtSignal;
+    private RuntimeSignal diedSignal;
     private boolean configured;
 
     /** Retains explicit source-asset references until application preparation loads their rules. */
@@ -36,6 +42,13 @@ final class DoomPlayerState implements DoomRuleConsumer {
         return combatRules;
     }
 
+    @Override
+    public void bindEndpoints(ComponentEndpoints endpoints) {
+        ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
+        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.HURT_SIGNAL);
+        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
+    }
+
     /** Initializes resources exactly once from validated provider rules before world activation. */
     @Override
     public void configure(DoomCombatRules rules) {
@@ -51,7 +64,8 @@ final class DoomPlayerState implements DoomRuleConsumer {
     }
 
     /** Returns current player health after application preparation. */
-    int health() {
+    @Override
+    public int health() {
         requireConfigured();
         return health;
     }
@@ -75,13 +89,24 @@ final class DoomPlayerState implements DoomRuleConsumer {
         return true;
     }
 
-    /** Applies positive incoming damage without reducing health below zero. */
-    void damage(int amount) {
+    /** Applies positive incoming damage, emits the corresponding state signal, and returns the accepted amount. */
+    @Override
+    public int damage(int amount) {
         requireConfigured();
         if (amount <= 0) {
             throw new IllegalArgumentException("damage must be positive");
         }
-        health = (int) Math.max(0L, (long) health - amount);
+        int applied = (int) Math.min((long) health, amount);
+        health -= applied;
+        if (applied == 0) {
+            return 0;
+        }
+        if (health > 0) {
+            requiredHurtSignal().emit();
+        } else {
+            requiredDiedSignal().emit();
+        }
+        return applied;
     }
 
     /** Applies one useful pickup and returns the exact amount accepted by the player. */
@@ -122,5 +147,21 @@ final class DoomPlayerState implements DoomRuleConsumer {
         if (!configured) {
             throw new IllegalStateException("player state has not been configured");
         }
+    }
+
+    /** Returns the descriptor-declared non-fatal damage signal. */
+    private RuntimeSignal requiredHurtSignal() {
+        if (hurtSignal == null) {
+            throw new IllegalStateException("player hurt signal has not been bound");
+        }
+        return hurtSignal;
+    }
+
+    /** Returns the descriptor-declared terminal damage signal. */
+    private RuntimeSignal requiredDiedSignal() {
+        if (diedSignal == null) {
+            throw new IllegalStateException("player died signal has not been bound");
+        }
+        return diedSignal;
     }
 }

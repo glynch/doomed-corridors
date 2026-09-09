@@ -187,18 +187,6 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/weapon-presentation",
                         EXTENSION_ID + "/player-hud");
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
-                        .orElseThrow()
-                        .providedCapabilities())
-                .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
-        assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE)
-                        .orElseThrow()
-                        .providedCapabilities())
-                .containsExactly(
-                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY,
-                        DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY);
-        assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
                         .orElseThrow())
                 .satisfies(presentation -> {
@@ -256,6 +244,42 @@ final class ProjectManifestTest {
                                     DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY);
+                });
+    }
+
+    /** Declares reusable damage state and fixed-update enemy attack contracts. */
+    @Test
+    void declaresDamageAndEnemyBehaviorContracts() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
+                        .orElseThrow()
+                        .providedCapabilities())
+                .containsExactly(
+                        DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY,
+                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
+                        .orElseThrow()
+                        .signals())
+                .containsOnlyKeys(DoomedCorridorsRuntimeTypes.HURT_SIGNAL, DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE)
+                        .orElseThrow()
+                        .providedCapabilities())
+                .containsExactly(
+                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY,
+                        DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE)
+                        .orElseThrow())
+                .satisfies(behavior -> {
+                    assertThat(behavior.updatePhases()).containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS);
+                    assertThat(behavior.signals()).containsOnlyKeys(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
                 });
     }
 
