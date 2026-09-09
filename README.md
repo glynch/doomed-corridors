@@ -64,49 +64,41 @@ Build and test Doomed Corridors with:
 ./mvnw clean verify
 ```
 
-Publish the imported content and run the project through JScene3D's generic
-desktop launcher with:
+Imported content is published automatically during Maven's `process-classes`
+phase. Run the project through JScene3D's generic desktop launcher with:
 
 ```shell
 ./mvnw process-classes -Prun-desktop
 ```
 
-The current migration slice renders textured static MAP01 geometry from the
-WAD-defined player-one start, registers its generated static collision mesh
-with the world physics module, and displays 119 item, enemy, corpse, and
-decoration actors. Authored `move` and `look` actions drive the
-descriptor-declared player controller, which moves the capsule through the
-engine character-body API, resolves floor and wall collision, slides along
-obstacles, and keeps the child camera attached. Health and bullet pickups use
-authored sensors and signal connections to update the player-resource
-capability and disappear only when useful. Solid enemies own descriptor-declared
-damageable state as well as collision. The player's authored hitscan-weapon
-component consumes the configured bullet cost, tries the exact view ray first,
-then selects a visible damageable entity within the provider-authored auto-aim
-window. It applies the configured discrete pistol damage. Authored damage
-signals drive imported pain and death animation with positional sound, close
-the defeated enemy's blocking body, and retain the final death frame as a
-non-blocking corpse. The imported presentation authors Doom's 160-map-unit
-full-volume distance and 1200-map-unit attenuation limit after converting both
-through the same world-unit scale used by geometry. Separate authored signal connections drive the imported
-pistol animation and sound for every accepted shot plus a short red centre marker
-only when damage is applied. The authored HUD displays live health at the lower
-left and bullet ammunition at the lower right. Configured enemies use an
-explicitly authored player reference, provider-defined sight and movement rules,
-and physics raycasts for wall occlusion. After their reaction delay they pursue
-the last visible player position through collision-aware character bodies and
-stop at their preferred visible range. While the living player remains visible
-and within the configured attack range, enemies apply provider-authored damage
-at the configured interval; the existing HUD reflects the resulting health.
-Explicit signals from each enemy behavior drive its imported sight sound,
-looping walk frames, and attack animation and sound. Pain and death retain higher
-visual priority, after which a living enemy returns to its latest moving or idle
-state. Player-state signals drive listener-relative pain and death sounds, timed
-non-fatal and fatal red responses, and a subtle terminal dark shade. Death disables
-the explicitly authored Player Controls child, lowers the camera from Doom's 41-unit
-standing view height to its 6-unit death height, and moves the first-person weapon
-below the viewport while leaving the world and HUD visible. Doors have not yet been
-connected to the new entity-component runtime.
+## Current playable slice
+
+The descriptor-authored MAP01 world currently provides:
+
+- textured WAD geometry, imported materials, static collision, and the
+  WAD-defined player-one start;
+- normal-skill items, decorations, corpses, pickups, and solid enemies published
+  as placements of reusable generated entity definitions;
+- capsule-based first-person movement with wall sliding, floor changes, and
+  bounded step traversal;
+- a hitscan pistol with ammunition consumption, imported animation and sound,
+  auto-aim within authored limits, and a hit indicator;
+- enemies with authored sight, pursuit, collision, attacks, pain, death,
+  positional audio, and non-blocking corpses;
+- useful-only health and bullet pickup collection through authored sensors;
+- a descriptor-authored HUD showing live health and bullet ammunition; and
+- player pain and death presentation, including local audio, damage flashes, a
+  lowered death view, hidden weapon, disabled controls, and retained world and
+  HUD presentation.
+
+Component participation, references, signals, actions, and update phases come
+from project and generated descriptors. Game-specific Java code is supplied by
+the manifest-selected Doomed Corridors runtime extension; the desktop launcher
+contains no knowledge of this game.
+
+Only MAP01 is currently selected. Doors, lifts, navigation beyond
+last-visible-position pursuit, other sector specials, and restarting after
+player death remain later vertical slices.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the
@@ -114,6 +106,20 @@ left/right arrow keys turn. The left mouse button fires while the pointer is
 captured. Held keyboard turning accelerates from the authored initial rate to its
 authored maximum; releasing or reversing the key resets that rate. Close the
 application with the native window close control.
+
+## Previewing in the editor
+
+From a JScene3D checkout, open this project in the current read-only editor with:
+
+```shell
+./tools/scripts/run-editor.sh /path/to/doomed-corridors
+```
+
+The editor reads the manifest, extension descriptors, authored assets, and
+published imports, then composes the entry world for a live viewport preview.
+It presents the hierarchy, asset catalog, diagnostics, and project-open timing.
+Application behavior is not executed in preview mode, and the editor does not
+yet save project changes.
 
 ## Development
 
@@ -136,7 +142,7 @@ directories, place a `.code-workspace` file in their common parent directory:
     },
     {
       "name": "JScene3D",
-      "path": "./threejs-java"
+      "path": "./jscene3d"
     }
   ],
   "settings": {
