@@ -141,9 +141,13 @@ the provider-authored attack range, repeat interval, and discrete damage sequenc
 to damage the explicitly targeted Player only while line of sight remains clear.
 Player state exposes damage through descriptor metadata, emits non-fatal and
 terminal signals, clamps health at zero, and drives the existing HUD without a
-parallel combat runtime. Attack animation and sound plus player pain, death
-presentation, and terminal control handling remain a separate presentation and
-lifecycle increment.
+parallel combat runtime. Enemy behavior emits explicit alert, movement-transition,
+and attack signals. The imported actor definition connects them to a presentation
+component whose sight and attack audio plus idle, looping walk, attack, pain, and
+terminal death frames are all explicit properties. Death and pain take visual
+priority over attacks, which take priority over movement and idle. Player pain,
+death presentation, and terminal control handling remain a separate presentation
+and lifecycle increment.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

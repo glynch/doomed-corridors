@@ -46,7 +46,11 @@ final class DoomEnemyBehavior
     private DoomEnemyPursuit pursuit;
     private DoomEnemyAttack attack;
     private DoomCombatRules rules;
+    private RuntimeSignal alertedSignal;
+    private RuntimeSignal movementStartedSignal;
+    private RuntimeSignal movementStoppedSignal;
     private RuntimeSignal attackedSignal;
+    private boolean moving;
     private boolean configured;
 
     /** Retains authored rule identities and the world physics seam used for sight and movement. */
@@ -85,8 +89,11 @@ final class DoomEnemyBehavior
 
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
-        attackedSignal = Objects.requireNonNull(endpoints, "endpoints")
-                .signal(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
+        ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
+        alertedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL);
+        movementStartedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL);
+        movementStoppedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL);
+        attackedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
     }
 
     @Override
@@ -113,6 +120,7 @@ final class DoomEnemyBehavior
         FixedUpdateContext validUpdate = Objects.requireNonNull(update, "update");
         requireConfigured();
         if (requiredState().health() == 0) {
+            updateMovement(false);
             return;
         }
         DoomEnemyTarget target = requiredTarget();
@@ -122,7 +130,12 @@ final class DoomEnemyBehavior
         Vector3f playerPosition = playerTransform(player).worldMatrix().getTranslation(new Vector3f());
         float horizontalDistance = horizontalDistance(enemyPosition, playerPosition);
         boolean visible = horizontalDistance <= sightRange && hasLineOfSight(player, playerPosition);
+        boolean wasAlerted = requiredPursuit().isAlerted();
         Vector3f velocity = requiredPursuit().advance(enemyPosition, playerPosition, visible, validUpdate.step());
+        if (!wasAlerted && requiredPursuit().isAlerted()) {
+            requiredAlertedSignal().emit();
+        }
+        updateMovement(velocity.lengthSquared() > POSITION_TOLERANCE * POSITION_TOLERANCE);
         if (requiredPursuit().isAlerted()) {
             requiredBody().move(velocity, validUpdate.step());
         }
@@ -141,6 +154,24 @@ final class DoomEnemyBehavior
     /** Returns whether this enemy has observed its target during the current lifetime. */
     boolean isAlerted() {
         return requiredPursuit().isAlerted();
+    }
+
+    /** Returns whether the latest behavior step requested collision-aware movement. */
+    boolean isMoving() {
+        return moving;
+    }
+
+    /** Emits only genuine transitions between stationary and movement-requesting behavior. */
+    private void updateMovement(boolean nextMoving) {
+        if (moving == nextMoving) {
+            return;
+        }
+        moving = nextMoving;
+        if (moving) {
+            requiredMovementStartedSignal().emit();
+        } else {
+            requiredMovementStoppedSignal().emit();
+        }
     }
 
     /** Determines visibility when the first solid beyond the enemy's own collision radius belongs to the player. */
@@ -256,5 +287,26 @@ final class DoomEnemyBehavior
             throw new IllegalStateException("enemy attacked signal has not been bound");
         }
         return attackedSignal;
+    }
+
+    private RuntimeSignal requiredAlertedSignal() {
+        if (alertedSignal == null) {
+            throw new IllegalStateException("enemy alerted signal has not been bound");
+        }
+        return alertedSignal;
+    }
+
+    private RuntimeSignal requiredMovementStartedSignal() {
+        if (movementStartedSignal == null) {
+            throw new IllegalStateException("enemy movement-started signal has not been bound");
+        }
+        return movementStartedSignal;
+    }
+
+    private RuntimeSignal requiredMovementStoppedSignal() {
+        if (movementStoppedSignal == null) {
+            throw new IllegalStateException("enemy movement-stopped signal has not been bound");
+        }
+        return movementStoppedSignal;
     }
 }

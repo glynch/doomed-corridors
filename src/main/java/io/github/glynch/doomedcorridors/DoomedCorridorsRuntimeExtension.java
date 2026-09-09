@@ -180,6 +180,13 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         @Override
         public void prepare(ComponentPreparationContext context) {
             ComponentProperties properties = context.properties();
+            for (ResourceReference reference : RuntimeProperties.resourceReferences(
+                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY)) {
+                context.resolveResource(reference, PcmAudioResource.class);
+            }
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY),
+                    PcmAudioResource.class);
             context.resolveResource(
                     properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
@@ -192,6 +199,14 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         @Override
         public DoomCombatantPresentation create(ComponentFactoryContext context) {
             ComponentProperties properties = context.properties();
+            List<PcmAudioResource> sightSounds = RuntimeProperties.resourceReferences(
+                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY)
+                    .stream()
+                    .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
+                    .toList();
+            PcmAudioResource attackSound = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY),
+                    PcmAudioResource.class);
             PcmAudioResource painSound = context.resolveResource(
                     properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
@@ -210,10 +225,10 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     RuntimeProperties.nonNegativeFloat(
                             properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY));
             return new DoomCombatantPresentation(
-                    context.owner(),
+                    context.owner().authoredId().value().getMostSignificantBits()
+                            ^ context.owner().authoredId().value().getLeastSignificantBits(),
                     context.world().requireModule(PresentationWorldModule.class),
-                    painSound,
-                    deathSounds,
+                    new DoomCombatantPresentation.AudioResources(sightSounds, attackSound, painSound, deathSounds),
                     frameDuration,
                     attenuation);
         }

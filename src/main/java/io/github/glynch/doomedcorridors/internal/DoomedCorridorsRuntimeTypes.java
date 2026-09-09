@@ -39,7 +39,7 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type driving one configured enemy toward its explicitly supplied player target. */
     public static final ComponentType ENEMY_BEHAVIOR_TYPE = ComponentType.of(EXTENSION_ID + "/enemy-behavior", 1);
 
-    /** Runtime type for descriptor-connected combatant pain and death presentation. */
+    /** Runtime type for descriptor-connected combatant movement, attack, pain, and death presentation. */
     public static final ComponentType COMBATANT_PRESENTATION_TYPE =
             ComponentType.of(EXTENSION_ID + "/combatant-presentation", 1);
 
@@ -98,6 +98,12 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Explicit idle billboard target restored after a non-fatal pain reaction. */
     public static final PropertyId COMBATANT_IDLE_FRAME_PROPERTY = new PropertyId("idle-frame");
 
+    /** Ordered explicit billboard targets used while a combatant is moving. */
+    public static final PropertyId COMBATANT_WALK_FRAMES_PROPERTY = new PropertyId("walk-frames");
+
+    /** Ordered explicit billboard targets used when a combatant attacks. */
+    public static final PropertyId COMBATANT_ATTACK_FRAMES_PROPERTY = new PropertyId("attack-frames");
+
     /** Ordered explicit billboard targets used for a combatant pain reaction. */
     public static final PropertyId COMBATANT_PAIN_FRAMES_PROPERTY = new PropertyId("pain-frames");
 
@@ -106,6 +112,12 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** World-positioned PCM resource played for a non-fatal hit. */
     public static final PropertyId COMBATANT_PAIN_SOUND_PROPERTY = new PropertyId("pain-sound");
+
+    /** World-positioned PCM resources selected when a combatant first observes the player. */
+    public static final PropertyId COMBATANT_SIGHT_SOUNDS_PROPERTY = new PropertyId("sight-sounds");
+
+    /** World-positioned PCM resource played when a combatant attacks. */
+    public static final PropertyId COMBATANT_ATTACK_SOUND_PROPERTY = new PropertyId("attack-sound");
 
     /** World-positioned PCM resources selected when a combatant dies. */
     public static final PropertyId COMBATANT_DEATH_SOUNDS_PROPERTY = new PropertyId("death-sounds");
@@ -190,6 +202,29 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Signal emitted whenever an enemy executes one provider-authorized attack. */
     public static final EndpointId ENEMY_ATTACKED_SIGNAL = new EndpointId("attacked");
+
+    /** Signal emitted exactly once when an enemy first observes its target. */
+    public static final EndpointId ENEMY_ALERTED_SIGNAL = new EndpointId("alerted");
+
+    /** Signal emitted when an enemy begins requesting movement. */
+    public static final EndpointId ENEMY_MOVEMENT_STARTED_SIGNAL = new EndpointId("movement-started");
+
+    /** Signal emitted when an enemy stops requesting movement. */
+    public static final EndpointId ENEMY_MOVEMENT_STOPPED_SIGNAL = new EndpointId("movement-stopped");
+
+    /** Presentation action receiving an enemy's first target observation. */
+    public static final EndpointId RECEIVE_COMBATANT_ALERTED_ACTION = new EndpointId("receive-alerted");
+
+    /** Presentation action receiving the start of enemy movement. */
+    public static final EndpointId RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION =
+            new EndpointId("receive-movement-started");
+
+    /** Presentation action receiving the end of enemy movement. */
+    public static final EndpointId RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION =
+            new EndpointId("receive-movement-stopped");
+
+    /** Presentation action receiving one enemy attack. */
+    public static final EndpointId RECEIVE_COMBATANT_ATTACKED_ACTION = new EndpointId("receive-attacked");
 
     /** Presentation action receiving a non-fatal combatant hit. */
     public static final EndpointId RECEIVE_COMBATANT_HURT_ACTION = new EndpointId("receive-hurt");

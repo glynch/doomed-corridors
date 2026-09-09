@@ -72,6 +72,15 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-body");
     private static final ComponentId ZOMBIEMAN_BEHAVIOR =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/enemy-behavior");
+    private static final List<ComponentId> ZOMBIEMAN_WALK_FRAMES = List.of(
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/walk/0"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/walk/1"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/walk/2"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/walk/3"));
+    private static final List<ComponentId> ZOMBIEMAN_ATTACK_FRAMES = List.of(
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/attack/0"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/attack/1"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/attack/2"));
     private static final ComponentId ZOMBIEMAN_PAIN_FRAME =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/pain/0");
     private static final List<ComponentId> ZOMBIEMAN_DEATH_FRAMES = List.of(
@@ -196,6 +205,16 @@ final class ProjectHostIntegrationTest {
                     .orElseThrow();
             DoomEnemyTarget target =
                     actors.component(ENEMY_TARGET, DoomEnemyTarget.class).orElseThrow();
+            List<BillboardRenderer3d> walkFrames = ZOMBIEMAN_WALK_FRAMES.stream()
+                    .map(component -> zombieman
+                            .component(component, BillboardRenderer3d.class)
+                            .orElseThrow())
+                    .toList();
+            List<BillboardRenderer3d> attackFrames = ZOMBIEMAN_ATTACK_FRAMES.stream()
+                    .map(component -> zombieman
+                            .component(component, BillboardRenderer3d.class)
+                            .orElseThrow())
+                    .toList();
 
             assertThat(actors.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(actors.instantiatedDefinition()).contains(ACTOR_MAP_DEFINITION);
@@ -209,6 +228,13 @@ final class ProjectHostIntegrationTest {
                             ZOMBIEMAN_SHAPE,
                             ZOMBIEMAN_BODY,
                             ZOMBIEMAN_BEHAVIOR,
+                            ZOMBIEMAN_WALK_FRAMES.get(0),
+                            ZOMBIEMAN_WALK_FRAMES.get(1),
+                            ZOMBIEMAN_WALK_FRAMES.get(2),
+                            ZOMBIEMAN_WALK_FRAMES.get(3),
+                            ZOMBIEMAN_ATTACK_FRAMES.get(0),
+                            ZOMBIEMAN_ATTACK_FRAMES.get(1),
+                            ZOMBIEMAN_ATTACK_FRAMES.get(2),
                             ZOMBIEMAN_PAIN_FRAME,
                             ZOMBIEMAN_DEATH_FRAMES.get(0),
                             ZOMBIEMAN_DEATH_FRAMES.get(1),
@@ -223,6 +249,8 @@ final class ProjectHostIntegrationTest {
             assertThat(billboard.size().x()).isPositive();
             assertThat(billboard.size().y()).isPositive();
             assertThat(billboard.isVisible()).isTrue();
+            assertThat(walkFrames).allMatch(frame -> !frame.isVisible());
+            assertThat(attackFrames).allMatch(frame -> !frame.isVisible());
             assertThat(shape.localPosition().y()).isEqualTo(0.875F);
             assertThat(body.isClosed()).isFalse();
             assertThat(state.health()).isEqualTo(20);

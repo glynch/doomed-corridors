@@ -508,7 +508,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         output, audio, imported(context, payloadIdentity)));
     }
 
-    /** Publishes the positional pain and death sounds referenced by one combatant definition. */
+    /** Publishes every positional sound referenced by one combatant definition. */
     private static void publishCombatantSounds(
             ImportPreparationContext context,
             String prefix,
@@ -517,6 +517,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             Map<String, PcmAudio> sounds)
             throws IOException {
         Set<String> required = new TreeSet<>();
+        required.addAll(combatant.sounds().sightSounds());
+        required.add(combatant.sounds().attackSound());
         required.add(combatant.sounds().painSound());
         required.addAll(combatant.sounds().deathSounds());
         for (String sound : required) {
@@ -723,7 +725,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         references.add(shapeIdentity);
     }
 
-    /** Adds hidden reaction billboards and the game-owned behavior connected to combatant-state signals. */
+    /** Adds hidden animation billboards and explicit behavior/state connections for one combatant. */
     private static void addCombatantPresentation(
             CombatantPublication publication,
             ComponentId stateId,
@@ -733,11 +735,16 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             List<String> references) {
         String importId = publication.importId();
         String rootLocator = publication.rootLocator();
-        ComponentId behaviorId = componentId(importId, rootLocator + "/combatant-presentation");
+        ComponentId enemyBehaviorId = componentId(importId, rootLocator + "/enemy-behavior");
+        ComponentId presentationId = componentId(importId, rootLocator + "/combatant-presentation");
+        List<ComponentId> walkFrames =
+                addAnimationFrames(publication, "walk", presentation.walkFrames(), components, references);
+        List<ComponentId> attackFrames =
+                addAnimationFrames(publication, "attack", presentation.attackFrames(), components, references);
         List<ComponentId> painFrames =
-                addReactionFrames(publication, "pain", presentation.painFrames(), components, references);
+                addAnimationFrames(publication, "pain", presentation.painFrames(), components, references);
         List<ComponentId> deathFrames =
-                addReactionFrames(publication, "death", presentation.deathFrames(), components, references);
+                addAnimationFrames(publication, "death", presentation.deathFrames(), components, references);
         DoomCombatPresentationRules.Combatant rules = presentation.rules();
         ProjectValue frameMilliseconds =
                 number(Math.toIntExact(rules.animations().frameDuration().toMillis()));
@@ -745,25 +752,55 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 importId,
                 rootLocator + "/combatant-presentation",
                 DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE,
-                Map.of(
-                        DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY,
+                Map.ofEntries(
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY,
                                 componentTarget(
-                                        publication.rootId(), componentId(importId, rootLocator + "/transform")),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY,
+                                        publication.rootId(), componentId(importId, rootLocator + "/transform"))),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY,
                                 componentTarget(
-                                        publication.rootId(), componentId(importId, rootLocator + "/billboard")),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY,
-                                componentTargets(publication.rootId(), painFrames),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY,
-                                componentTargets(publication.rootId(), deathFrames),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY,
+                                        publication.rootId(), componentId(importId, rootLocator + "/billboard"))),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_WALK_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), walkFrames)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), attackFrames)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), painFrames)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), deathFrames)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY,
+                                resourceReferences(
+                                        importId,
+                                        rules.sounds().sightSounds().stream()
+                                                .map(sound -> combatantSoundIdentity(
+                                                        publication.prefix(),
+                                                        publication.actor().id(),
+                                                        sound))
+                                                .toList())),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY,
                                 reference(
                                         importId,
                                         combatantSoundIdentity(
                                                 publication.prefix(),
                                                 publication.actor().id(),
-                                                rules.sounds().painSound())),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY,
+                                                rules.sounds().attackSound()))),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY,
+                                reference(
+                                        importId,
+                                        combatantSoundIdentity(
+                                                publication.prefix(),
+                                                publication.actor().id(),
+                                                rules.sounds().painSound()))),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY,
                                 resourceReferences(
                                         importId,
                                         rules.sounds().deathSounds().stream()
@@ -771,22 +808,69 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                                         publication.prefix(),
                                                         publication.actor().id(),
                                                         sound))
-                                                .toList()),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
-                                number(DOOM_SOUND_FULL_VOLUME_DISTANCE),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
-                                number(DOOM_SOUND_MAXIMUM_DISTANCE),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY,
-                                number(DOOM_SOUND_ROLLOFF_FACTOR),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY, frameMilliseconds)));
+                                                .toList())),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
+                                number(DOOM_SOUND_FULL_VOLUME_DISTANCE)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
+                                number(DOOM_SOUND_MAXIMUM_DISTANCE)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY,
+                                number(DOOM_SOUND_ROLLOFF_FACTOR)),
+                        Map.entry(
+                                DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY,
+                                frameMilliseconds))));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(), enemyBehaviorId, DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(),
+                        enemyBehaviorId,
+                        DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(),
+                        enemyBehaviorId,
+                        DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(), enemyBehaviorId, DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION)));
         connections.add(new SignalConnection(
                 EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.HURT_SIGNAL),
                 EndpointTarget.component(
-                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION)));
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION)));
         connections.add(new SignalConnection(
                 EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.DIED_SIGNAL),
                 EndpointTarget.component(
-                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION)));
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION)));
+        rules.sounds()
+                .sightSounds()
+                .forEach(sound -> references.add(combatantSoundIdentity(
+                        publication.prefix(), publication.actor().id(), sound)));
+        references.add(combatantSoundIdentity(
+                publication.prefix(), publication.actor().id(), rules.sounds().attackSound()));
         references.add(combatantSoundIdentity(
                 publication.prefix(), publication.actor().id(), rules.sounds().painSound()));
         rules.sounds()
@@ -796,21 +880,24 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     }
 
     /** Adds one ordered hidden billboard sequence and returns its explicit component targets. */
-    private static List<ComponentId> addReactionFrames(
+    private static List<ComponentId> addAnimationFrames(
             CombatantPublication publication,
-            String reaction,
+            String animation,
             List<ImportedSprite> frames,
             List<ComponentDefinition> components,
             List<String> references) {
         List<ComponentId> result = new ArrayList<>(frames.size());
         for (int index = 0; index < frames.size(); index++) {
             ImportedSprite frame = frames.get(index);
-            String locator = publication.rootLocator() + "/combatant-presentation/" + reaction + '/' + index;
+            String locator = publication.rootLocator() + "/combatant-presentation/" + animation + '/' + index;
             ComponentDefinition component =
                     billboard(publication.importId(), publication.prefix(), locator, frame, false);
             components.add(component);
             result.add(component.id());
-            references.add(materialIdentity(publication.prefix(), frame.frame()));
+            String material = materialIdentity(publication.prefix(), frame.frame());
+            if (!references.contains(material)) {
+                references.add(material);
+            }
         }
         return List.copyOf(result);
     }
@@ -944,6 +1031,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             DoomCombatPresentationRules.Combatant combatant =
                     presentation.combatant(actor.definition().id());
             if (combatant != null) {
+                frames.addAll(combatant.animations().walkFrames());
+                frames.addAll(combatant.animations().attackFrames());
                 frames.addAll(combatant.animations().painFrames());
                 frames.addAll(combatant.animations().deathFrames());
             }
@@ -963,6 +1052,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 idle,
                 Optional.of(new CombatantPresentation(
                         combatant,
+                        sprites(combatant.animations().walkFrames(), sprites),
+                        sprites(combatant.animations().attackFrames(), sprites),
                         sprites(combatant.animations().painFrames(), sprites),
                         sprites(combatant.animations().deathFrames(), sprites))));
     }
@@ -1210,10 +1301,14 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Provider rules and resolved billboard frames for one combatant's reactions. */
     private record CombatantPresentation(
             DoomCombatPresentationRules.Combatant rules,
+            List<ImportedSprite> walkFrames,
+            List<ImportedSprite> attackFrames,
             List<ImportedSprite> painFrames,
             List<ImportedSprite> deathFrames) {
         private CombatantPresentation {
             Objects.requireNonNull(rules, "rules");
+            walkFrames = List.copyOf(walkFrames);
+            attackFrames = List.copyOf(attackFrames);
             painFrames = List.copyOf(painFrames);
             deathFrames = List.copyOf(deathFrames);
         }

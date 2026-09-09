@@ -198,6 +198,10 @@ final class ProjectManifestTest {
                                     DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY);
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION,
                                     DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION,
                                     DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION);
                 });
@@ -279,7 +283,12 @@ final class ProjectManifestTest {
                         .orElseThrow())
                 .satisfies(behavior -> {
                     assertThat(behavior.updatePhases()).containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS);
-                    assertThat(behavior.signals()).containsOnlyKeys(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
+                    assertThat(behavior.signals())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL,
+                                    DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL,
+                                    DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL,
+                                    DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
                 });
     }
 

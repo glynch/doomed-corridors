@@ -154,7 +154,7 @@
       "id": "io.github.glynch.doomed-corridors/combatant-presentation",
       "typeVersion": 1,
       "displayName": "Doom Combatant Presentation",
-      "description": "Presents descriptor-connected pain and death reactions using generic billboards and positional audio.",
+      "description": "Presents descriptor-connected movement, attack, pain, and death states using generic billboards and positional audio.",
       "updatePhases": ["frame-update"],
       "properties": [
         {
@@ -170,6 +170,20 @@
           "displayName": "Idle Frame"
         },
         {
+          "id": "walk-frames",
+          "valueKind": "array",
+          "elementKind": "component_target",
+          "required": true,
+          "displayName": "Walk Frames"
+        },
+        {
+          "id": "attack-frames",
+          "valueKind": "array",
+          "elementKind": "component_target",
+          "required": true,
+          "displayName": "Attack Frames"
+        },
+        {
           "id": "pain-frames",
           "valueKind": "array",
           "elementKind": "component_target",
@@ -182,6 +196,20 @@
           "elementKind": "component_target",
           "required": true,
           "displayName": "Death Frames"
+        },
+        {
+          "id": "sight-sounds",
+          "valueKind": "array",
+          "elementKind": "reference",
+          "required": true,
+          "displayName": "Sight Sounds"
+        },
+        {
+          "id": "attack-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Attack Sound",
+          "acceptedReferences": ["import"]
         },
         {
           "id": "pain-sound",
@@ -223,6 +251,26 @@
         }
       ],
       "actions": [
+        {
+          "id": "receive-alerted",
+          "displayName": "Receive Alerted",
+          "description": "Plays one authored sight-sound variant when the combatant first observes its target."
+        },
+        {
+          "id": "receive-movement-started",
+          "displayName": "Receive Movement Started",
+          "description": "Starts the authored looping movement animation."
+        },
+        {
+          "id": "receive-movement-stopped",
+          "displayName": "Receive Movement Stopped",
+          "description": "Returns movement presentation to the appropriate stationary state."
+        },
+        {
+          "id": "receive-attacked",
+          "displayName": "Receive Attacked",
+          "description": "Starts the authored attack animation and positional sound."
+        },
         {
           "id": "receive-hurt",
           "displayName": "Receive Hurt",
@@ -306,6 +354,21 @@
         }
       ],
       "signals": [
+        {
+          "id": "alerted",
+          "displayName": "Alerted",
+          "description": "Emitted exactly once when this enemy first observes its target."
+        },
+        {
+          "id": "movement-started",
+          "displayName": "Movement Started",
+          "description": "Emitted when this enemy begins requesting collision-aware movement."
+        },
+        {
+          "id": "movement-stopped",
+          "displayName": "Movement Stopped",
+          "description": "Emitted when this enemy stops requesting collision-aware movement."
+        },
         {
           "id": "attacked",
           "displayName": "Attacked",

@@ -10,7 +10,6 @@ import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PositionalSound;
 import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
-import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
@@ -27,9 +26,11 @@ import java.util.Random;
 import java.util.random.RandomGenerator;
 import org.joml.Vector3f;
 
-/** Presents descriptor-connected non-fatal pain and terminal death reactions for one combatant. */
+/** Presents descriptor-connected movement, attack, pain, and death states for one combatant. */
 final class DoomCombatantPresentation
         implements ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks, AutoCloseable {
+    private final List<PositionalSound> sightSounds;
+    private final PositionalSound attackSound;
     private final PositionalSound painSound;
     private final List<PositionalSound> deathSounds;
     private final Duration frameDuration;
@@ -37,35 +38,34 @@ final class DoomCombatantPresentation
     private final Vector3f soundPosition = new Vector3f();
     private Transform3d transform;
     private BillboardRenderer3d idleFrame;
+    private List<BillboardRenderer3d> walkFrames = List.of();
+    private List<BillboardRenderer3d> attackFrames = List.of();
     private List<BillboardRenderer3d> painFrames = List.of();
     private List<BillboardRenderer3d> deathFrames = List.of();
     private List<BillboardRenderer3d> activeFrames = List.of();
     private Duration frameElapsed = Duration.ZERO;
     private int frameIndex = -1;
+    private Animation animation = Animation.IDLE;
+    private boolean moving;
     private boolean dead;
     private boolean closed;
 
-    /** Acquires independent positional playback handles for the authored reaction sounds. */
+    /** Acquires independent positional playback handles for every authored combatant sound role. */
     DoomCombatantPresentation(
-            Entity owner,
+            long randomSeed,
             PresentationWorldModule presentation,
-            PcmAudioResource painSound,
-            List<PcmAudioResource> deathSounds,
+            AudioResources audio,
             Duration frameDuration,
             PositionalSoundAttenuation attenuation) {
-        Entity validOwner = Objects.requireNonNull(owner, "owner");
         PresentationWorldModule validPresentation = Objects.requireNonNull(presentation, "presentation");
         this.frameDuration = requirePositive(frameDuration);
-        this.painSound = validPresentation.createPositionalSound(
-                Objects.requireNonNull(painSound, "painSound"), AudioCategory.EFFECTS, attenuation);
-        try {
-            this.deathSounds = createSounds(validPresentation, deathSounds, attenuation);
-        } catch (RuntimeException failure) {
-            this.painSound.close();
-            throw failure;
-        }
-        random = new Random(validOwner.authoredId().value().getMostSignificantBits()
-                ^ validOwner.authoredId().value().getLeastSignificantBits());
+        CombatantSounds sounds =
+                CombatantSounds.create(validPresentation, Objects.requireNonNull(audio, "audio"), attenuation);
+        this.sightSounds = sounds.sight();
+        this.attackSound = sounds.attack();
+        this.painSound = sounds.pain();
+        this.deathSounds = sounds.death();
+        random = new Random(randomSeed);
     }
 
     @Override
@@ -75,12 +75,16 @@ final class DoomCombatantPresentation
                 validReferences.component(DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY, Transform3d.class);
         idleFrame = validReferences.component(
                 DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY, BillboardRenderer3d.class);
+        walkFrames = List.copyOf(validReferences.components(
+                DoomedCorridorsRuntimeTypes.COMBATANT_WALK_FRAMES_PROPERTY, BillboardRenderer3d.class));
+        attackFrames = List.copyOf(validReferences.components(
+                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_FRAMES_PROPERTY, BillboardRenderer3d.class));
         painFrames = List.copyOf(validReferences.components(
                 DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY, BillboardRenderer3d.class));
         deathFrames = List.copyOf(validReferences.components(
                 DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY, BillboardRenderer3d.class));
-        if (painFrames.isEmpty() || deathFrames.isEmpty()) {
-            throw new IllegalArgumentException("combatant reaction frame sequences must not be empty");
+        if (walkFrames.isEmpty() || attackFrames.isEmpty() || painFrames.isEmpty() || deathFrames.isEmpty()) {
+            throw new IllegalArgumentException("combatant animation frame sequences must not be empty");
         }
         showIdle();
     }
@@ -88,6 +92,12 @@ final class DoomCombatantPresentation
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
+        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION, this::receiveAlerted);
+        validEndpoints.action(
+                DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION, this::receiveMovementStarted);
+        validEndpoints.action(
+                DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION, this::receiveMovementStopped);
+        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION, this::receiveAttacked);
         validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION, this::receiveHurt);
         validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION, this::receiveDied);
     }
@@ -95,19 +105,19 @@ final class DoomCombatantPresentation
     @Override
     public void onFrameUpdate(FrameUpdateContext update) {
         Objects.requireNonNull(update, "update");
-        if (frameIndex < 0 || dead && frameIndex == activeFrames.size() - 1) {
+        if (animation == Animation.IDLE || animation == Animation.DEATH && frameIndex == activeFrames.size() - 1) {
             return;
         }
         frameElapsed = frameElapsed.plus(update.elapsed());
-        while (frameIndex >= 0 && frameElapsed.compareTo(frameDuration) >= 0) {
+        while (animation != Animation.IDLE && frameElapsed.compareTo(frameDuration) >= 0) {
             frameElapsed = frameElapsed.minus(frameDuration);
             advanceFrame();
         }
     }
 
-    /** Returns the currently visible reaction frame, or the idle frame outside a reaction. */
+    /** Returns the currently visible animation frame, or the idle frame outside an animation. */
     BillboardRenderer3d currentFrame() {
-        return frameIndex < 0 ? requiredIdleFrame() : activeFrames.get(frameIndex);
+        return animation == Animation.IDLE ? requiredIdleFrame() : activeFrames.get(frameIndex);
     }
 
     /** Returns whether the terminal death sequence has begun. */
@@ -122,15 +132,56 @@ final class DoomCombatantPresentation
             return;
         }
         closed = true;
+        sightSounds.forEach(PositionalSound::close);
+        attackSound.close();
         painSound.close();
         deathSounds.forEach(PositionalSound::close);
+    }
+
+    /** Plays one deterministic sight-sound variant when behavior first acquires the player. */
+    private void receiveAlerted() {
+        requireOpen();
+        if (!dead) {
+            sightSounds.get(random.nextInt(sightSounds.size())).restart(worldPosition());
+        }
+    }
+
+    /** Records movement and starts its looping animation when no higher-priority state is active. */
+    private void receiveMovementStarted() {
+        requireOpen();
+        if (!dead) {
+            moving = true;
+            if (animation == Animation.IDLE) {
+                start(Animation.WALK, walkFrames);
+            }
+        }
+    }
+
+    /** Records the movement stop and restores idle when walking is the visible state. */
+    private void receiveMovementStopped() {
+        requireOpen();
+        moving = false;
+        if (animation == Animation.WALK) {
+            showIdle();
+        }
+    }
+
+    /** Starts one attack sequence and positional sound unless pain or death has visual priority. */
+    private void receiveAttacked() {
+        requireOpen();
+        if (!dead) {
+            attackSound.restart(worldPosition());
+            if (animation != Animation.PAIN) {
+                start(Animation.ATTACK, attackFrames);
+            }
+        }
     }
 
     /** Starts one non-fatal visual and positional-audio reaction. */
     private void receiveHurt() {
         requireOpen();
         if (!dead) {
-            start(painFrames);
+            start(Animation.PAIN, painFrames);
             painSound.restart(worldPosition());
         }
     }
@@ -140,29 +191,48 @@ final class DoomCombatantPresentation
         requireOpen();
         if (!dead) {
             dead = true;
-            start(deathFrames);
+            moving = false;
+            start(Animation.DEATH, deathFrames);
             deathSounds.get(random.nextInt(deathSounds.size())).restart(worldPosition());
         }
     }
 
-    /** Replaces any current reaction with the first frame of the supplied sequence. */
-    private void start(List<BillboardRenderer3d> frames) {
+    /** Replaces the current visible state with the first frame of one animation. */
+    private void start(Animation nextAnimation, List<BillboardRenderer3d> frames) {
         hideAllFrames();
+        animation = Objects.requireNonNull(nextAnimation, "nextAnimation");
         activeFrames = frames;
         frameIndex = 0;
         frameElapsed = Duration.ZERO;
         activeFrames.getFirst().setVisible(true);
     }
 
-    /** Advances one reaction, returning non-fatal reactions to idle and retaining the final death frame. */
+    /** Advances one animation according to its loop, transient, or terminal completion policy. */
     private void advanceFrame() {
         activeFrames.get(frameIndex).setVisible(false);
         if (frameIndex + 1 < activeFrames.size()) {
             frameIndex++;
             activeFrames.get(frameIndex).setVisible(true);
-        } else if (dead) {
-            activeFrames.get(frameIndex).setVisible(true);
-            frameElapsed = Duration.ZERO;
+        } else {
+            switch (animation) {
+                case WALK -> {
+                    frameIndex = 0;
+                    activeFrames.getFirst().setVisible(true);
+                }
+                case ATTACK, PAIN -> showMovementOrIdle();
+                case DEATH -> {
+                    activeFrames.get(frameIndex).setVisible(true);
+                    frameElapsed = Duration.ZERO;
+                }
+                case IDLE -> throw new IllegalStateException("idle presentation has no active frames");
+            }
+        }
+    }
+
+    /** Restores the latest behavior-driven base state after a transient animation finishes. */
+    private void showMovementOrIdle() {
+        if (moving) {
+            start(Animation.WALK, walkFrames);
         } else {
             showIdle();
         }
@@ -172,6 +242,7 @@ final class DoomCombatantPresentation
     private void showIdle() {
         hideAllFrames();
         requiredIdleFrame().setVisible(true);
+        animation = Animation.IDLE;
         activeFrames = List.of();
         frameIndex = -1;
         frameElapsed = Duration.ZERO;
@@ -182,6 +253,8 @@ final class DoomCombatantPresentation
         if (idleFrame != null) {
             idleFrame.setVisible(false);
         }
+        walkFrames.forEach(frame -> frame.setVisible(false));
+        attackFrames.forEach(frame -> frame.setVisible(false));
         painFrames.forEach(frame -> frame.setVisible(false));
         deathFrames.forEach(frame -> frame.setVisible(false));
     }
@@ -204,26 +277,6 @@ final class DoomCombatantPresentation
         return current;
     }
 
-    /** Creates all required death-sound variants with compensation on partial failure. */
-    private static List<PositionalSound> createSounds(
-            PresentationWorldModule presentation,
-            List<PcmAudioResource> resources,
-            PositionalSoundAttenuation attenuation) {
-        List<PcmAudioResource> validResources = List.copyOf(Objects.requireNonNull(resources, "deathSounds"));
-        if (validResources.isEmpty()) {
-            throw new IllegalArgumentException("deathSounds must not be empty");
-        }
-        List<PositionalSound> sounds = new ArrayList<>(validResources.size());
-        try {
-            validResources.forEach(resource ->
-                    sounds.add(presentation.createPositionalSound(resource, AudioCategory.EFFECTS, attenuation)));
-            return List.copyOf(sounds);
-        } catch (RuntimeException failure) {
-            sounds.forEach(PositionalSound::close);
-            throw failure;
-        }
-    }
-
     /** Requires a positive frame duration. */
     private static Duration requirePositive(Duration value) {
         Duration duration = Objects.requireNonNull(value, "frameDuration");
@@ -237,6 +290,77 @@ final class DoomCombatantPresentation
     private void requireOpen() {
         if (closed) {
             throw new IllegalStateException("combatant presentation is closed");
+        }
+    }
+
+    /** Animation roles ordered by explicit event priority rather than component or hierarchy order. */
+    private enum Animation {
+        IDLE,
+        WALK,
+        ATTACK,
+        PAIN,
+        DEATH
+    }
+
+    /** Immutable resolved PCM resources grouped by their authored combatant sound role. */
+    record AudioResources(
+            List<PcmAudioResource> sight,
+            PcmAudioResource attack,
+            PcmAudioResource pain,
+            List<PcmAudioResource> death) {
+        AudioResources {
+            sight = List.copyOf(Objects.requireNonNull(sight, "sight"));
+            Objects.requireNonNull(attack, "attack");
+            Objects.requireNonNull(pain, "pain");
+            death = List.copyOf(Objects.requireNonNull(death, "death"));
+        }
+    }
+
+    /** Independently owned positional handles acquired atomically for one presentation component. */
+    private record CombatantSounds(
+            List<PositionalSound> sight, PositionalSound attack, PositionalSound pain, List<PositionalSound> death) {
+        private static CombatantSounds create(
+                PresentationWorldModule presentation,
+                AudioResources resources,
+                PositionalSoundAttenuation attenuation) {
+            List<PositionalSound> owned = new ArrayList<>();
+            try {
+                List<PositionalSound> sight =
+                        createSounds(presentation, resources.sight(), attenuation, "sightSounds", owned);
+                PositionalSound attack =
+                        presentation.createPositionalSound(resources.attack(), AudioCategory.EFFECTS, attenuation);
+                owned.add(attack);
+                PositionalSound pain =
+                        presentation.createPositionalSound(resources.pain(), AudioCategory.EFFECTS, attenuation);
+                owned.add(pain);
+                List<PositionalSound> death =
+                        createSounds(presentation, resources.death(), attenuation, "deathSounds", owned);
+                return new CombatantSounds(sight, attack, pain, death);
+            } catch (RuntimeException failure) {
+                owned.forEach(PositionalSound::close);
+                throw failure;
+            }
+        }
+
+        /** Creates one required sound list using caller-owned compensation on partial failure. */
+        private static List<PositionalSound> createSounds(
+                PresentationWorldModule presentation,
+                List<PcmAudioResource> resources,
+                PositionalSoundAttenuation attenuation,
+                String name,
+                List<PositionalSound> owned) {
+            List<PcmAudioResource> validResources = List.copyOf(Objects.requireNonNull(resources, name));
+            if (validResources.isEmpty()) {
+                throw new IllegalArgumentException(name + " must not be empty");
+            }
+            List<PositionalSound> sounds = new ArrayList<>(validResources.size());
+            for (PcmAudioResource resource : validResources) {
+                PositionalSound sound =
+                        presentation.createPositionalSound(resource, AudioCategory.EFFECTS, attenuation);
+                sounds.add(sound);
+                owned.add(sound);
+            }
+            return List.copyOf(sounds);
         }
     }
 }

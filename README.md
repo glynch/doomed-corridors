@@ -98,8 +98,11 @@ the last visible player position through collision-aware character bodies and
 stop at their preferred visible range. While the living player remains visible
 and within the configured attack range, enemies apply provider-authored damage
 at the configured interval; the existing HUD reflects the resulting health.
-Enemy attack presentation, terminal player control handling, and doors have not
-yet been connected to the new entity-component runtime.
+Explicit signals from each enemy behavior drive its imported sight sound,
+looping walk frames, and attack animation and sound. Pain and death retain higher
+visual priority, after which a living enemy returns to its latest moving or idle
+state. Terminal player presentation and control handling, and doors have not yet
+been connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the
