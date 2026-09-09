@@ -83,8 +83,12 @@ capability and disappear only when useful. Solid enemies own descriptor-declared
 damageable state as well as collision. The player's authored hitscan-weapon
 component consumes the configured bullet cost, tries the exact view ray first,
 then selects a visible damageable entity within the provider-authored auto-aim
-window. It applies the configured discrete pistol damage and destroys an enemy
-when its health reaches zero. Authored signal connections drive the imported
+window. It applies the configured discrete pistol damage. Authored damage
+signals drive imported pain and death animation with positional sound, close
+the defeated enemy's blocking body, and retain the final death frame as a
+non-blocking corpse. The imported presentation authors Doom's 160-map-unit
+full-volume distance and 1200-map-unit attenuation limit after converting both
+through the same world-unit scale used by geometry. Separate authored signal connections drive the imported
 pistol animation and sound for every accepted shot plus a short red centre marker
 only when damage is applied. The authored HUD displays live health at the lower
 left and bullet ammunition at the lower right. Enemy behavior and doors have not

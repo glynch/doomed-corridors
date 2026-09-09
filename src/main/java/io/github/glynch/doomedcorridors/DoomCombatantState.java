@@ -5,9 +5,15 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
+import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.runtime.Entity;
-import io.github.glynch.jscene3d.project.runtime.World;
+import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import io.github.glynch.jscene3d.project.spatial3d.descriptor.Spatial3dDescriptors;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
@@ -15,9 +21,9 @@ import java.util.Objects;
 import org.joml.Vector3f;
 
 /** Mutable descriptor-backed health for one imported combatant entity. */
-final class DoomCombatantState implements DoomHitscanTarget, DoomRuleConsumer {
+final class DoomCombatantState
+        implements DoomHitscanTarget, DoomRuleConsumer, ComponentReferenceBinder, ComponentEndpointBinder {
     private final Entity owner;
-    private final World world;
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private final String actorId;
@@ -25,16 +31,30 @@ final class DoomCombatantState implements DoomHitscanTarget, DoomRuleConsumer {
     private float aimRadius;
     private float aimHeight;
     private Transform3d transform;
+    private CharacterBody3d body;
+    private RuntimeSignal hurtSignal;
+    private RuntimeSignal diedSignal;
     private boolean configured;
 
     /** Retains explicit authored identities until application preparation initializes health. */
-    DoomCombatantState(
-            Entity owner, World world, ResourceReference actorCatalog, ResourceReference combatRules, String actorId) {
+    DoomCombatantState(Entity owner, ResourceReference actorCatalog, ResourceReference combatRules, String actorId) {
         this.owner = Objects.requireNonNull(owner, "owner");
-        this.world = Objects.requireNonNull(world, "world");
         this.actorCatalog = requireSourceAsset(actorCatalog, "actor-catalog");
         this.combatRules = requireSourceAsset(combatRules, "combat-rules");
         this.actorId = requireText(actorId, "actor-id");
+    }
+
+    @Override
+    public void bindReferences(ComponentReferenceResolver references) {
+        body = Objects.requireNonNull(references, "references")
+                .component(DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY, CharacterBody3d.class);
+    }
+
+    @Override
+    public void bindEndpoints(ComponentEndpoints endpoints) {
+        ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
+        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.COMBATANT_HURT_SIGNAL);
+        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.COMBATANT_DIED_SIGNAL);
     }
 
     @Override
@@ -97,8 +117,14 @@ final class DoomCombatantState implements DoomHitscanTarget, DoomRuleConsumer {
         }
         int applied = (int) Math.min((long) health, amount);
         health -= applied;
-        if (health == 0) {
-            world.destroy(owner);
+        if (applied == 0) {
+            return 0;
+        }
+        if (health > 0) {
+            requiredHurtSignal().emit();
+        } else {
+            requiredBody().close();
+            requiredDiedSignal().emit();
         }
         return applied;
     }
@@ -130,5 +156,29 @@ final class DoomCombatantState implements DoomHitscanTarget, DoomRuleConsumer {
             throw new IllegalStateException("combatant transform has not been configured");
         }
         return transform;
+    }
+
+    /** Returns the explicitly bound solid body which terminal damage removes from physics. */
+    private CharacterBody3d requiredBody() {
+        if (body == null) {
+            throw new IllegalStateException("combatant body has not been bound");
+        }
+        return body;
+    }
+
+    /** Returns the descriptor-declared non-fatal damage signal. */
+    private RuntimeSignal requiredHurtSignal() {
+        if (hurtSignal == null) {
+            throw new IllegalStateException("combatant hurt signal has not been bound");
+        }
+        return hurtSignal;
+    }
+
+    /** Returns the descriptor-declared terminal damage signal. */
+    private RuntimeSignal requiredDiedSignal() {
+        if (diedSignal == null) {
+            throw new IllegalStateException("combatant died signal has not been bound");
+        }
+        return diedSignal;
     }
 }

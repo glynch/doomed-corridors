@@ -15,6 +15,7 @@ import io.github.glynch.doomedcorridors.internal.RuntimeProperties;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
+import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
@@ -73,10 +74,11 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                 DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE,
                 context -> new DoomCombatantState(
                         context.owner(),
-                        context.world(),
                         context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
                         context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
                         context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE, new CombatantPresentationFactory());
         validRegistry.register(
                 DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE,
                 context -> new DoomHitscanWeapon(
@@ -159,6 +161,50 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         private RuleSources {
             Objects.requireNonNull(actorCatalog, "actorCatalog");
             Objects.requireNonNull(combatRules, "combatRules");
+        }
+    }
+
+    /** Resolves immutable combatant sounds before constructing the descriptor-connected reaction component. */
+    private static final class CombatantPresentationFactory implements ComponentFactory<DoomCombatantPresentation> {
+        @Override
+        public void prepare(ComponentPreparationContext context) {
+            ComponentProperties properties = context.properties();
+            context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            for (ResourceReference reference : RuntimeProperties.resourceReferences(
+                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY)) {
+                context.resolveResource(reference, PcmAudioResource.class);
+            }
+        }
+
+        @Override
+        public DoomCombatantPresentation create(ComponentFactoryContext context) {
+            ComponentProperties properties = context.properties();
+            PcmAudioResource painSound = context.resolveResource(
+                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
+                    PcmAudioResource.class);
+            List<PcmAudioResource> deathSounds = RuntimeProperties.resourceReferences(
+                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY)
+                    .stream()
+                    .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
+                    .toList();
+            Duration frameDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY));
+            PositionalSoundAttenuation attenuation = new PositionalSoundAttenuation(
+                    RuntimeProperties.positiveFloat(
+                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY),
+                    RuntimeProperties.positiveFloat(
+                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY),
+                    RuntimeProperties.nonNegativeFloat(
+                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY));
+            return new DoomCombatantPresentation(
+                    context.owner(),
+                    context.world().requireModule(PresentationWorldModule.class),
+                    painSound,
+                    deathSounds,
+                    frameDuration,
+                    attenuation);
         }
     }
 

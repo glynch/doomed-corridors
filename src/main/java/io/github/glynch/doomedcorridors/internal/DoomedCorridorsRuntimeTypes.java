@@ -33,6 +33,10 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type for mutable combatant health. */
     public static final ComponentType COMBATANT_STATE_TYPE = ComponentType.of(EXTENSION_ID + "/combatant-state", 1);
 
+    /** Runtime type for descriptor-connected combatant pain and death presentation. */
+    public static final ComponentType COMBATANT_PRESENTATION_TYPE =
+            ComponentType.of(EXTENSION_ID + "/combatant-presentation", 1);
+
     /** Runtime type for one input-driven hitscan weapon. */
     public static final ComponentType HITSCAN_WEAPON_TYPE = ComponentType.of(EXTENSION_ID + "/hitscan-weapon", 1);
 
@@ -63,6 +67,39 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Provider actor identity used to initialize one combatant. */
     public static final PropertyId ACTOR_ID_PROPERTY = new PropertyId("actor-id");
+
+    /** Explicit solid-body target disabled when a combatant dies. */
+    public static final PropertyId COMBATANT_BODY_PROPERTY = new PropertyId("body");
+
+    /** Explicit transform target supplying a combatant sound's world position. */
+    public static final PropertyId COMBATANT_TRANSFORM_PROPERTY = new PropertyId("transform");
+
+    /** Explicit idle billboard target restored after a non-fatal pain reaction. */
+    public static final PropertyId COMBATANT_IDLE_FRAME_PROPERTY = new PropertyId("idle-frame");
+
+    /** Ordered explicit billboard targets used for a combatant pain reaction. */
+    public static final PropertyId COMBATANT_PAIN_FRAMES_PROPERTY = new PropertyId("pain-frames");
+
+    /** Ordered explicit billboard targets used for a combatant death reaction. */
+    public static final PropertyId COMBATANT_DEATH_FRAMES_PROPERTY = new PropertyId("death-frames");
+
+    /** World-positioned PCM resource played for a non-fatal hit. */
+    public static final PropertyId COMBATANT_PAIN_SOUND_PROPERTY = new PropertyId("pain-sound");
+
+    /** World-positioned PCM resources selected when a combatant dies. */
+    public static final PropertyId COMBATANT_DEATH_SOUNDS_PROPERTY = new PropertyId("death-sounds");
+
+    /** Distance within which combatant sounds retain their full authored gain. */
+    public static final PropertyId COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY = new PropertyId("reference-distance");
+
+    /** Distance at which combatant-sound attenuation is clamped. */
+    public static final PropertyId COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY = new PropertyId("maximum-distance");
+
+    /** Rate at which combatant sounds attenuate beyond their reference distance. */
+    public static final PropertyId COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY = new PropertyId("rolloff-factor");
+
+    /** Duration of each combatant reaction frame in milliseconds. */
+    public static final PropertyId COMBATANT_FRAME_MILLISECONDS_PROPERTY = new PropertyId("frame-milliseconds");
 
     /** Provider weapon identity used to configure one weapon component. */
     public static final PropertyId WEAPON_ID_PROPERTY = new PropertyId("weapon-id");
@@ -123,6 +160,18 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Presentation action receiving one shot which applied damage. */
     public static final EndpointId RECEIVE_WEAPON_HIT_ACTION = new EndpointId("receive-hit");
+
+    /** Signal emitted after non-fatal damage is applied to a combatant. */
+    public static final EndpointId COMBATANT_HURT_SIGNAL = new EndpointId("hurt");
+
+    /** Signal emitted exactly once when a combatant reaches zero health. */
+    public static final EndpointId COMBATANT_DIED_SIGNAL = new EndpointId("died");
+
+    /** Presentation action receiving a non-fatal combatant hit. */
+    public static final EndpointId RECEIVE_COMBATANT_HURT_ACTION = new EndpointId("receive-hurt");
+
+    /** Presentation action receiving terminal combatant damage. */
+    public static final EndpointId RECEIVE_COMBATANT_DIED_ACTION = new EndpointId("receive-died");
 
     /** Prevents construction of this identity container. */
     private DoomedCorridorsRuntimeTypes() {

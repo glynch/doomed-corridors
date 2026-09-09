@@ -83,6 +83,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -102,6 +103,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final String PCM_MEDIA_TYPE = "application/vnd.jscene3d.pcm16le-v1";
     private static final int PALETTE_SIZE = 256 * 3;
     private static final float PICKUP_SENSOR_CENTER_HEIGHT = DoomUnits.toWorld(28.0F);
+    private static final float DOOM_SOUND_FULL_VOLUME_DISTANCE = DoomUnits.toWorld(160.0F);
+    private static final float DOOM_SOUND_MAXIMUM_DISTANCE = DoomUnits.toWorld(1200.0F);
+    private static final float DOOM_SOUND_ROLLOFF_FACTOR = 1.0F;
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
     private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
     private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
@@ -238,7 +242,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return result.isValid() ? result.rules() : Optional.empty();
     }
 
-    /** Decodes selected weapon and HUD assets so runtime publication never needs the source WAD. */
+    /** Decodes selected weapon, HUD, and combatant audio so runtime publication never needs the source WAD. */
     private static Optional<CombatPresentationAssets> importPresentationAssets(
             ImportPreparationContext context, WadArchive archive, DoomCombatPresentationRules presentation) {
         DoomCombatPresentationRules.Weapon weapon = presentation.weapon();
@@ -260,10 +264,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name());
                 images.put(image, patch.image());
             }
-            WadLump soundLump = requiredLump(archive, weapon.fireSound());
-            PcmAudio sound =
-                    DoomDmxSoundDecoder.decode(archive.readAllBytes(soundLump, soundLump.size()), soundLump.name());
-            return Optional.of(new CombatPresentationAssets(presentation, images, sound));
+            Map<String, PcmAudio> sounds = new LinkedHashMap<>();
+            for (String sound : presentation.soundLumps()) {
+                WadLump soundLump = requiredLump(archive, sound);
+                sounds.put(
+                        sound,
+                        DoomDmxSoundDecoder.decode(
+                                archive.readAllBytes(soundLump, soundLump.size()), soundLump.name()));
+            }
+            return Optional.of(new CombatPresentationAssets(presentation, images, sounds));
         } catch (IOException | DoomPatchDataException | IllegalArgumentException exception) {
             context.error(
                     ActorImportDiagnosticCode.COMBAT_PRESENTATION_INVALID,
@@ -318,17 +327,21 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         DoomActorResolution resolution = new DoomActorResolver()
                 .resolve(context.asset().path(), decoded.map().orElseThrow(), catalog, DoomSkillLevel.NORMAL);
         resolution.diagnostics().forEach(diagnostic -> report(context, diagnostic));
-        Optional<Map<String, ImportedSprite>> imported = importSprites(context, archive, resolution.actors());
+        Optional<Map<String, ImportedSprite>> imported =
+                importSprites(context, archive, resolution.actors(), presentation.presentation());
         if (imported.isEmpty()) {
             return;
         }
-        publishMap(context, prefix, resolution.actors(), imported.orElseThrow(), rules);
+        publishMap(context, prefix, resolution.actors(), imported.orElseThrow(), rules, presentation);
         publishWeaponPresentation(context, prefix, presentation);
     }
 
     /** Imports every unique selected spawn frame while preserving classic patch origin metadata. */
     private static Optional<Map<String, ImportedSprite>> importSprites(
-            ImportPreparationContext context, WadArchive archive, List<DoomActor> actors) {
+            ImportPreparationContext context,
+            WadArchive archive,
+            List<DoomActor> actors,
+            DoomCombatPresentationRules presentation) {
         WadLump paletteLump = archive.lastLumpNamed("PLAYPAL").orElse(null);
         if (paletteLump == null) {
             context.error(ActorImportDiagnosticCode.PALETTE_MISSING, "/sprites/palette", Map.of());
@@ -345,7 +358,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             }
             Map<String, WadLump> namespace = spriteLumps(archive);
             Map<String, ImportedSprite> result = new LinkedHashMap<>();
-            for (String frame : requiredFrames(actors)) {
+            for (String frame : requiredFrames(actors, presentation)) {
                 WadLump lump = frameLump(namespace, frame);
                 if (lump == null) {
                     context.warning(
@@ -372,7 +385,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             String prefix,
             List<DoomActor> actors,
             Map<String, ImportedSprite> sprites,
-            DoomCombatRules rules)
+            DoomCombatRules rules,
+            CombatPresentationAssets presentation)
             throws IOException {
         RuleReferences ruleReferences = ruleReferences(context);
         for (ImportedSprite sprite : sprites.values()) {
@@ -382,20 +396,22 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         for (DoomActorDefinition definition : definitions.values()) {
             Optional<DoomCombatRules.PickupDefinition> pickup = rules.findPickup(definition.id());
             Optional<DoomCombatRules.CombatantBounds> combatant = rules.findCombatantBounds(definition.id());
+            ActorPresentation actorPresentation = actorPresentation(definition, sprites, presentation.presentation());
             if (pickup.isPresent()) {
                 publishPickupShape(context, prefix, definition, pickup.orElseThrow());
             }
             if (combatant.isPresent()) {
                 publishCombatantShape(context, prefix, definition, combatant.orElseThrow());
+                if (actorPresentation.combatant().isPresent()) {
+                    publishCombatantSounds(
+                            context,
+                            prefix,
+                            definition.id(),
+                            actorPresentation.combatant().orElseThrow().rules(),
+                            presentation.sounds());
+                }
             }
-            publishActorDefinition(
-                    context,
-                    prefix,
-                    definition,
-                    sprites.get(definition.spriteFrame().orElseThrow()),
-                    pickup,
-                    combatant,
-                    ruleReferences);
+            publishActorDefinition(context, prefix, definition, actorPresentation, pickup, combatant, ruleReferences);
         }
         publishActorPlacements(context, prefix, actors, definitions);
     }
@@ -455,7 +471,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         String percent = assets.presentation().hud().percent();
         publishOverlayImage(
                 context, hudImageIdentity(prefix, percent), assets.images().get(percent));
-        publishWeaponSound(context, prefix, weapon.fireSound(), assets.fireSound());
+        publishSound(
+                context,
+                weaponSoundIdentity(prefix, weapon.fireSound()),
+                assets.sounds().get(weapon.fireSound()));
     }
 
     /** Publishes one exact WAD patch as a generic immutable screen image. */
@@ -474,9 +493,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     }
 
     /** Publishes one decoded local sound as a generic signed PCM resource. */
-    private static void publishWeaponSound(
-            ImportPreparationContext context, String prefix, String soundName, PcmAudio audio) throws IOException {
-        String resourceIdentity = weaponSoundIdentity(prefix, soundName);
+    private static void publishSound(ImportPreparationContext context, String resourceIdentity, PcmAudio audio)
+            throws IOException {
         String payloadIdentity = resourceIdentity + ".pcm16le";
         context.artifact(
                 ImportArtifactDescriptor.payload(payloadIdentity, PCM_MEDIA_TYPE),
@@ -486,6 +504,22 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         resourceIdentity, GamePresentationDescriptors.pcmAudioResourceType(), List.of(payloadIdentity)),
                 output -> GamePresentationResourceWriter.writePcmAudioDefinition(
                         output, audio, imported(context, payloadIdentity)));
+    }
+
+    /** Publishes the positional pain and death sounds referenced by one combatant definition. */
+    private static void publishCombatantSounds(
+            ImportPreparationContext context,
+            String prefix,
+            String actorId,
+            DoomCombatPresentationRules.Combatant combatant,
+            Map<String, PcmAudio> sounds)
+            throws IOException {
+        Set<String> required = new TreeSet<>();
+        required.add(combatant.sounds().painSound());
+        required.addAll(combatant.sounds().deathSounds());
+        for (String sound : required) {
+            publishSound(context, combatantSoundIdentity(prefix, actorId, sound), sounds.get(sound));
+        }
     }
 
     /** Publishes the provider-sized non-blocking contact volume shared by one pickup definition's instances. */
@@ -521,7 +555,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             ImportPreparationContext context,
             String prefix,
             DoomActorDefinition actor,
-            ImportedSprite sprite,
+            ActorPresentation presentation,
             Optional<DoomCombatRules.PickupDefinition> pickup,
             Optional<DoomCombatRules.CombatantBounds> combatant,
             RuleReferences ruleReferences)
@@ -536,30 +570,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 Spatial3dDescriptors.transformType().id(),
                 Spatial3dDescriptors.transformType().version(),
                 Map.of());
-        ComponentDefinition billboard = component(
-                context.definition().id(),
-                rootLocator + "/billboard",
-                Spatial3dDescriptors.billboardRendererType(),
-                Map.of(
-                        Spatial3dDescriptors.materialProperty(),
-                                reference(context.definition().id(), materialIdentity(prefix, sprite.frame())),
-                        Spatial3dDescriptors.sizeProperty(),
-                                numbers(
-                                        DoomUnits.toWorld(sprite.image().width()),
-                                        DoomUnits.toWorld(sprite.image().height())),
-                        Spatial3dDescriptors.anchorProperty(),
-                                numbers(
-                                        sprite.leftOffset()
-                                                / (float) sprite.image().width(),
-                                        (sprite.image().height() - sprite.topOffset())
-                                                / (float) sprite.image().height()),
-                        Spatial3dDescriptors.alignmentProperty(), new ProjectValue.TextValue("cylindrical")));
+        ComponentDefinition billboard = billboard(
+                context.definition().id(), prefix, rootLocator + "/billboard", presentation.idleFrame(), true);
         List<ComponentDefinition> components = new ArrayList<>();
         components.add(transform);
         components.add(billboard);
         List<SignalConnection> connections = new ArrayList<>();
         List<String> references = new ArrayList<>();
-        String materialIdentity = materialIdentity(prefix, sprite.frame());
+        String materialIdentity =
+                materialIdentity(prefix, presentation.idleFrame().frame());
         references.add(materialIdentity);
         pickup.ifPresent(rule -> addPickupComponents(
                 new PickupPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
@@ -571,7 +590,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 new CombatantPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
                 bounds,
                 ruleReferences,
+                presentation.combatant(),
                 components,
+                connections,
                 references));
         EntityContract contract = new EntityContract(
                 List.of(new EntityContract.Parameter(
@@ -640,11 +661,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             CombatantPublication publication,
             DoomCombatRules.CombatantBounds bounds,
             RuleReferences ruleReferences,
+            Optional<CombatantPresentation> presentation,
             List<ComponentDefinition> components,
+            List<SignalConnection> connections,
             List<String> references) {
         String importId = publication.importId();
         String rootLocator = publication.rootLocator();
         ComponentId shapeId = componentId(importId, rootLocator + "/combatant-shape");
+        ComponentId bodyId = componentId(importId, rootLocator + "/combatant-body");
+        ComponentId stateId = componentId(importId, rootLocator + "/combatant-state");
         String shapeIdentity =
                 collisionShapeIdentity(publication.prefix(), publication.actor().id());
         components.add(component(
@@ -655,7 +680,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
                         DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
                         DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY,
-                                new ProjectValue.TextValue(publication.actor().id()))));
+                                new ProjectValue.TextValue(publication.actor().id()),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY,
+                                componentTarget(publication.rootId(), bodyId))));
         components.add(component(
                 importId,
                 rootLocator + "/combatant-shape",
@@ -669,7 +696,127 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 rootLocator + "/combatant-body",
                 Physics3dDescriptors.characterBodyType(),
                 Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
+        presentation.ifPresent(
+                value -> addCombatantPresentation(publication, stateId, value, components, connections, references));
         references.add(shapeIdentity);
+    }
+
+    /** Adds hidden reaction billboards and the game-owned behavior connected to combatant-state signals. */
+    private static void addCombatantPresentation(
+            CombatantPublication publication,
+            ComponentId stateId,
+            CombatantPresentation presentation,
+            List<ComponentDefinition> components,
+            List<SignalConnection> connections,
+            List<String> references) {
+        String importId = publication.importId();
+        String rootLocator = publication.rootLocator();
+        ComponentId behaviorId = componentId(importId, rootLocator + "/combatant-presentation");
+        List<ComponentId> painFrames =
+                addReactionFrames(publication, "pain", presentation.painFrames(), components, references);
+        List<ComponentId> deathFrames =
+                addReactionFrames(publication, "death", presentation.deathFrames(), components, references);
+        DoomCombatPresentationRules.Combatant rules = presentation.rules();
+        ProjectValue frameMilliseconds =
+                number(Math.toIntExact(rules.animations().frameDuration().toMillis()));
+        components.add(component(
+                importId,
+                rootLocator + "/combatant-presentation",
+                DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE,
+                Map.of(
+                        DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY,
+                                componentTarget(
+                                        publication.rootId(), componentId(importId, rootLocator + "/transform")),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY,
+                                componentTarget(
+                                        publication.rootId(), componentId(importId, rootLocator + "/billboard")),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), painFrames),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY,
+                                componentTargets(publication.rootId(), deathFrames),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY,
+                                reference(
+                                        importId,
+                                        combatantSoundIdentity(
+                                                publication.prefix(),
+                                                publication.actor().id(),
+                                                rules.sounds().painSound())),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY,
+                                resourceReferences(
+                                        importId,
+                                        rules.sounds().deathSounds().stream()
+                                                .map(sound -> combatantSoundIdentity(
+                                                        publication.prefix(),
+                                                        publication.actor().id(),
+                                                        sound))
+                                                .toList()),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
+                                number(DOOM_SOUND_FULL_VOLUME_DISTANCE),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
+                                number(DOOM_SOUND_MAXIMUM_DISTANCE),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY,
+                                number(DOOM_SOUND_ROLLOFF_FACTOR),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY, frameMilliseconds)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.COMBATANT_HURT_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(
+                        publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.COMBATANT_DIED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION)));
+        references.add(combatantSoundIdentity(
+                publication.prefix(), publication.actor().id(), rules.sounds().painSound()));
+        rules.sounds()
+                .deathSounds()
+                .forEach(sound -> references.add(combatantSoundIdentity(
+                        publication.prefix(), publication.actor().id(), sound)));
+    }
+
+    /** Adds one ordered hidden billboard sequence and returns its explicit component targets. */
+    private static List<ComponentId> addReactionFrames(
+            CombatantPublication publication,
+            String reaction,
+            List<ImportedSprite> frames,
+            List<ComponentDefinition> components,
+            List<String> references) {
+        List<ComponentId> result = new ArrayList<>(frames.size());
+        for (int index = 0; index < frames.size(); index++) {
+            ImportedSprite frame = frames.get(index);
+            String locator = publication.rootLocator() + "/combatant-presentation/" + reaction + '/' + index;
+            ComponentDefinition component =
+                    billboard(publication.importId(), publication.prefix(), locator, frame, false);
+            components.add(component);
+            result.add(component.id());
+            references.add(materialIdentity(publication.prefix(), frame.frame()));
+        }
+        return List.copyOf(result);
+    }
+
+    /** Creates one generic actor billboard using exact imported patch origin and dimensions. */
+    private static ComponentDefinition billboard(
+            String importId, String prefix, String locator, ImportedSprite sprite, boolean visible) {
+        return component(
+                importId,
+                locator,
+                Spatial3dDescriptors.billboardRendererType(),
+                Map.of(
+                        Spatial3dDescriptors.materialProperty(),
+                                reference(importId, materialIdentity(prefix, sprite.frame())),
+                        Spatial3dDescriptors.sizeProperty(),
+                                numbers(
+                                        DoomUnits.toWorld(sprite.image().width()),
+                                        DoomUnits.toWorld(sprite.image().height())),
+                        Spatial3dDescriptors.anchorProperty(),
+                                numbers(
+                                        sprite.leftOffset()
+                                                / (float) sprite.image().width(),
+                                        (sprite.image().height() - sprite.topOffset())
+                                                / (float) sprite.image().height()),
+                        Spatial3dDescriptors.alignmentProperty(), new ProjectValue.TextValue("cylindrical"),
+                        Spatial3dDescriptors.visibleProperty(), new ProjectValue.BooleanValue(visible)));
     }
 
     /** Converts validated recipe source-asset identities into portable authored references. */
@@ -744,13 +891,42 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return Collections.unmodifiableMap(result);
     }
 
-    /** Collects required provider frame identifiers in deterministic order. */
-    private static Set<String> requiredFrames(List<DoomActor> actors) {
+    /** Collects spawn and configured combatant frame identifiers in deterministic order. */
+    private static Set<String> requiredFrames(List<DoomActor> actors, DoomCombatPresentationRules presentation) {
         Set<String> frames = new TreeSet<>();
         for (DoomActor actor : actors) {
             frames.add(actor.definition().spriteFrame().orElseThrow());
+            DoomCombatPresentationRules.Combatant combatant =
+                    presentation.combatant(actor.definition().id());
+            if (combatant != null) {
+                frames.addAll(combatant.animations().painFrames());
+                frames.addAll(combatant.animations().deathFrames());
+            }
         }
         return frames;
+    }
+
+    /** Resolves one actor's idle and optional combatant reaction frames from imported sprite data. */
+    private static ActorPresentation actorPresentation(
+            DoomActorDefinition actor, Map<String, ImportedSprite> sprites, DoomCombatPresentationRules presentation) {
+        ImportedSprite idle = sprites.get(actor.spriteFrame().orElseThrow());
+        DoomCombatPresentationRules.Combatant combatant = presentation.combatant(actor.id());
+        if (combatant == null) {
+            return new ActorPresentation(idle, Optional.empty());
+        }
+        return new ActorPresentation(
+                idle,
+                Optional.of(new CombatantPresentation(
+                        combatant,
+                        sprites(combatant.animations().painFrames(), sprites),
+                        sprites(combatant.animations().deathFrames(), sprites))));
+    }
+
+    /** Resolves one complete ordered frame sequence after import diagnostics validated its lumps. */
+    private static List<ImportedSprite> sprites(List<String> frames, Map<String, ImportedSprite> imported) {
+        return frames.stream()
+                .map(frame -> Objects.requireNonNull(imported.get(frame), "missing imported sprite: " + frame))
+                .toList();
     }
 
     /** Indexes sprite lumps only while inside standard Doom sprite namespaces. */
@@ -771,6 +947,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
 
     /** Selects a non-directional frame or the forward-facing rotation-one frame. */
     private static WadLump frameLump(Map<String, WadLump> namespace, String frame) {
+        WadLump exact = namespace.get(frame);
+        if (exact != null) {
+            return exact;
+        }
         WadLump nonDirectional = namespace.get(frame + '0');
         return nonDirectional == null ? namespace.get(frame + '1') : nonDirectional;
     }
@@ -806,6 +986,26 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return new ProjectValue.ArrayValue(targets);
     }
 
+    /** Creates one portable component-target array from an ordered component list. */
+    private static ProjectValue.ArrayValue componentTargets(EntityId entity, List<ComponentId> components) {
+        return new ProjectValue.ArrayValue(components.stream()
+                .<ProjectValue>map(
+                        component -> new ProjectValue.ComponentTargetValue(new ComponentTarget(entity, component)))
+                .toList());
+    }
+
+    /** Creates one portable component target. */
+    private static ProjectValue.ComponentTargetValue componentTarget(EntityId entity, ComponentId component) {
+        return new ProjectValue.ComponentTargetValue(new ComponentTarget(entity, component));
+    }
+
+    /** Creates one portable imported-resource reference array. */
+    private static ProjectValue.ArrayValue resourceReferences(String importId, List<String> identities) {
+        return new ProjectValue.ArrayValue(identities.stream()
+                .<ProjectValue>map(identity -> reference(importId, identity))
+                .toList());
+    }
+
     /** Creates one imported resource reference for the active recipe. */
     private static ResourceReference imported(ImportPreparationContext context, String identity) {
         return ResourceReference.imported(context.definition().id() + '/' + identity);
@@ -815,7 +1015,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static ProjectValue.ArrayValue numbers(float... values) {
         List<ProjectValue> result = new ArrayList<>(values.length);
         for (float value : values) {
-            result.add(new ProjectValue.NumberValue(new BigDecimal(Float.toString(value))));
+            result.add(number(value));
         }
         return new ProjectValue.ArrayValue(result);
     }
@@ -823,6 +1023,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Creates one portable exact integer number. */
     private static ProjectValue.NumberValue number(int value) {
         return new ProjectValue.NumberValue(BigDecimal.valueOf(value));
+    }
+
+    /** Creates one portable finite float number without a binary floating-point serialization artifact. */
+    private static ProjectValue.NumberValue number(float value) {
+        return new ProjectValue.NumberValue(new BigDecimal(Float.toString(value)));
     }
 
     /** Returns the stable source-item prefix for one map. */
@@ -863,6 +1068,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Returns one selected weapon local-sound identity. */
     private static String weaponSoundIdentity(String prefix, String sound) {
         return prefix + "/presentation/weapons/audio/" + sound.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one actor-specific positional sound identity. */
+    private static String combatantSoundIdentity(String prefix, String actorId, String sound) {
+        return prefix + "/presentation/combatants/" + actorId + "/audio/" + sound.toLowerCase(Locale.ROOT);
     }
 
     /** Returns the provider-sized collision-resource identity for one actor definition. */
@@ -944,11 +1154,32 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** One decoded actor frame retained only while artifacts are being published. */
     private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}
 
+    /** Imported visual inputs used to publish one actor definition. */
+    private record ActorPresentation(ImportedSprite idleFrame, Optional<CombatantPresentation> combatant) {
+        private ActorPresentation {
+            Objects.requireNonNull(idleFrame, "idleFrame");
+            Objects.requireNonNull(combatant, "combatant");
+        }
+    }
+
+    /** Provider rules and resolved billboard frames for one combatant's reactions. */
+    private record CombatantPresentation(
+            DoomCombatPresentationRules.Combatant rules,
+            List<ImportedSprite> painFrames,
+            List<ImportedSprite> deathFrames) {
+        private CombatantPresentation {
+            Objects.requireNonNull(rules, "rules");
+            painFrames = List.copyOf(painFrames);
+            deathFrames = List.copyOf(deathFrames);
+        }
+    }
+
     /** Build-time assets required by descriptor-selected combat presentation components. */
     private record CombatPresentationAssets(
-            DoomCombatPresentationRules presentation, Map<String, RgbaImage> images, PcmAudio fireSound) {
+            DoomCombatPresentationRules presentation, Map<String, RgbaImage> images, Map<String, PcmAudio> sounds) {
         private CombatPresentationAssets {
             images = Map.copyOf(images);
+            sounds = Map.copyOf(sounds);
         }
     }
 

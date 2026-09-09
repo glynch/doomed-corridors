@@ -119,6 +119,15 @@ showing the short centre hit marker only after health is actually removed.
 Keyboard turning similarly keeps its initial rate, maximum rate, and acceleration
 in the controller's authored properties rather than application Java.
 
+Configured combatants also publish hidden pain and death billboards, positional
+reaction sounds, and explicit signal connections from their damage state to a
+game-owned presentation component. Non-fatal damage returns to the idle frame;
+fatal damage closes the combatant's blocking body, plays the complete death
+sequence, and leaves its final frame in the world as a non-blocking corpse. The
+component's descriptor exposes positional attenuation, and the importer derives
+its full-volume and maximum distances from Doom's 160- and 1200-map-unit sound
+distances through the shared world-unit conversion.
+
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's
 range and discrete damage values, and the zombieman's health, collision cylinder,

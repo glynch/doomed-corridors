@@ -113,6 +113,110 @@
           "required": true,
           "displayName": "Actor",
           "description": "Stable provider actor identity represented by this entity."
+        },
+        {
+          "id": "body",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Body",
+          "description": "Explicit solid body removed from physics when this combatant dies."
+        }
+      ],
+      "signals": [
+        {
+          "id": "hurt",
+          "displayName": "Hurt",
+          "description": "Emitted after non-fatal damage is applied."
+        },
+        {
+          "id": "died",
+          "displayName": "Died",
+          "description": "Emitted exactly once when health reaches zero."
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/combatant-presentation",
+      "typeVersion": 1,
+      "displayName": "Doom Combatant Presentation",
+      "description": "Presents descriptor-connected pain and death reactions using generic billboards and positional audio.",
+      "updatePhases": ["frame-update"],
+      "properties": [
+        {
+          "id": "transform",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Transform"
+        },
+        {
+          "id": "idle-frame",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Idle Frame"
+        },
+        {
+          "id": "pain-frames",
+          "valueKind": "array",
+          "elementKind": "component_target",
+          "required": true,
+          "displayName": "Pain Frames"
+        },
+        {
+          "id": "death-frames",
+          "valueKind": "array",
+          "elementKind": "component_target",
+          "required": true,
+          "displayName": "Death Frames"
+        },
+        {
+          "id": "pain-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Pain Sound",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "death-sounds",
+          "valueKind": "array",
+          "elementKind": "reference",
+          "required": true,
+          "displayName": "Death Sounds"
+        },
+        {
+          "id": "reference-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Full-volume Distance"
+        },
+        {
+          "id": "maximum-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Maximum Distance"
+        },
+        {
+          "id": "rolloff-factor",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Rolloff Factor"
+        },
+        {
+          "id": "frame-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Frame Duration"
+        }
+      ],
+      "actions": [
+        {
+          "id": "receive-hurt",
+          "displayName": "Receive Hurt",
+          "description": "Starts the authored non-fatal pain reaction."
+        },
+        {
+          "id": "receive-died",
+          "displayName": "Receive Died",
+          "description": "Starts the authored terminal death reaction."
         }
       ]
     },

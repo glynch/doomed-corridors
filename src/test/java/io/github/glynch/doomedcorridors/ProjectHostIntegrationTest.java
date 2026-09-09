@@ -12,6 +12,7 @@ import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.game.input.ProjectInput;
+import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.ScreenNumber;
 import io.github.glynch.jscene3d.objects.BillboardAlignment;
 import io.github.glynch.jscene3d.project.asset.AssetId;
@@ -69,6 +70,16 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-shape");
     private static final ComponentId ZOMBIEMAN_BODY =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-body");
+    private static final ComponentId ZOMBIEMAN_PAIN_FRAME =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/pain/0");
+    private static final List<ComponentId> ZOMBIEMAN_DEATH_FRAMES = List.of(
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/0"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/1"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/2"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/3"),
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/4"));
+    private static final ComponentId ZOMBIEMAN_PRESENTATION =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation");
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
@@ -183,7 +194,18 @@ final class ProjectHostIntegrationTest {
             assertThat(zombieman.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(zombieman.componentIds())
                     .containsExactly(
-                            ZOMBIEMAN_TRANSFORM, ZOMBIEMAN_BILLBOARD, ZOMBIEMAN_STATE, ZOMBIEMAN_SHAPE, ZOMBIEMAN_BODY);
+                            ZOMBIEMAN_TRANSFORM,
+                            ZOMBIEMAN_BILLBOARD,
+                            ZOMBIEMAN_STATE,
+                            ZOMBIEMAN_SHAPE,
+                            ZOMBIEMAN_BODY,
+                            ZOMBIEMAN_PAIN_FRAME,
+                            ZOMBIEMAN_DEATH_FRAMES.get(0),
+                            ZOMBIEMAN_DEATH_FRAMES.get(1),
+                            ZOMBIEMAN_DEATH_FRAMES.get(2),
+                            ZOMBIEMAN_DEATH_FRAMES.get(3),
+                            ZOMBIEMAN_DEATH_FRAMES.get(4),
+                            ZOMBIEMAN_PRESENTATION);
             assertThat(actorTransform.position().x()).isFinite();
             assertThat(actorTransform.position().y()).isFinite();
             assertThat(actorTransform.position().z()).isFinite();
@@ -213,7 +235,76 @@ final class ProjectHostIntegrationTest {
         assertThat(billboard.isClosed()).isTrue();
     }
 
-    /** Fires authored semantic input along the player view and destroys the first visible damageable actor. */
+    /** Presents authored pain and death while retaining a non-blocking corpse entity. */
+    @Test
+    void presentsCombatantDamageAndRetainsCorpse() {
+        Path cache = temporaryDirectory.resolve("combatant-presentation-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        TestPresentationWorldModule presentationWorld = new TestPresentationWorldModule();
+
+        try (HostedProject loaded = load(cache, presentationWorld)) {
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            Entity zombieman = actors.children().stream()
+                    .filter(entity -> entity.name().orElseThrow().startsWith("Zombieman "))
+                    .findFirst()
+                    .orElseThrow();
+            DoomCombatantState state = zombieman
+                    .component(ZOMBIEMAN_STATE, DoomCombatantState.class)
+                    .orElseThrow();
+            CharacterBody3d body =
+                    zombieman.component(ZOMBIEMAN_BODY, CharacterBody3d.class).orElseThrow();
+            BillboardRenderer3d idle = zombieman
+                    .component(ZOMBIEMAN_BILLBOARD, BillboardRenderer3d.class)
+                    .orElseThrow();
+            BillboardRenderer3d pain = zombieman
+                    .component(ZOMBIEMAN_PAIN_FRAME, BillboardRenderer3d.class)
+                    .orElseThrow();
+            List<BillboardRenderer3d> death = ZOMBIEMAN_DEATH_FRAMES.stream()
+                    .map(component -> zombieman
+                            .component(component, BillboardRenderer3d.class)
+                            .orElseThrow())
+                    .toList();
+            DoomCombatantPresentation reaction = zombieman
+                    .component(ZOMBIEMAN_PRESENTATION, DoomCombatantPresentation.class)
+                    .orElseThrow();
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            loaded.world().activate();
+            assertThat(presentationWorld.positionalAttenuation())
+                    .isEqualTo(new PositionalSoundAttenuation(5.0F, 37.5F, 1.0F));
+            assertThat(state.damage(5)).isEqualTo(5);
+            assertThat(state.health()).isEqualTo(15);
+            assertThat(reaction.currentFrame()).isSameAs(pain);
+            assertThat(pain.isVisible()).isTrue();
+            assertThat(idle.isVisible()).isFalse();
+            assertThat(presentationWorld.positionalRestarts()).isEqualTo(1);
+
+            loaded.world().advanceFrame(Duration.ofMillis(140), 0.0F);
+            assertThat(reaction.currentFrame()).isSameAs(idle);
+            assertThat(idle.isVisible()).isTrue();
+
+            assertThat(state.damage(20)).isEqualTo(15);
+            assertThat(state.health()).isZero();
+            assertThat(reaction.isDead()).isTrue();
+            assertThat(reaction.currentFrame()).isSameAs(death.getFirst());
+            assertThat(body.isClosed()).isTrue();
+            assertThat(zombieman.isDestroyed()).isFalse();
+            assertThat(actors.children()).hasSize(119);
+            assertThat(physics.collisionObjectCount()).isEqualTo(36);
+            assertThat(physics.collisionShapeCount()).isEqualTo(36);
+            assertThat(presentationWorld.positionalRestarts()).isEqualTo(2);
+
+            loaded.world().advanceFrame(Duration.ofMillis(560), 0.0F);
+            assertThat(reaction.currentFrame()).isSameAs(death.getLast());
+            assertThat(death.getLast().isVisible()).isTrue();
+            loaded.world().advanceFrame(Duration.ofSeconds(1), 0.0F);
+            assertThat(reaction.currentFrame()).isSameAs(death.getLast());
+        }
+
+        assertThat(presentationWorld.positionalSoundClosed()).isTrue();
+    }
+
+    /** Fires authored semantic input along the player view and kills the first visible damageable actor. */
     @Test
     void firesPlayerWeaponThroughHostedWorld() {
         Path cache = temporaryDirectory.resolve("weapon-import-cache");
@@ -302,8 +393,8 @@ final class ProjectHostIntegrationTest {
             }
 
             assertThat(playerState.bullets()).isEqualTo(44);
-            assertThat(target.isDestroyed()).isTrue();
-            assertThat(actors.children()).hasSize(118);
+            assertThat(target.isDestroyed()).isFalse();
+            assertThat(actors.children()).hasSize(119);
             assertThat(physics.collisionObjectCount()).isEqualTo(36);
             assertThat(physics.collisionShapeCount()).isEqualTo(36);
             assertThat(presentation.restarts()).isEqualTo(6);

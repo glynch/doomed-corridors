@@ -13,6 +13,8 @@ import io.github.glynch.jscene3d.game.presentation.LocalSound;
 import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.OverlayRegistration;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
+import io.github.glynch.jscene3d.game.presentation.PositionalSound;
+import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
@@ -26,6 +28,7 @@ import io.github.glynch.jscene3d.render.OverlayImage;
 import io.github.glynch.jscene3d.render.Renderer;
 import java.time.Duration;
 import java.util.List;
+import org.joml.Vector3fc;
 import org.junit.jupiter.api.Test;
 
 /** Exercises the descriptor-connected first-person weapon presentation without native host facilities. */
@@ -133,6 +136,17 @@ final class DoomWeaponPresentationTest {
                     soundClosed = true;
                 }
             };
+        }
+
+        @Override
+        public PositionalSound createPositionalSound(
+                PcmAudioResource audio, AudioCategory category, PositionalSoundAttenuation attenuation) {
+            throw new AssertionError("weapon presentation creates no positional sound");
+        }
+
+        @Override
+        public void setListenerTransform(Vector3fc position, Vector3fc forward, Vector3fc up) {
+            throw new AssertionError("weapon presentation does not update the listener");
         }
 
         @Override

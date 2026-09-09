@@ -180,6 +180,7 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/player-state",
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",
+                        EXTENSION_ID + "/combatant-presentation",
                         EXTENSION_ID + "/hitscan-weapon",
                         EXTENSION_ID + "/weapon-presentation",
                         EXTENSION_ID + "/player-hud");
@@ -195,6 +196,21 @@ final class ProjectManifestTest {
                 .containsExactly(
                         DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY,
                         DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY);
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
+                        .orElseThrow())
+                .satisfies(presentation -> {
+                    assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
+                    assertThat(presentation.properties())
+                            .containsKeys(
+                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY);
+                    assertThat(presentation.actions())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION);
+                });
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE)
                         .orElseThrow())
