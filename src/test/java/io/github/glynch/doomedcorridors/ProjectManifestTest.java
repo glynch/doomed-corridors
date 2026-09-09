@@ -181,6 +181,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",
                         EXTENSION_ID + "/combatant-presentation",
+                        EXTENSION_ID + "/enemy-target",
+                        EXTENSION_ID + "/enemy-behavior",
                         EXTENSION_ID + "/hitscan-weapon",
                         EXTENSION_ID + "/weapon-presentation",
                         EXTENSION_ID + "/player-hud");

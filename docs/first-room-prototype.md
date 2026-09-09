@@ -86,9 +86,9 @@ billboard components with WAD-derived anchors and scale.
 Configured combatants now also publish their provider-authored radius and height
 as a shared capsule collision resource. Each reusable combatant definition owns
 an independently positioned collision-shape component and a movable solid
-character body, so every placement blocks the player while remaining ready for
-later component-driven enemy movement. Pickups, corpses, and decorative actors
-do not acquire blocking bodies merely because they have visible billboards.
+character body, so every living placement blocks the player and moves through
+the same collision-aware physics API. Pickups, corpses, and decorative actors do
+not acquire blocking bodies merely because they have visible billboards.
 
 The first imported actor behavior now also runs through the project runtime.
 The player owns a game-specific state component initialized from the declared
@@ -127,6 +127,17 @@ sequence, and leaves its final frame in the world as a non-blocking corpse. The
 component's descriptor exposes positional attenuation, and the importer derives
 its full-volume and maximum distances from Doom's 160- and 1200-map-unit sound
 distances through the shared world-unit conversion.
+
+Enemy awareness and pursuit now run through descriptor-authored project-runtime
+components as well. The entry world passes its stable Player entity to the
+generated actor-group definition. That definition exposes the target through a
+provider component, and each reusable combatant placement receives an explicit
+reference to it through its public contract. Enemy behavior therefore requires
+no global entity lookup or hierarchy convention. Physics raycasts determine
+line of sight, provider combat rules supply sight distance, preferred distance,
+reaction delay, and speed, and the character body pursues the last observed
+position while respecting map and combatant collision. Attacks remain the next
+runtime behavior increment.
 
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's

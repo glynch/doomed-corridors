@@ -70,6 +70,8 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-shape");
     private static final ComponentId ZOMBIEMAN_BODY =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-body");
+    private static final ComponentId ZOMBIEMAN_BEHAVIOR =
+            actorComponentId("maps/MAP01/actors/definitions/zombieman/root/enemy-behavior");
     private static final ComponentId ZOMBIEMAN_PAIN_FRAME =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/pain/0");
     private static final List<ComponentId> ZOMBIEMAN_DEATH_FRAMES = List.of(
@@ -80,6 +82,7 @@ final class ProjectHostIntegrationTest {
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation/death/4"));
     private static final ComponentId ZOMBIEMAN_PRESENTATION =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/combatant-presentation");
+    private static final ComponentId ENEMY_TARGET = actorComponentId("maps/MAP01/actors/root/enemy-target");
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
@@ -170,6 +173,7 @@ final class ProjectHostIntegrationTest {
         BillboardRenderer3d billboard;
 
         try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
             Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
             Entity zombieman = actors.children().stream()
                     .filter(entity -> entity.name().orElseThrow().startsWith("Zombieman "))
@@ -187,6 +191,11 @@ final class ProjectHostIntegrationTest {
             DoomCombatantState state = zombieman
                     .component(ZOMBIEMAN_STATE, DoomCombatantState.class)
                     .orElseThrow();
+            DoomEnemyBehavior behavior = zombieman
+                    .component(ZOMBIEMAN_BEHAVIOR, DoomEnemyBehavior.class)
+                    .orElseThrow();
+            DoomEnemyTarget target =
+                    actors.component(ENEMY_TARGET, DoomEnemyTarget.class).orElseThrow();
 
             assertThat(actors.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(actors.instantiatedDefinition()).contains(ACTOR_MAP_DEFINITION);
@@ -199,6 +208,7 @@ final class ProjectHostIntegrationTest {
                             ZOMBIEMAN_STATE,
                             ZOMBIEMAN_SHAPE,
                             ZOMBIEMAN_BODY,
+                            ZOMBIEMAN_BEHAVIOR,
                             ZOMBIEMAN_PAIN_FRAME,
                             ZOMBIEMAN_DEATH_FRAMES.get(0),
                             ZOMBIEMAN_DEATH_FRAMES.get(1),
@@ -216,10 +226,16 @@ final class ProjectHostIntegrationTest {
             assertThat(shape.localPosition().y()).isEqualTo(0.875F);
             assertThat(body.isClosed()).isFalse();
             assertThat(state.health()).isEqualTo(20);
+            assertThat(behavior.isAlerted()).isFalse();
+            assertThat(target.player()).isSameAs(player);
             assertThat(zombieman
                             .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
                             .orElseThrow())
                     .isSameAs(state);
+            assertThat(zombieman
+                            .capability(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
+                            .orElseThrow())
+                    .isSameAs(behavior);
 
             loaded.world().activate();
             Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);

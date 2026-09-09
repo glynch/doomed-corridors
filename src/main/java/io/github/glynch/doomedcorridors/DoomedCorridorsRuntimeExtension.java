@@ -77,6 +77,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
                         context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
                         context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
+        validRegistry.register(DoomedCorridorsRuntimeTypes.ENEMY_TARGET_TYPE, context -> new DoomEnemyTarget());
+        validRegistry.register(
+                DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE,
+                context -> new DoomEnemyBehavior(
+                        context.owner(),
+                        context.world().requireModule(Physics3dWorldModule.class),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
         validRegistry.register(
                 DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE, new CombatantPresentationFactory());
         validRegistry.register(
@@ -117,6 +126,8 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .ifPresent(destination::add);
         entity.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomCombatantState.class)
+                .ifPresent(destination::add);
+        entity.capability(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
                 .ifPresent(destination::add);
         entity.capability(DoomedCorridorsRuntimeTypes.WEAPON_CAPABILITY, DoomHitscanWeapon.class)
                 .ifPresent(destination::add);

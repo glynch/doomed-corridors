@@ -213,7 +213,13 @@
       "definition": {
         "assetId": "d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe"
       },
-      "arguments": {}
+      "arguments": {
+        "player": {
+          "$target": {
+            "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7"
+          }
+        }
+      }
     },
     {
       "entryType": "local",

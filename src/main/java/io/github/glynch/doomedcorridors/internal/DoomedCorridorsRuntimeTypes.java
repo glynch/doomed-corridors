@@ -33,6 +33,12 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type for mutable combatant health. */
     public static final ComponentType COMBATANT_STATE_TYPE = ComponentType.of(EXTENSION_ID + "/combatant-state", 1);
 
+    /** Runtime type retaining the explicitly authored player target for one imported actor group. */
+    public static final ComponentType ENEMY_TARGET_TYPE = ComponentType.of(EXTENSION_ID + "/enemy-target", 1);
+
+    /** Runtime type driving one configured enemy toward its explicitly supplied player target. */
+    public static final ComponentType ENEMY_BEHAVIOR_TYPE = ComponentType.of(EXTENSION_ID + "/enemy-behavior", 1);
+
     /** Runtime type for descriptor-connected combatant pain and death presentation. */
     public static final ComponentType COMBATANT_PRESENTATION_TYPE =
             ComponentType.of(EXTENSION_ID + "/combatant-presentation", 1);
@@ -56,6 +62,12 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Semantic capability exposing target geometry and damage application for hitscan weapons. */
     public static final CapabilityId HITSCAN_TARGET_CAPABILITY = new CapabilityId(EXTENSION_ID + "/hitscan-target");
 
+    /** Semantic capability exposing an actor group's explicitly authored player target. */
+    public static final CapabilityId ENEMY_TARGET_CAPABILITY = new CapabilityId(EXTENSION_ID + "/enemy-target");
+
+    /** Semantic capability identifying descriptor-declared enemy behavior. */
+    public static final CapabilityId ENEMY_BEHAVIOR_CAPABILITY = new CapabilityId(EXTENSION_ID + "/enemy-behavior");
+
     /** Semantic capability identifying the exact player weapon component. */
     public static final CapabilityId WEAPON_CAPABILITY = new CapabilityId(EXTENSION_ID + "/weapon");
 
@@ -70,6 +82,15 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Explicit solid-body target disabled when a combatant dies. */
     public static final PropertyId COMBATANT_BODY_PROPERTY = new PropertyId("body");
+
+    /** Explicit player entity targeted by one imported actor group. */
+    public static final PropertyId PLAYER_TARGET_PROPERTY = new PropertyId("player");
+
+    /** Explicit actor-group entity which supplies the player target to one enemy. */
+    public static final PropertyId ENEMY_TARGET_PROVIDER_PROPERTY = new PropertyId("target-provider");
+
+    /** Explicit mutable combatant-state target controlled by enemy behavior. */
+    public static final PropertyId ENEMY_STATE_PROPERTY = new PropertyId("state");
 
     /** Explicit transform target supplying a combatant sound's world position. */
     public static final PropertyId COMBATANT_TRANSFORM_PROPERTY = new PropertyId("transform");

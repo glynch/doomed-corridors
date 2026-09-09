@@ -221,6 +221,77 @@
       ]
     },
     {
+      "id": "io.github.glynch.doomed-corridors/enemy-target",
+      "typeVersion": 1,
+      "displayName": "Doom Enemy Target",
+      "description": "Retains the explicitly authored player target shared by an imported actor group.",
+      "providedCapabilities": ["io.github.glynch.doomed-corridors/enemy-target"],
+      "properties": [
+        {
+          "id": "player",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Player",
+          "description": "Exact player entity pursued by enemies in this actor group."
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/enemy-behavior",
+      "typeVersion": 1,
+      "displayName": "Doom Enemy Behavior",
+      "description": "Observes and pursues an explicitly targeted player using provider combat rules.",
+      "providedCapabilities": ["io.github.glynch.doomed-corridors/enemy-behavior"],
+      "requiredCapabilities": ["io.github.glynch.jscene3d.spatial3d/spatial-3d"],
+      "updatePhases": ["before-physics"],
+      "properties": [
+        {
+          "id": "actor-catalog",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Actor Catalog",
+          "description": "Provider actor catalog used to validate the combat rules.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "combat-rules",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Combat Rules",
+          "description": "Provider rules supplying awareness, reaction, and movement tuning.",
+          "acceptedReferences": ["asset"]
+        },
+        {
+          "id": "actor-id",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Actor",
+          "description": "Stable provider enemy identity represented by this entity."
+        },
+        {
+          "id": "target-provider",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Target Provider",
+          "description": "Actor-group entity supplying the exact authored player target."
+        },
+        {
+          "id": "state",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Combatant State",
+          "description": "Exact mutable state used to stop behavior after death."
+        },
+        {
+          "id": "body",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Body",
+          "description": "Exact character body moved through collision-aware physics."
+        }
+      ]
+    },
+    {
       "id": "io.github.glynch.doomed-corridors/hitscan-weapon",
       "typeVersion": 1,
       "displayName": "Doom Hitscan Weapon",

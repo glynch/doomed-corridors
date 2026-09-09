@@ -91,8 +91,12 @@ full-volume distance and 1200-map-unit attenuation limit after converting both
 through the same world-unit scale used by geometry. Separate authored signal connections drive the imported
 pistol animation and sound for every accepted shot plus a short red centre marker
 only when damage is applied. The authored HUD displays live health at the lower
-left and bullet ammunition at the lower right. Enemy behavior and doors have not
-yet been connected to the new entity-component runtime.
+left and bullet ammunition at the lower right. Configured enemies use an
+explicitly authored player reference, provider-defined sight and movement rules,
+and physics raycasts for wall occlusion. After their reaction delay they pursue
+the last visible player position through collision-aware character bodies and
+stop at their preferred visible range. Enemy attacks and doors have not yet been
+connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the

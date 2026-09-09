@@ -109,6 +109,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
     private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
     private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
+    private static final PropertyId PLAYER_ARGUMENT = new PropertyId("player");
+    private static final PropertyId TARGET_PROVIDER_ARGUMENT = new PropertyId("target-provider");
 
     @Override
     public void inspect(ImportInspectionContext context) {
@@ -413,7 +415,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             }
             publishActorDefinition(context, prefix, definition, actorPresentation, pickup, combatant, ruleReferences);
         }
-        publishActorPlacements(context, prefix, actors, definitions);
+        publishActorPlacements(context, prefix, actors, definitions, rules);
     }
 
     /** Publishes one nearest-filtered alpha-masked sprite texture and material. */
@@ -594,17 +596,22 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 components,
                 connections,
                 references));
-        EntityContract contract = new EntityContract(
-                List.of(new EntityContract.Parameter(
-                        POSITION_ARGUMENT,
-                        ProjectValueKind.ARRAY,
-                        EntityContract.Requirement.REQUIRED,
-                        PropertyTarget.component(rootId, transformId, Spatial3dDescriptors.positionProperty()))),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of());
+        List<EntityContract.Parameter> parameters = new ArrayList<>();
+        parameters.add(new EntityContract.Parameter(
+                POSITION_ARGUMENT,
+                ProjectValueKind.ARRAY,
+                EntityContract.Requirement.REQUIRED,
+                PropertyTarget.component(rootId, transformId, Spatial3dDescriptors.positionProperty())));
+        if (combatant.isPresent()) {
+            ComponentId behaviorId = componentId(context.definition().id(), rootLocator + "/enemy-behavior");
+            parameters.add(new EntityContract.Parameter(
+                    TARGET_PROVIDER_ARGUMENT,
+                    ProjectValueKind.ENTITY_TARGET,
+                    EntityContract.Requirement.REQUIRED,
+                    PropertyTarget.component(
+                            rootId, behaviorId, DoomedCorridorsRuntimeTypes.ENEMY_TARGET_PROVIDER_PROPERTY)));
+        }
+        EntityContract contract = new EntityContract(parameters, List.of(), List.of(), List.of(), List.of(), List.of());
         LocalEntity root = new LocalEntity(rootId, actor.name(), true, components, List.of());
         EntityDefinition definition = new EntityDefinition(definitionId, actor.name(), contract, connections, root);
         context.artifact(
@@ -696,6 +703,21 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 rootLocator + "/combatant-body",
                 Physics3dDescriptors.characterBodyType(),
                 Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
+        components.add(component(
+                importId,
+                rootLocator + "/enemy-behavior",
+                DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE,
+                Map.of(
+                        DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
+                        DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
+                        DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY,
+                                new ProjectValue.TextValue(publication.actor().id()),
+                        DoomedCorridorsRuntimeTypes.ENEMY_TARGET_PROVIDER_PROPERTY,
+                                new ProjectValue.EntityTargetValue(publication.rootId()),
+                        DoomedCorridorsRuntimeTypes.ENEMY_STATE_PROPERTY,
+                                componentTarget(publication.rootId(), stateId),
+                        DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY,
+                                componentTarget(publication.rootId(), bodyId))));
         presentation.ifPresent(
                 value -> addCombatantPresentation(publication, stateId, value, components, connections, references));
         references.add(shapeIdentity);
@@ -841,8 +863,12 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             ImportPreparationContext context,
             String prefix,
             List<DoomActor> actors,
-            Map<String, DoomActorDefinition> definitions)
+            Map<String, DoomActorDefinition> definitions,
+            DoomCombatRules rules)
             throws IOException {
+        String rootLocator = prefix + "/actors/root";
+        EntityId rootId = entityId(context.definition().id(), rootLocator);
+        ComponentId targetId = componentId(context.definition().id(), rootLocator + "/enemy-target");
         List<EntityEntry> placements = new ArrayList<>();
         for (DoomActor actor : actors) {
             DoomActorDefinition definition = definitions.get(actor.definition().id());
@@ -850,26 +876,47 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 continue;
             }
             String definitionIdentity = actorDefinitionIdentity(prefix, definition.id());
+            Map<PropertyId, ProjectValue> arguments = new LinkedHashMap<>();
+            arguments.put(POSITION_ARGUMENT, numbers(actor.x(), actor.floorHeight(), actor.z()));
+            if (rules.hasCombatant(definition.id())) {
+                arguments.put(TARGET_PROVIDER_ARGUMENT, new ProjectValue.EntityTargetValue(rootId));
+            }
             placements.add(new EntityPlacement(
                     entityId(context.definition().id(), prefix + "/actors/placements/" + formatted(actor.thingIndex())),
                     definition.name() + " " + actor.thingIndex(),
                     true,
                     AssetRef.to(assetId(context.definition().id(), definitionIdentity)),
-                    Map.of(POSITION_ARGUMENT, numbers(actor.x(), actor.floorHeight(), actor.z()))));
+                    arguments));
         }
         String definitionIdentity = actorMapDefinitionIdentity(prefix);
-        LocalEntity root = new LocalEntity(
-                entityId(context.definition().id(), prefix + "/actors/root"),
-                "Actors",
-                true,
-                List.of(component(
+        List<ComponentDefinition> components = List.of(
+                component(
                         context.definition().id(),
-                        prefix + "/actors/root/transform",
+                        rootLocator + "/transform",
                         Spatial3dDescriptors.transformType(),
-                        Map.of())),
-                placements);
-        EntityDefinition definition =
-                new EntityDefinition(assetId(context.definition().id(), definitionIdentity), prefix + " actors", root);
+                        Map.of()),
+                component(
+                        context.definition().id(),
+                        rootLocator + "/enemy-target",
+                        DoomedCorridorsRuntimeTypes.ENEMY_TARGET_TYPE,
+                        Map.of(
+                                DoomedCorridorsRuntimeTypes.PLAYER_TARGET_PROPERTY,
+                                new ProjectValue.EntityTargetValue(rootId))));
+        LocalEntity root = new LocalEntity(rootId, "Actors", true, components, placements);
+        EntityContract contract = new EntityContract(
+                List.of(new EntityContract.Parameter(
+                        PLAYER_ARGUMENT,
+                        ProjectValueKind.ENTITY_TARGET,
+                        EntityContract.Requirement.REQUIRED,
+                        PropertyTarget.component(
+                                rootId, targetId, DoomedCorridorsRuntimeTypes.PLAYER_TARGET_PROPERTY))),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+        EntityDefinition definition = new EntityDefinition(
+                assetId(context.definition().id(), definitionIdentity), prefix + " actors", contract, List.of(), root);
         List<String> references = definitions.values().stream()
                 .map(actor -> actorDefinitionIdentity(prefix, actor.id()))
                 .toList();

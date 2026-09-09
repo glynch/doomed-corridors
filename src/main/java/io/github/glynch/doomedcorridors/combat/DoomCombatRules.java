@@ -122,6 +122,11 @@ public final class DoomCombatRules {
                 : Optional.of(new CombatantBounds(definition.radius(), definition.height()));
     }
 
+    /** Returns validated awareness and movement rules for one configured enemy actor. */
+    public EnemyBehavior enemyBehavior(String actorId) {
+        return requireCombatant(actorId).behavior();
+    }
+
     /** Requires matching combatant rules for a descriptor-validated actor identity. */
     private CombatantDefinition requireCombatant(String actorId) {
         String validActorId = Objects.requireNonNull(actorId, "actorId");
@@ -339,7 +344,7 @@ public final class DoomCombatRules {
     }
 
     /** Validated awareness, movement, timing, and hitscan damage for one enemy. */
-    record EnemyBehavior(
+    public record EnemyBehavior(
             int sightRange,
             int attackRange,
             int preferredRange,
@@ -348,7 +353,7 @@ public final class DoomCombatRules {
             int attackIntervalMilliseconds,
             DamageDefinition damage) {
         /** Validates positive timing, distances, speed, and discrete damage values. */
-        EnemyBehavior {
+        public EnemyBehavior {
             if (sightRange <= 0
                     || attackRange <= 0
                     || preferredRange <= 0
