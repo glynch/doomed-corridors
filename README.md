@@ -37,7 +37,11 @@ player resource capacities and effects for stimpacks, medikits, health bonuses,
 soulspheres, ammunition clips, and bullet boxes.
 [`game/combat-presentation.json`](game/combat-presentation.json) binds those
 identities to WAD-backed weapon, movement, attack, pain, death, pickup sound, and
-HUD assets without embedding their lump names in the application.
+HUD assets without embedding their lump names in the application. The startup
+world authors its HUD as ordinary entities composed from generic screen-canvas,
+screen-region, and bitmap-number components. A small Doom-specific component
+binds the player state explicitly to the health and ammunition numbers; it does
+not own screen layout or drawing.
 
 ## Building and running
 
@@ -82,8 +86,9 @@ then selects a visible damageable entity within the provider-authored auto-aim
 window. It applies the configured discrete pistol damage and destroys an enemy
 when its health reaches zero. Authored signal connections drive the imported
 pistol animation and sound for every accepted shot plus a short red centre marker
-only when damage is applied. Enemy behavior, doors, and the HUD have not yet been
-connected to the new entity-component runtime.
+only when damage is applied. The authored HUD displays live health at the lower
+left and bullet ammunition at the lower right. Enemy behavior and doors have not
+yet been connected to the new entity-component runtime.
 
 Click the game window to capture the pointer; Escape releases it without
 closing the application. W/A/S/D move, the mouse looks while captured, and the

@@ -11,17 +11,19 @@ import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.Renderer;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Records presentation activity without requiring OpenGL or an OpenAL playback device. */
 final class TestPresentationWorldModule implements PresentationWorldModule {
-    private Overlay overlay;
+    private final List<Overlay> overlays = new ArrayList<>();
     private int restarts;
     private boolean soundClosed;
 
     @Override
     public OverlayRegistration registerOverlay(Overlay registered) {
-        overlay = registered;
-        return () -> overlay = null;
+        overlays.add(registered);
+        return () -> overlays.remove(registered);
     }
 
     @Override
@@ -46,12 +48,12 @@ final class TestPresentationWorldModule implements PresentationWorldModule {
 
     @Override
     public void close() {
-        overlay = null;
+        overlays.clear();
     }
 
-    /** Returns the currently registered overlay, if any. */
-    Overlay overlay() {
-        return overlay;
+    /** Returns the number of currently registered overlays. */
+    int overlayCount() {
+        return overlays.size();
     }
 
     /** Returns the number of accepted local-sound restart requests. */

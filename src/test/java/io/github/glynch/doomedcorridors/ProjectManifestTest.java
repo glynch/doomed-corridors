@@ -181,7 +181,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",
                         EXTENSION_ID + "/hitscan-weapon",
-                        EXTENSION_ID + "/weapon-presentation");
+                        EXTENSION_ID + "/weapon-presentation",
+                        EXTENSION_ID + "/player-hud");
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
                         .orElseThrow()
@@ -226,6 +227,17 @@ final class ProjectManifestTest {
                                     .get(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)
                                     .payload())
                             .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
+                });
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE)
+                        .orElseThrow())
+                .satisfies(hud -> {
+                    assertThat(hud.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
+                    assertThat(hud.properties())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY);
                 });
     }
 

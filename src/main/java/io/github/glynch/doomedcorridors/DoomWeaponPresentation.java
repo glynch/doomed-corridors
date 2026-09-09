@@ -7,6 +7,7 @@ package io.github.glynch.doomedcorridors;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
+import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.OverlayRegistration;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
@@ -16,7 +17,6 @@ import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
-import io.github.glynch.jscene3d.project.spatial3d.Texture3dResource;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.OverlayCanvas;
 import io.github.glynch.jscene3d.render.OverlayImage;
@@ -47,15 +47,15 @@ final class DoomWeaponPresentation
     /** Converts shared texture resources and acquires component-owned host presentation handles. */
     DoomWeaponPresentation(
             PresentationWorldModule presentation,
-            Texture3dResource readyFrame,
-            List<Texture3dResource> fireFrames,
+            OverlayImageResource readyFrame,
+            List<OverlayImageResource> fireFrames,
             PcmAudioResource fireSound,
             Duration frameDuration,
             Duration hitIndicatorDuration) {
         PresentationWorldModule validPresentation = Objects.requireNonNull(presentation, "presentation");
-        this.readyFrame = Objects.requireNonNull(readyFrame, "readyFrame").overlayImage();
+        this.readyFrame = Objects.requireNonNull(readyFrame, "readyFrame").image();
         this.fireFrames = List.copyOf(Objects.requireNonNull(fireFrames, "fireFrames")).stream()
-                .map(Texture3dResource::overlayImage)
+                .map(OverlayImageResource::image)
                 .toList();
         if (this.fireFrames.isEmpty()) {
             throw new IllegalArgumentException("fireFrames must not be empty");

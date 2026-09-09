@@ -139,20 +139,20 @@
           "typeVersion": 1,
           "properties": {
             "ready-frame": {
-              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisga0"
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisga0"
             },
             "fire-frames": [
               {
-                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgb0"
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisgb0"
               },
               {
-                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgc0"
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisgc0"
               },
               {
-                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisgd0"
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisgd0"
               },
               {
-                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/textures/pisge0"
+                "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisge0"
               }
             ],
             "fire-sound": {
@@ -214,6 +214,141 @@
         "assetId": "d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe"
       },
       "arguments": {}
+    },
+    {
+      "entryType": "local",
+      "entityId": "c4f5ca56-661a-424d-aec2-b423d299af47",
+      "name": "Player HUD",
+      "enabled": true,
+      "components": [
+        {
+          "componentId": "e3cd89ca-cf53-4820-8e25-2d5ad58fb27e",
+          "type": "io.github.glynch.jscene3d.presentation/screen-canvas",
+          "typeVersion": 1,
+          "properties": {
+            "reference-width": 320,
+            "reference-height": 200
+          }
+        },
+        {
+          "componentId": "a3e14acb-08d9-4996-96d3-12bcd2f624d8",
+          "type": "io.github.glynch.doomed-corridors/player-hud",
+          "typeVersion": 1,
+          "properties": {
+            "player-state": {
+              "$target": {
+                "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434"
+              }
+            },
+            "health-number": {
+              "$target": {
+                "entityId": "62ee89f1-3746-49ba-9534-60b91b98ce30",
+                "componentId": "2313f424-d11e-4c6b-95a2-1c8dbe583b7d"
+              }
+            },
+            "ammo-number": {
+              "$target": {
+                "entityId": "daa471fd-eb3f-43e2-bbd2-eef5cbf39e02",
+                "componentId": "00f54e60-dd1c-47e2-a180-83bfcefdc2d9"
+              }
+            }
+          }
+        }
+      ],
+      "children": [
+        {
+          "entryType": "local",
+          "entityId": "62ee89f1-3746-49ba-9534-60b91b98ce30",
+          "name": "Health",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "b4a998b8-ba0e-4a50-9005-a60958d1aad7",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0,
+                "anchor-y": 1,
+                "pivot-x": 0,
+                "pivot-y": 1,
+                "offset-x": 8,
+                "offset-y": -8,
+                "width": 80,
+                "height": 18
+              }
+            },
+            {
+              "componentId": "2313f424-d11e-4c6b-95a2-1c8dbe583b7d",
+              "type": "io.github.glynch.jscene3d.presentation/bitmap-number",
+              "typeVersion": 1,
+              "properties": {
+                "digits": [
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum1"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum2"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum3"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum4"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum5"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum6"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum7"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum8"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum9"}
+                ],
+                "suffix": {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttprcnt"},
+                "initial-value": 100,
+                "alignment": "left"
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "daa471fd-eb3f-43e2-bbd2-eef5cbf39e02",
+          "name": "Bullets",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "8b5c17a7-71be-4efa-b471-cb8613c60442",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 1,
+                "anchor-y": 1,
+                "pivot-x": 1,
+                "pivot-y": 1,
+                "offset-x": -8,
+                "offset-y": -8,
+                "width": 80,
+                "height": 18
+              }
+            },
+            {
+              "componentId": "00f54e60-dd1c-47e2-a180-83bfcefdc2d9",
+              "type": "io.github.glynch.jscene3d.presentation/bitmap-number",
+              "typeVersion": 1,
+              "properties": {
+                "digits": [
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum1"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum2"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum3"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum4"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum5"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum6"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum7"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum8"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum9"}
+                ],
+                "initial-value": 50,
+                "alignment": "right"
+              }
+            }
+          ],
+          "children": []
+        }
+      ]
     }
   ]
 }

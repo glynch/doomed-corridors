@@ -12,6 +12,7 @@ import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.game.input.ProjectInput;
+import io.github.glynch.jscene3d.game.presentation.ScreenNumber;
 import io.github.glynch.jscene3d.objects.BillboardAlignment;
 import io.github.glynch.jscene3d.project.asset.AssetId;
 import io.github.glynch.jscene3d.project.component.ComponentId;
@@ -52,6 +53,7 @@ final class ProjectHostIntegrationTest {
     private static final EntityId PLAYER_ENTITY = EntityId.from("0b295328-b5a3-4f41-9f34-e9b4abc430a7");
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
+    private static final EntityId PLAYER_HUD = EntityId.from("c4f5ca56-661a-424d-aec2-b423d299af47");
     private static final ComponentId PLAYER_TRANSFORM = ComponentId.from("3e940be7-e58d-4f3a-8b5e-e61c99c00904");
     private static final ComponentId PLAYER_BODY = ComponentId.from("4d8cae80-322d-4bdf-b8c0-5703699de177");
     private static final ComponentId VIEW_TRANSFORM = ComponentId.from("82b8ae6d-47e9-4df6-9d85-01a6fca09dc6");
@@ -72,6 +74,8 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
     private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
+    private static final ComponentId HEALTH_NUMBER = ComponentId.from("2313f424-d11e-4c6b-95a2-1c8dbe583b7d");
+    private static final ComponentId AMMO_NUMBER = ComponentId.from("00f54e60-dd1c-47e2-a180-83bfcefdc2d9");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
@@ -109,7 +113,7 @@ final class ProjectHostIntegrationTest {
             assertThat(loaded.project().identity().id()).isEqualTo("io.github.glynch.doomed-corridors");
             assertThat(loaded.world().roots())
                     .extracting(entity -> entity.name().orElseThrow())
-                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors");
+                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors", "Player HUD");
             assertThat(character.isClosed()).isFalse();
             assertThat(player.componentIds()).contains(PLAYER_CONTROLLER, PLAYER_WEAPON);
             assertThat(playerTransform.position().x()).isEqualTo(-6.0F);
@@ -231,12 +235,27 @@ final class ProjectHostIntegrationTest {
             DoomWeaponPresentation weaponPresentation = player.component(
                             WEAPON_PRESENTATION, DoomWeaponPresentation.class)
                     .orElseThrow();
+            Entity hud = root(loaded, PLAYER_HUD);
+            ScreenNumber healthNumber = hud.children()
+                    .getFirst()
+                    .component(HEALTH_NUMBER, ScreenNumber.class)
+                    .orElseThrow();
+            ScreenNumber ammoNumber = hud.children()
+                    .getLast()
+                    .component(AMMO_NUMBER, ScreenNumber.class)
+                    .orElseThrow();
 
             loaded.world().activate();
+            loaded.world().advanceFrame(Duration.ZERO, 0.0F);
+            assertThat(healthNumber.value()).isEqualTo(100);
+            assertThat(ammoNumber.value()).isEqualTo(50);
+            assertThat(presentation.overlayCount()).isEqualTo(2);
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
             input.publish(ActionSnapshot.empty());
+            loaded.world().advanceFrame(Duration.ZERO, 0.0F);
             assertThat(playerState.bullets()).isEqualTo(49);
+            assertThat(ammoNumber.value()).isEqualTo(49);
             assertThat(presentation.restarts()).isEqualTo(1);
             assertThat(weaponPresentation.isFiring()).isTrue();
             assertThat(weaponPresentation.isHitIndicatorVisible()).isFalse();
@@ -289,7 +308,7 @@ final class ProjectHostIntegrationTest {
             assertThat(physics.collisionShapeCount()).isEqualTo(36);
             assertThat(presentation.restarts()).isEqualTo(6);
         }
-        assertThat(presentation.overlay()).isNull();
+        assertThat(presentation.overlayCount()).isZero();
         assertThat(presentation.soundClosed()).isTrue();
     }
 

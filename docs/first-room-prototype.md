@@ -143,8 +143,11 @@ declare the player's absolute health and bullet capacities plus per-actor amount
 ordinary or bonus limits, and contact radii. The same deterministic combat session
 collects useful overlapping items once by stable WAD thing index and emits the
 applied resource amount without depending on rendering. Presentation hides the
-collected billboard, updates the existing HUD snapshot, and plays the imported
-`DSITEMUP` effect. Stimpacks, medikits, health bonuses, soulspheres, ammunition
+collected billboard, updates the descriptor-authored HUD numbers, and plays the
+imported `DSITEMUP` effect. The HUD is an ordinary entity hierarchy built from
+generic screen-canvas, screen-region, and bitmap-number components; its
+Doom-specific binding component only copies player health and ammunition into
+explicitly targeted number components. Stimpacks, medikits, health bonuses, soulspheres, ammunition
 clips, and bullet boxes are active; shell, rocket, and cell inventory follows with
 the weapons that consume those resources. Doors, lifts, navigation beyond
 last-visible-position pursuit, and other sector specials remain later vertical

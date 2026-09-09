@@ -249,6 +249,33 @@
           "description": "Places and restarts visual confirmation at the successful impact location."
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/player-hud",
+      "typeVersion": 1,
+      "displayName": "Doom Player HUD",
+      "description": "Copies player health and ammunition into explicitly targeted generic screen numbers.",
+      "updatePhases": ["frame-update"],
+      "properties": [
+        {
+          "id": "player-state",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Player State"
+        },
+        {
+          "id": "health-number",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Health Number"
+        },
+        {
+          "id": "ammo-number",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "Ammo Number"
+        }
+      ]
     }
   ]
 }

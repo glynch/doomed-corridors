@@ -10,6 +10,7 @@ import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
+import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.OverlayRegistration;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
@@ -20,10 +21,9 @@ import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayloadAction;
 import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
-import io.github.glynch.jscene3d.project.spatial3d.Texture3dResource;
 import io.github.glynch.jscene3d.render.Overlay;
+import io.github.glynch.jscene3d.render.OverlayImage;
 import io.github.glynch.jscene3d.render.Renderer;
-import io.github.glynch.jscene3d.textures.Texture;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -35,9 +35,9 @@ final class DoomWeaponPresentationTest {
     void presentsSuccessfulShotSequence() {
         RecordingPresentation presentation = new RecordingPresentation();
         RecordingEndpoints endpoints = new RecordingEndpoints();
-        Texture3dResource ready = texture((byte) 1);
-        Texture3dResource first = texture((byte) 2);
-        Texture3dResource second = texture((byte) 3);
+        OverlayImageResource ready = image((byte) 1);
+        OverlayImageResource first = image((byte) 2);
+        OverlayImageResource second = image((byte) 3);
         PcmAudioResource sound = PcmAudioResource.owning(PcmAudio.mono16(11_025, new short[] {1, 2}));
 
         DoomWeaponPresentation component = new DoomWeaponPresentation(
@@ -72,9 +72,9 @@ final class DoomWeaponPresentationTest {
         sound.close();
     }
 
-    /** Creates one one-pixel sRGB texture resource with distinct content. */
-    private static Texture3dResource texture(byte value) {
-        return Texture3dResource.owning(Texture.baseColor(1, 1, new byte[] {value, value, value, (byte) 0xff}));
+    /** Creates one one-pixel sRGB overlay-image resource with distinct content. */
+    private static OverlayImageResource image(byte value) {
+        return OverlayImageResource.owning(OverlayImage.srgbRgba(1, 1, new byte[] {value, value, value, (byte) 0xff}));
     }
 
     /** Captures the one action implemented by the component. */

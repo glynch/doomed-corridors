@@ -40,6 +40,9 @@ public final class DoomedCorridorsRuntimeTypes {
     public static final ComponentType WEAPON_PRESENTATION_TYPE =
             ComponentType.of(EXTENSION_ID + "/weapon-presentation", 1);
 
+    /** Runtime type binding mutable player resources into generic screen-number components. */
+    public static final ComponentType PLAYER_HUD_TYPE = ComponentType.of(EXTENSION_ID + "/player-hud", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
@@ -87,6 +90,15 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Duration of the successful-hit indicator in milliseconds. */
     public static final PropertyId HIT_INDICATOR_MILLISECONDS_PROPERTY = new PropertyId("hit-indicator-milliseconds");
+
+    /** Explicit player-state target displayed by the HUD behavior. */
+    public static final PropertyId HUD_PLAYER_STATE_PROPERTY = new PropertyId("player-state");
+
+    /** Explicit generic screen-number target displaying player health. */
+    public static final PropertyId HUD_HEALTH_NUMBER_PROPERTY = new PropertyId("health-number");
+
+    /** Explicit generic screen-number target displaying bullet ammunition. */
+    public static final PropertyId HUD_AMMO_NUMBER_PROPERTY = new PropertyId("ammo-number");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");

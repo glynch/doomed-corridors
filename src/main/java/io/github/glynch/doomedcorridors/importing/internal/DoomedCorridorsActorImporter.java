@@ -61,8 +61,8 @@ import io.github.glynch.jscene3d.project.importing.extension.ProjectImporter;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dDescriptors;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dResourceWriter;
-import io.github.glynch.jscene3d.project.spatial3d.Spatial3dDescriptors;
-import io.github.glynch.jscene3d.project.spatial3d.Spatial3dResourceWriter;
+import io.github.glynch.jscene3d.project.spatial3d.descriptor.Spatial3dDescriptors;
+import io.github.glynch.jscene3d.project.spatial3d.resource.Spatial3dResourceWriter;
 import io.github.glynch.jscene3d.project.value.ProjectValue;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import io.github.glynch.jscene3d.textures.Texture;
@@ -129,11 +129,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         DoomActorCatalog catalog = loadedCatalog.orElseThrow();
         DoomCombatRules rules = loadedRules.orElseThrow();
         DoomCombatPresentationRules presentation = loadedPresentation.orElseThrow();
-        Optional<WeaponPresentationAssets> loadedAssets = importWeaponAssets(context, archive, presentation);
+        Optional<CombatPresentationAssets> loadedAssets = importPresentationAssets(context, archive, presentation);
         if (loadedAssets.isEmpty()) {
             return;
         }
-        WeaponPresentationAssets assets = loadedAssets.orElseThrow();
+        CombatPresentationAssets assets = loadedAssets.orElseThrow();
         Set<String> selection = Set.copyOf(context.definition().selection());
         for (String mapName : new DoomMapDecoder().discover(archive)) {
             String identity = mapIdentity(mapName);
@@ -238,8 +238,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return result.isValid() ? result.rules() : Optional.empty();
     }
 
-    /** Decodes only the selected weapon assets so runtime publication never needs the source WAD. */
-    private static Optional<WeaponPresentationAssets> importWeaponAssets(
+    /** Decodes selected weapon and HUD assets so runtime publication never needs the source WAD. */
+    private static Optional<CombatPresentationAssets> importPresentationAssets(
             ImportPreparationContext context, WadArchive archive, DoomCombatPresentationRules presentation) {
         DoomCombatPresentationRules.Weapon weapon = presentation.weapon();
         try {
@@ -248,20 +248,22 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             if (palette.length < PALETTE_SIZE) {
                 throw new DoomPatchDataException("PLAYPAL is shorter than one complete palette");
             }
-            Map<String, RgbaImage> frames = new LinkedHashMap<>();
-            List<String> requiredFrames = new ArrayList<>();
-            requiredFrames.add(weapon.readyFrame());
-            requiredFrames.addAll(weapon.fireFrames());
-            for (String frame : requiredFrames) {
-                WadLump lump = requiredLump(archive, frame);
+            Map<String, RgbaImage> images = new LinkedHashMap<>();
+            List<String> requiredImages = new ArrayList<>();
+            requiredImages.add(weapon.readyFrame());
+            requiredImages.addAll(weapon.fireFrames());
+            requiredImages.addAll(presentation.hud().digits());
+            requiredImages.add(presentation.hud().percent());
+            for (String image : requiredImages) {
+                WadLump lump = requiredLump(archive, image);
                 DoomPatchImage patch =
                         DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name());
-                frames.put(frame, patch.image());
+                images.put(image, patch.image());
             }
             WadLump soundLump = requiredLump(archive, weapon.fireSound());
             PcmAudio sound =
                     DoomDmxSoundDecoder.decode(archive.readAllBytes(soundLump, soundLump.size()), soundLump.name());
-            return Optional.of(new WeaponPresentationAssets(weapon, frames, sound));
+            return Optional.of(new CombatPresentationAssets(presentation, images, sound));
         } catch (IOException | DoomPatchDataException | IllegalArgumentException exception) {
             context.error(
                     ActorImportDiagnosticCode.COMBAT_PRESENTATION_INVALID,
@@ -304,7 +306,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             WadArchive archive,
             DoomActorCatalog catalog,
             DoomCombatRules rules,
-            WeaponPresentationAssets presentation,
+            CombatPresentationAssets presentation,
             String mapName,
             String prefix)
             throws IOException {
@@ -435,34 +437,40 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         }
     }
 
-    /** Publishes only the selected weapon's overlay frames and local firing sound for this slice. */
+    /** Publishes the selected weapon, HUD images, and local firing sound for this slice. */
     private static void publishWeaponPresentation(
-            ImportPreparationContext context, String prefix, WeaponPresentationAssets assets) throws IOException {
-        DoomCombatPresentationRules.Weapon weapon = assets.weapon();
+            ImportPreparationContext context, String prefix, CombatPresentationAssets assets) throws IOException {
+        DoomCombatPresentationRules.Weapon weapon = assets.presentation().weapon();
         List<String> frames = new ArrayList<>();
         frames.add(weapon.readyFrame());
         frames.addAll(weapon.fireFrames());
         for (String frame : frames) {
-            publishWeaponFrame(context, prefix, frame, assets.frames().get(frame));
+            publishOverlayImage(
+                    context, weaponImageIdentity(prefix, frame), assets.images().get(frame));
         }
+        for (String digit : assets.presentation().hud().digits()) {
+            publishOverlayImage(
+                    context, hudImageIdentity(prefix, digit), assets.images().get(digit));
+        }
+        String percent = assets.presentation().hud().percent();
+        publishOverlayImage(
+                context, hudImageIdentity(prefix, percent), assets.images().get(percent));
         publishWeaponSound(context, prefix, weapon.fireSound(), assets.fireSound());
     }
 
-    /** Publishes one exact WAD patch as a generic sRGB texture resource for screen presentation. */
-    private static void publishWeaponFrame(
-            ImportPreparationContext context, String prefix, String frame, RgbaImage image) throws IOException {
-        String textureIdentity = weaponTextureIdentity(prefix, frame);
-        String payloadIdentity = textureIdentity + ".rgba8";
-        try (Texture texture = createTexture(image)) {
-            context.artifact(
-                    ImportArtifactDescriptor.payload(payloadIdentity, TEXTURE_MEDIA_TYPE),
-                    output -> Spatial3dResourceWriter.writeTexturePayload(output, texture));
-            context.artifact(
-                    ImportArtifactDescriptor.resource(
-                            textureIdentity, Spatial3dDescriptors.textureResourceType(), List.of(payloadIdentity)),
-                    output -> Spatial3dResourceWriter.writeTextureDefinition(
-                            output, texture, imported(context, payloadIdentity)));
-        }
+    /** Publishes one exact WAD patch as a generic immutable screen image. */
+    private static void publishOverlayImage(ImportPreparationContext context, String identity, RgbaImage image)
+            throws IOException {
+        String payloadIdentity = identity + ".rgba8";
+        context.artifact(
+                ImportArtifactDescriptor.payload(payloadIdentity, TEXTURE_MEDIA_TYPE),
+                output -> GamePresentationResourceWriter.writeOverlayImagePayload(
+                        output, image.width(), image.height(), image.pixels()));
+        context.artifact(
+                ImportArtifactDescriptor.resource(
+                        identity, GamePresentationDescriptors.overlayImageResourceType(), List.of(payloadIdentity)),
+                output -> GamePresentationResourceWriter.writeOverlayImageDefinition(
+                        output, image.width(), image.height(), imported(context, payloadIdentity)));
     }
 
     /** Publishes one decoded local sound as a generic signed PCM resource. */
@@ -842,9 +850,14 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         return prefix + "/actors/resources/materials/" + frame.toLowerCase(Locale.ROOT);
     }
 
-    /** Returns one selected weapon overlay-texture identity. */
-    private static String weaponTextureIdentity(String prefix, String frame) {
-        return prefix + "/presentation/weapons/textures/" + frame.toLowerCase(Locale.ROOT);
+    /** Returns one selected weapon overlay-image identity. */
+    private static String weaponImageIdentity(String prefix, String frame) {
+        return prefix + "/presentation/weapons/images/" + frame.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one selected HUD overlay-image identity. */
+    private static String hudImageIdentity(String prefix, String lump) {
+        return prefix + "/presentation/hud/images/" + lump.toLowerCase(Locale.ROOT);
     }
 
     /** Returns one selected weapon local-sound identity. */
@@ -931,11 +944,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** One decoded actor frame retained only while artifacts are being published. */
     private record ImportedSprite(String frame, RgbaImage image, int leftOffset, int topOffset) {}
 
-    /** Build-time assets required by the descriptor-selected first-person weapon presentation. */
-    private record WeaponPresentationAssets(
-            DoomCombatPresentationRules.Weapon weapon, Map<String, RgbaImage> frames, PcmAudio fireSound) {
-        private WeaponPresentationAssets {
-            frames = Map.copyOf(frames);
+    /** Build-time assets required by descriptor-selected combat presentation components. */
+    private record CombatPresentationAssets(
+            DoomCombatPresentationRules presentation, Map<String, RgbaImage> images, PcmAudio fireSound) {
+        private CombatPresentationAssets {
+            images = Map.copyOf(images);
         }
     }
 
