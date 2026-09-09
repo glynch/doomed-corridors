@@ -191,8 +191,12 @@ material-batched meshes, collision body, and Doom door component. The authored
 Player Controls entity owns an interaction component whose `interact` action
 activates only the nearest unobstructed entity declaring the Doom door capability.
 Normal doors remain open; blaze doors open, wait, and close at source-derived
-speeds. Hosted-project tests prove wall obstruction, collision-free traversal while
-open, collision restoration after closing, and closed initial editor-preview state.
+speeds. Generated character-filtered obstruction sensors reopen a closing blaze
+door around the player or a combatant, while descriptor-authored positional
+presentation plays the imported normal or blaze opening and closing effects.
+Hosted-project tests prove interaction wall obstruction, collision-free traversal
+while open, safe reopening, collision restoration after closing, sound-handle
+cleanup, and closed initial editor-preview state.
 Lifts, navigation beyond last-visible-position pursuit, and other sector specials
 remain later vertical slices.
 
@@ -246,7 +250,7 @@ startup.
 - Every included or locally required external asset has complete provenance and
   retained license text.
 
-## Deferred from the first slice
+## Remaining campaign scope
 
 - The complete campaign and every vanilla Doom II special.
 - Save games, multiplayer, demos, and advanced enemy/weapon behavior.

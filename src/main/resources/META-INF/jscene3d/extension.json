@@ -709,6 +709,65 @@
           "editor": {"minimum-exclusive": 0}
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/door-presentation",
+      "typeVersion": 1,
+      "displayName": "Doom Door Presentation",
+      "description": "Maps descriptor-selected imported door profiles and phase transitions to project-authored positional audio.",
+      "lifecycle": ["created"],
+      "updatePhases": ["after-physics"],
+      "properties": [
+        {
+          "id": "normal-opening-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Normal Opening Sound",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "normal-closing-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Normal Closing Sound",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "blaze-opening-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Blaze Opening Sound",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "blaze-closing-sound",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Blaze Closing Sound",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "reference-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Full-volume Distance",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "maximum-distance",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Maximum Distance",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "rolloff-factor",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Rolloff Factor",
+          "editor": {"minimum-inclusive": 0}
+        }
+      ]
     }
   ]
 }

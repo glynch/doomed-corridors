@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.jscene3d.project.component.ComponentLifecycle;
 import io.github.glynch.jscene3d.project.component.ComponentUpdatePhase;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
 import io.github.glynch.jscene3d.project.extension.ExtensionCatalogLoadResult;
@@ -189,7 +190,17 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/player-presentation",
                         EXTENSION_ID + "/player-lifecycle",
                         EXTENSION_ID + "/player-hud",
-                        EXTENSION_ID + "/door-interactor");
+                        EXTENSION_ID + "/door-interactor",
+                        EXTENSION_ID + "/door-presentation");
+    }
+
+    /** Declares combatant presentation and authoritative hitscan weapon contracts. */
+    @Test
+    void declaresCombatantAndWeaponContracts() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
                         .orElseThrow())
@@ -227,6 +238,15 @@ final class ProjectManifestTest {
                                     .payload())
                             .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
                 });
+    }
+
+    /** Declares weapon and HUD presentation contracts independently of their runtime implementation. */
+    @Test
+    void declaresWeaponAndHudPresentationContracts() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE)
                         .orElseThrow())
@@ -255,6 +275,28 @@ final class ProjectManifestTest {
                                     DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY,
                                     DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY);
+                });
+    }
+
+    /** Declares positional normal and blaze sound resources for Doom door presentation. */
+    @Test
+    void declaresDoorPresentationContract() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE)
+                        .orElseThrow())
+                .satisfies(presentation -> {
+                    assertThat(presentation.lifecycle()).containsExactly(ComponentLifecycle.CREATED);
+                    assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
+                    assertThat(presentation.properties())
+                            .containsKeys(
+                                    DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
                 });
     }
 

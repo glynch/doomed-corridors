@@ -144,7 +144,7 @@ final class ProjectHostIntegrationTest {
             assertThat(loaded.project().identity().id()).isEqualTo("io.github.glynch.doomed-corridors");
             assertThat(loaded.world().roots())
                     .extracting(entity -> entity.name().orElseThrow())
-                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors", "Player HUD");
+                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors", "Player HUD", "World Presentation");
             assertThat(character.isClosed()).isFalse();
             assertThat(player.componentIds())
                     .contains(PLAYER_WEAPON, WEAPON_PRESENTATION, PLAYER_PRESENTATION, PLAYER_LIFECYCLE)
@@ -164,9 +164,9 @@ final class ProjectHostIntegrationTest {
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(41);
+                    .isEqualTo(45);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(41);
+                    .isEqualTo(45);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -328,8 +328,8 @@ final class ProjectHostIntegrationTest {
             Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
 
             loaded.world().activate();
-            assertThat(presentationWorld.positionalAttenuation())
-                    .isEqualTo(new PositionalSoundAttenuation(5.0F, 37.5F, 1.0F));
+            assertThat(presentationWorld.positionalAttenuations())
+                    .contains(new PositionalSoundAttenuation(5.0F, 37.5F, 1.0F));
             assertThat(state.damage(5)).isEqualTo(5);
             assertThat(state.health()).isEqualTo(15);
             assertThat(reaction.currentFrame()).isSameAs(pain);
@@ -348,8 +348,8 @@ final class ProjectHostIntegrationTest {
             assertThat(body.isClosed()).isTrue();
             assertThat(zombieman.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(40);
-            assertThat(physics.collisionShapeCount()).isEqualTo(40);
+            assertThat(physics.collisionObjectCount()).isEqualTo(44);
+            assertThat(physics.collisionShapeCount()).isEqualTo(44);
             assertThat(presentationWorld.positionalRestarts()).isEqualTo(2);
 
             loaded.world().advanceFrame(Duration.ofMillis(560), 0.0F);
@@ -456,8 +456,8 @@ final class ProjectHostIntegrationTest {
             assertThat(playerState.bullets()).isEqualTo(44);
             assertThat(target.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(40);
-            assertThat(physics.collisionShapeCount()).isEqualTo(40);
+            assertThat(physics.collisionObjectCount()).isEqualTo(44);
+            assertThat(physics.collisionShapeCount()).isEqualTo(44);
             assertThat(presentation.restarts()).isEqualTo(6);
         }
         assertThat(presentation.overlayCount()).isZero();
@@ -725,8 +725,9 @@ final class ProjectHostIntegrationTest {
     void opensPublishedDoorThroughPlayerInteraction() {
         Path cache = temporaryDirectory.resolve("door-import-cache");
         DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        TestPresentationWorldModule presentation = new TestPresentationWorldModule();
 
-        try (HostedProject loaded = load(cache)) {
+        try (HostedProject loaded = load(cache, presentation)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             Transform3d view = player.children()
                     .getFirst()
@@ -743,12 +744,14 @@ final class ProjectHostIntegrationTest {
             Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
 
             loaded.world().activate();
+            loaded.world().disable(root(loaded, ACTOR_MAP_PLACEMENT));
             CollisionRaycastHit3d hit = findDoorSurface(physics, doorEntity);
             Vector3f normal = hit.normal(new Vector3f());
             Vector3f origin = hit.point(new Vector3f()).fma(0.5F, normal);
             Vector3f direction = normal.negate(new Vector3f());
             view.setWorldPose(origin, new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), direction));
             float closedHeight = doorTransform.position().y();
+            int soundsBeforeOpening = presentation.positionalRestarts();
 
             input.publish(ActionSnapshot.builder().pressed(INTERACT).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
@@ -756,6 +759,7 @@ final class ProjectHostIntegrationTest {
 
             assertThat(door.phase()).isEqualTo(DoomDoor.Phase.OPENING);
             assertThat(doorTransform.position().y()).isGreaterThan(closedHeight);
+            assertThat(presentation.positionalRestarts()).isEqualTo(soundsBeforeOpening + 1);
 
             advanceFixed(loaded, 25);
             assertThat(door.phase()).isEqualTo(DoomDoor.Phase.WAITING);
@@ -766,9 +770,69 @@ final class ProjectHostIntegrationTest {
             advanceFixed(loaded, 200);
             assertThat(door.phase()).isEqualTo(DoomDoor.Phase.CLOSED);
             assertThat(doorTransform.position().y()).isEqualTo(closedHeight);
+            assertThat(presentation.positionalRestarts()).isEqualTo(soundsBeforeOpening + 2);
             assertThat(physics.raycast(origin, direction, 1.0F))
                     .hasValueSatisfying(
                             result -> assertThat(result.object().owner()).isSameAs(doorEntity));
+        }
+        assertThat(presentation.positionalSoundsClosed()).isEqualTo(presentation.positionalSoundsCreated());
+    }
+
+    /** Reopens a closing blaze door when its generated character-only sensor reaches the player. */
+    @Test
+    void reopensClosingDoorAroundPlayer() {
+        Path cache = temporaryDirectory.resolve("obstructed-closing-door-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Transform3d playerTransform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+            CharacterBody3d playerBody =
+                    player.component(PLAYER_BODY, CharacterBody3d.class).orElseThrow();
+            Entity doorEntity = root(loaded, MAP_PLACEMENT).children().getFirst();
+            DoomDoor door = doorEntity
+                    .capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
+                    .orElseThrow();
+            float closedHeight = door.currentHeight();
+
+            loaded.world().activate();
+            loaded.world().disable(root(loaded, ACTOR_MAP_PLACEMENT));
+            loaded.world().disable(child(player, PLAYER_CONTROLS));
+            door.activate();
+            advanceFixed(loaded, 25);
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.WAITING);
+            Vector3f doorway = doorEntity
+                    .children()
+                    .getFirst()
+                    .capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                    .orElseThrow()
+                    .worldMatrix()
+                    .getTranslation(new Vector3f());
+            for (int step = 0; step < 300; step++) {
+                Vector3f direction = new Vector3f(
+                        doorway.x() - playerTransform.position().x(),
+                        0.0F,
+                        doorway.z() - playerTransform.position().z());
+                if (direction.lengthSquared() <= 0.01F) {
+                    break;
+                }
+                playerBody.move(direction.normalize(8.0F), Duration.ofMillis(25));
+                loaded.world().advanceFixed(Duration.ofMillis(25));
+            }
+            assertThat(new Vector3f(
+                                    doorway.x() - playerTransform.position().x(),
+                                    0.0F,
+                                    doorway.z() - playerTransform.position().z())
+                            .length())
+                    .isLessThan(0.5F);
+
+            for (int step = 0; step < 250 && door.phase() != DoomDoor.Phase.OPENING; step++) {
+                loaded.world().advanceFixed(Duration.ofMillis(25));
+            }
+
+            assertThat(door.phase()).isEqualTo(DoomDoor.Phase.OPENING);
+            assertThat(door.currentHeight()).isGreaterThan(closedHeight);
         }
     }
 

@@ -15,18 +15,18 @@ import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.Renderer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.joml.Vector3fc;
-import org.jspecify.annotations.Nullable;
 
 /** Records presentation activity without requiring OpenGL or an OpenAL playback device. */
 final class TestPresentationWorldModule implements PresentationWorldModule {
     private final List<Overlay> overlays = new ArrayList<>();
     private int restarts;
     private int positionalRestarts;
+    private int positionalSoundsCreated;
+    private int positionalSoundsClosed;
     private boolean soundClosed;
     private boolean positionalSoundClosed;
-    private @Nullable PositionalSoundAttenuation positionalAttenuation;
+    private final List<PositionalSoundAttenuation> positionalAttenuations = new ArrayList<>();
 
     @Override
     public OverlayRegistration registerOverlay(Overlay registered) {
@@ -52,8 +52,11 @@ final class TestPresentationWorldModule implements PresentationWorldModule {
     @Override
     public PositionalSound createPositionalSound(
             PcmAudioResource audio, AudioCategory category, PositionalSoundAttenuation attenuation) {
-        positionalAttenuation = attenuation;
+        positionalAttenuations.add(attenuation);
+        positionalSoundsCreated++;
         return new PositionalSound() {
+            private boolean closed;
+
             @Override
             public void restart(Vector3fc position) {
                 positionalRestarts++;
@@ -61,6 +64,11 @@ final class TestPresentationWorldModule implements PresentationWorldModule {
 
             @Override
             public void close() {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+                positionalSoundsClosed++;
                 positionalSoundClosed = true;
             }
         };
@@ -96,6 +104,16 @@ final class TestPresentationWorldModule implements PresentationWorldModule {
         return positionalRestarts;
     }
 
+    /** Returns the number of independently created world-positioned sound handles. */
+    int positionalSoundsCreated() {
+        return positionalSoundsCreated;
+    }
+
+    /** Returns the number of independently closed world-positioned sound handles. */
+    int positionalSoundsClosed() {
+        return positionalSoundsClosed;
+    }
+
     /** Returns whether the component-owned sound handle was closed. */
     boolean soundClosed() {
         return soundClosed;
@@ -106,8 +124,8 @@ final class TestPresentationWorldModule implements PresentationWorldModule {
         return positionalSoundClosed;
     }
 
-    /** Returns the attenuation supplied for the most recently created positional sound. */
-    PositionalSoundAttenuation positionalAttenuation() {
-        return Objects.requireNonNull(positionalAttenuation, "no positional sound was created");
+    /** Returns every attenuation supplied for a positional sound in creation order. */
+    List<PositionalSoundAttenuation> positionalAttenuations() {
+        return List.copyOf(positionalAttenuations);
     }
 }

@@ -33,9 +33,11 @@ final class DoomCombatPresentationLoaderTest {
                 .containsExactly("POSSA1", "POSSB1", "POSSC1", "POSSD1");
         assertThat(rules.player().deathSound()).isEqualTo("DSPLDETH");
         assertThat(rules.pickups().collectSound()).isEqualTo("DSITEMUP");
+        assertThat(rules.doors())
+                .isEqualTo(new DoomCombatPresentationRules.Doors("DSDOROPN", "DSDORCLS", "DSBDOPN", "DSBDCLS"));
         assertThat(rules.hud().digits()).hasSize(10);
         assertThat(rules.imageLumps()).hasSize(28);
-        assertThat(rules.soundLumps()).hasSize(11);
+        assertThat(rules.soundLumps()).hasSize(15);
     }
 
     /** Loads the companion combat rules used for cross-document validation. */

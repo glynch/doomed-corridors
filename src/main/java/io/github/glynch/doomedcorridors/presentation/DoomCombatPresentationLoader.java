@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat asset and timing bindings. */
 public final class DoomCombatPresentationLoader {
-    private static final int SCHEMA_VERSION = 3;
+    private static final int SCHEMA_VERSION = 4;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -67,6 +67,12 @@ public final class DoomCombatPresentationLoader {
         RawPickups rawPickups = Objects.requireNonNull(raw.pickups(), "pickups are required");
         DoomCombatPresentationRules.Pickups pickups =
                 new DoomCombatPresentationRules.Pickups(rawPickups.collectSound());
+        RawDoors rawDoors = Objects.requireNonNull(raw.doors(), "doors are required");
+        DoomCombatPresentationRules.Doors doors = new DoomCombatPresentationRules.Doors(
+                rawDoors.normalOpeningSound(),
+                rawDoors.normalClosingSound(),
+                rawDoors.blazeOpeningSound(),
+                rawDoors.blazeClosingSound());
         List<RawCombatant> rawCombatants = Objects.requireNonNull(raw.combatants(), "combatants are required");
         List<DoomCombatPresentationRules.Combatant> combatants = new ArrayList<>(rawCombatants.size());
         for (RawCombatant rawCombatant : rawCombatants) {
@@ -86,7 +92,7 @@ public final class DoomCombatPresentationLoader {
         }
         RawHud rawHud = Objects.requireNonNull(raw.hud(), "hud is required");
         DoomCombatPresentationRules.Hud hud = new DoomCombatPresentationRules.Hud(rawHud.digits(), rawHud.percent());
-        return new DoomCombatPresentationRules(weapon, player, pickups, combatants, hud);
+        return new DoomCombatPresentationRules(weapon, player, pickups, doors, combatants, hud);
     }
 
     /** Requires all bindings to name combat identities from the companion rules. */
@@ -116,6 +122,7 @@ public final class DoomCombatPresentationLoader {
             RawWeapon weapon,
             RawPlayer player,
             RawPickups pickups,
+            RawDoors doors,
             List<RawCombatant> combatants,
             RawHud hud) {}
 
@@ -128,6 +135,10 @@ public final class DoomCombatPresentationLoader {
 
     /** Direct JSON pickup feedback binding retained only during conversion. */
     private record RawPickups(String collectSound) {}
+
+    /** Direct JSON door-sound binding retained only during conversion. */
+    private record RawDoors(
+            String normalOpeningSound, String normalClosingSound, String blazeOpeningSound, String blazeClosingSound) {}
 
     /** Direct JSON combatant binding retained only during conversion. */
     private record RawCombatant(String actor, RawAnimations animations, RawSounds sounds) {}

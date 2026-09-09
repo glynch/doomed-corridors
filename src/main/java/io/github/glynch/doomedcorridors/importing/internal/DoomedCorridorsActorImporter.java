@@ -486,6 +486,24 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 context,
                 playerSoundIdentity(prefix, player.deathSound()),
                 assets.sounds().get(player.deathSound()));
+        publishDoorSounds(context, prefix, assets.presentation().doors(), assets.sounds());
+    }
+
+    /** Publishes the normal and blaze movement sounds referenced by authored door presentation. */
+    private static void publishDoorSounds(
+            ImportPreparationContext context,
+            String prefix,
+            DoomCombatPresentationRules.Doors doors,
+            Map<String, PcmAudio> sounds)
+            throws IOException {
+        List<String> names = List.of(
+                doors.normalOpeningSound(),
+                doors.normalClosingSound(),
+                doors.blazeOpeningSound(),
+                doors.blazeClosingSound());
+        for (String name : names) {
+            publishSound(context, doorSoundIdentity(prefix, name), sounds.get(name));
+        }
     }
 
     /** Publishes one exact WAD patch as a generic immutable screen image. */
@@ -708,7 +726,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 Map.of(
                         Physics3dDescriptors.shapeProperty(), reference(importId, shapeIdentity),
                         Physics3dDescriptors.localPositionProperty(),
-                                numbers(0.0F, DoomUnits.toWorld(bounds.height()) / 2.0F, 0.0F))));
+                                numbers(0.0F, DoomUnits.toWorld(bounds.height()) / 2.0F, 0.0F),
+                        Physics3dDescriptors.categoryBitsProperty(), number(2))));
         components.add(component(
                 importId,
                 rootLocator + "/combatant-body",
@@ -1218,6 +1237,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Returns one selected player-local sound identity. */
     private static String playerSoundIdentity(String prefix, String sound) {
         return prefix + "/presentation/player/audio/" + sound.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one imported positional door-sound identity. */
+    private static String doorSoundIdentity(String prefix, String sound) {
+        return prefix + "/presentation/doors/audio/" + sound.toLowerCase(Locale.ROOT);
     }
 
     /** Returns one actor-specific positional sound identity. */

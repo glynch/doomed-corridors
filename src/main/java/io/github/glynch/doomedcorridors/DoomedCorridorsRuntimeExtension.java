@@ -17,6 +17,7 @@ import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
+import io.github.glynch.jscene3d.project.component.PropertyId;
 import io.github.glynch.jscene3d.project.manifest.GameProject;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
@@ -112,6 +113,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         RuntimeProperties.positiveFloat(
                                 context.properties(),
                                 DoomedCorridorsRuntimeTypes.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
+        validRegistry.register(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE, new DoorPresentationFactory());
     }
 
     /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */
@@ -340,6 +342,46 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                                     properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY)),
                     RuntimeProperties.unitIntervalFloat(
                             properties, DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY));
+        }
+    }
+
+    /** Resolves project-authored door sounds before constructing phase-driven positional presentation. */
+    private static final class DoorPresentationFactory implements ComponentFactory<DoomDoorPresentation> {
+        private static final List<PropertyId> SOUND_PROPERTIES = List.of(
+                DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
+                DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
+                DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
+                DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
+
+        @Override
+        public void prepare(ComponentPreparationContext context) {
+            ComponentProperties properties = context.properties();
+            SOUND_PROPERTIES.forEach(property ->
+                    context.resolveResource(properties.resourceReference(property), PcmAudioResource.class));
+        }
+
+        @Override
+        public DoomDoorPresentation create(ComponentFactoryContext context) {
+            ComponentProperties properties = context.properties();
+            DoomDoorPresentation.AudioResources audio = new DoomDoorPresentation.AudioResources(
+                    resolve(context, DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY));
+            PositionalSoundAttenuation attenuation = new PositionalSoundAttenuation(
+                    RuntimeProperties.positiveFloat(
+                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_REFERENCE_DISTANCE_PROPERTY),
+                    RuntimeProperties.positiveFloat(
+                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_MAXIMUM_DISTANCE_PROPERTY),
+                    RuntimeProperties.nonNegativeFloat(
+                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_ROLLOFF_FACTOR_PROPERTY));
+            return new DoomDoorPresentation(
+                    context.world(), context.world().requireModule(PresentationWorldModule.class), audio, attenuation);
+        }
+
+        /** Resolves one retained PCM resource selected by a descriptor property. */
+        private static PcmAudioResource resolve(ComponentFactoryContext context, PropertyId property) {
+            return context.resolveResource(context.properties().resourceReference(property), PcmAudioResource.class);
         }
     }
 }

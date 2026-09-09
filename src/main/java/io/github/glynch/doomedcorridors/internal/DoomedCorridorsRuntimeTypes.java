@@ -63,6 +63,9 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type for the player-facing interaction ray used to activate imported doors. */
     public static final ComponentType DOOR_INTERACTOR_TYPE = ComponentType.of(EXTENSION_ID + "/door-interactor", 1);
 
+    /** Runtime type mapping imported door phase transitions to project-authored positional audio. */
+    public static final ComponentType DOOR_PRESENTATION_TYPE = ComponentType.of(EXTENSION_ID + "/door-presentation", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
@@ -231,6 +234,27 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Maximum interaction ray distance in project world units. */
     public static final PropertyId INTERACTION_MAXIMUM_DISTANCE_PROPERTY = new PropertyId("maximum-distance");
+
+    /** Positional sound played when an ordinary door begins opening. */
+    public static final PropertyId NORMAL_DOOR_OPENING_SOUND_PROPERTY = new PropertyId("normal-opening-sound");
+
+    /** Positional sound played when an ordinary door begins closing. */
+    public static final PropertyId NORMAL_DOOR_CLOSING_SOUND_PROPERTY = new PropertyId("normal-closing-sound");
+
+    /** Positional sound played when a blaze door begins opening. */
+    public static final PropertyId BLAZE_DOOR_OPENING_SOUND_PROPERTY = new PropertyId("blaze-opening-sound");
+
+    /** Positional sound played when a blaze door begins closing. */
+    public static final PropertyId BLAZE_DOOR_CLOSING_SOUND_PROPERTY = new PropertyId("blaze-closing-sound");
+
+    /** Distance within which door sounds retain their full authored gain. */
+    public static final PropertyId DOOR_SOUND_REFERENCE_DISTANCE_PROPERTY = new PropertyId("reference-distance");
+
+    /** Distance at which door-sound attenuation is clamped. */
+    public static final PropertyId DOOR_SOUND_MAXIMUM_DISTANCE_PROPERTY = new PropertyId("maximum-distance");
+
+    /** Rate at which door sounds attenuate beyond their reference distance. */
+    public static final PropertyId DOOR_SOUND_ROLLOFF_FACTOR_PROPERTY = new PropertyId("rolloff-factor");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");

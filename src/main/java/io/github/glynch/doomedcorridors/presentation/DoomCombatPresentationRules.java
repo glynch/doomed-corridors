@@ -17,14 +17,17 @@ public final class DoomCombatPresentationRules {
     private final Weapon weapon;
     private final Player player;
     private final Pickups pickups;
+    private final Doors doors;
     private final Map<String, Combatant> combatants;
     private final Hud hud;
 
     /** Indexes one weapon, combatant bindings, and HUD patch names. */
-    DoomCombatPresentationRules(Weapon weapon, Player player, Pickups pickups, List<Combatant> combatants, Hud hud) {
+    DoomCombatPresentationRules(
+            Weapon weapon, Player player, Pickups pickups, Doors doors, List<Combatant> combatants, Hud hud) {
         this.weapon = Objects.requireNonNull(weapon, "weapon");
         this.player = Objects.requireNonNull(player, "player");
         this.pickups = Objects.requireNonNull(pickups, "pickups");
+        this.doors = Objects.requireNonNull(doors, "doors");
         this.combatants = indexCombatants(combatants);
         this.hud = Objects.requireNonNull(hud, "hud");
     }
@@ -42,6 +45,11 @@ public final class DoomCombatPresentationRules {
     /** Returns listener-relative pickup feedback bindings. */
     public Pickups pickups() {
         return pickups;
+    }
+
+    /** Returns normal and blaze door movement-sound bindings. */
+    public Doors doors() {
+        return doors;
     }
 
     /** Returns the HUD patch bindings. */
@@ -78,6 +86,10 @@ public final class DoomCombatPresentationRules {
         names.add(player.painSound());
         names.add(player.deathSound());
         names.add(pickups.collectSound());
+        names.add(doors.normalOpeningSound());
+        names.add(doors.normalClosingSound());
+        names.add(doors.blazeOpeningSound());
+        names.add(doors.blazeClosingSound());
         for (Combatant combatant : combatants.values()) {
             CombatantSounds sounds = combatant.sounds();
             names.addAll(sounds.sightSounds());
@@ -157,6 +169,18 @@ public final class DoomCombatPresentationRules {
         /** Validates the exact classic sound lump name. */
         public Pickups {
             requireLump(collectSound, "collectSound");
+        }
+    }
+
+    /** Positional movement sounds selected by each imported door's semantic profile. */
+    public record Doors(
+            String normalOpeningSound, String normalClosingSound, String blazeOpeningSound, String blazeClosingSound) {
+        /** Validates every exact classic sound lump name. */
+        public Doors {
+            requireLump(normalOpeningSound, "normalOpeningSound");
+            requireLump(normalClosingSound, "normalClosingSound");
+            requireLump(blazeOpeningSound, "blazeOpeningSound");
+            requireLump(blazeClosingSound, "blazeClosingSound");
         }
     }
 

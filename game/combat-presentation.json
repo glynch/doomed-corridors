@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/combat-presentation-3.schema.json",
-  "schemaVersion": 3,
+  "$schema": "../schema/combat-presentation-4.schema.json",
+  "schemaVersion": 4,
   "weapon": {
     "id": "pistol",
     "readyFrame": "PISGA0",
@@ -14,6 +14,12 @@
   },
   "pickups": {
     "collectSound": "DSITEMUP"
+  },
+  "doors": {
+    "normalOpeningSound": "DSDOROPN",
+    "normalClosingSound": "DSDORCLS",
+    "blazeOpeningSound": "DSBDOPN",
+    "blazeClosingSound": "DSBDCLS"
   },
   "combatants": [
     {

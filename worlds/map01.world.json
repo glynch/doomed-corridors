@@ -98,7 +98,8 @@
           "type": "io.github.glynch.jscene3d.physics3d/collision-shape-3d",
           "typeVersion": 1,
           "properties": {
-            "shape": {"$ref": "asset:player-capsule"}
+            "shape": {"$ref": "asset:player-capsule"},
+            "category-bits": 2
           }
         },
         {
@@ -471,6 +472,37 @@
           "children": []
         }
       ]
+    },
+    {
+      "entryType": "local",
+      "entityId": "a1ce2d3c-e234-48bb-b9a5-44b6f8047228",
+      "name": "World Presentation",
+      "enabled": true,
+      "components": [
+        {
+          "componentId": "e3a59f33-47c2-4b42-bf92-2aab1e72432f",
+          "type": "io.github.glynch.doomed-corridors/door-presentation",
+          "typeVersion": 1,
+          "properties": {
+            "normal-opening-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/doors/audio/dsdoropn"
+            },
+            "normal-closing-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/doors/audio/dsdorcls"
+            },
+            "blaze-opening-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/doors/audio/dsbdopn"
+            },
+            "blaze-closing-sound": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/doors/audio/dsbdcls"
+            },
+            "reference-distance": 2,
+            "maximum-distance": 32,
+            "rolloff-factor": 1
+          }
+        }
+      ],
+      "children": []
     }
   ]
 }

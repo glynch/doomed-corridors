@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-presentation-3.json",
-  "title": "Doomed Corridors combat presentation version 3",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-presentation-4.json",
+  "title": "Doomed Corridors combat presentation version 4",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "weapon", "player", "pickups", "combatants", "hud"],
+  "required": ["schemaVersion", "weapon", "player", "pickups", "doors", "combatants", "hud"],
   "properties": {
     "$schema": { "type": "string", "format": "uri-reference" },
-    "schemaVersion": { "const": 3 },
+    "schemaVersion": { "const": 4 },
     "weapon": { "$ref": "#/$defs/weapon" },
     "player": { "$ref": "#/$defs/player" },
     "pickups": { "$ref": "#/$defs/pickups" },
+    "doors": { "$ref": "#/$defs/doors" },
     "combatants": {
       "type": "array",
       "minItems": 1,
@@ -59,6 +60,17 @@
       "required": ["collectSound"],
       "properties": {
         "collectSound": { "$ref": "#/$defs/lump" }
+      }
+    },
+    "doors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["normalOpeningSound", "normalClosingSound", "blazeOpeningSound", "blazeClosingSound"],
+      "properties": {
+        "normalOpeningSound": { "$ref": "#/$defs/lump" },
+        "normalClosingSound": { "$ref": "#/$defs/lump" },
+        "blazeOpeningSound": { "$ref": "#/$defs/lump" },
+        "blazeClosingSound": { "$ref": "#/$defs/lump" }
       }
     },
     "combatant": {
