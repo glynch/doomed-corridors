@@ -13,14 +13,19 @@ import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.FixedUpdateContext;
+import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
+import io.github.glynch.jscene3d.project.spatial3d.PerspectiveCamera3d;
 import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -41,9 +46,13 @@ final class DoomHitscanWeapon
     private final InputAction fireAction;
     private final RandomGenerator random;
     private Optional<Transform3d> viewTransform = Optional.empty();
+    private Optional<PerspectiveCamera3d> viewCamera = Optional.empty();
     private RuntimeSignal fired;
+    private RuntimeSignal hitSignal;
     private int ammunitionPerShot;
     private float range;
+    private float autoAimAngle;
+    private float autoAimMaximumSlope;
     private DoomCombatRules rules;
 
     /** Retains authored configuration and derives a stable per-entity damage sequence. */
@@ -87,19 +96,26 @@ final class DoomHitscanWeapon
         }
         ammunitionPerShot = validRules.weaponAmmoPerShot(weaponId);
         range = DoomUnits.toWorld(validRules.weaponRange(weaponId));
+        autoAimAngle = (float) Math.toRadians(validRules.weaponAutoAimAngleDegrees(weaponId));
+        autoAimMaximumSlope = validRules.weaponAutoAimMaximumSlope(weaponId);
         rules = validRules;
     }
 
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
-        viewTransform = Optional.of(Objects.requireNonNull(references, "references")
-                .component(DoomedCorridorsRuntimeTypes.VIEW_TRANSFORM_PROPERTY, Transform3d.class));
+        ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
+        viewTransform = Optional.of(
+                validReferences.component(DoomedCorridorsRuntimeTypes.VIEW_TRANSFORM_PROPERTY, Transform3d.class));
+        viewCamera = Optional.of(
+                validReferences.component(DoomedCorridorsRuntimeTypes.VIEW_CAMERA_PROPERTY, PerspectiveCamera3d.class));
     }
 
     /** Binds the descriptor-declared successful-shot signal. */
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
-        fired = Objects.requireNonNull(endpoints, "endpoints").signal(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
+        ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
+        fired = validEndpoints.signal(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
+        hitSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL);
     }
 
     @Override
@@ -114,36 +130,131 @@ final class DoomHitscanWeapon
         if (!player.spendBullets(ammunitionPerShot)) {
             return;
         }
-        fire();
+        Optional<DoomWeaponHit> resolvedHit = fire();
         requiredFiredSignal().emit();
+        resolvedHit.ifPresent(weaponHit -> requiredHitSignal()
+                .emit(new RuntimePayload(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE, weaponHit)));
     }
 
-    /** Traces the authored view ray, skipping only this weapon owner's own collision body. */
-    private void fire() {
+    /** Traces the exact authored view ray before applying the configured Doom-style auto-aim cone. */
+    private Optional<DoomWeaponHit> fire() {
         DoomCombatRules configuredRules = requireRules();
         Vector3f direction = requiredViewTransform()
                 .worldMatrix()
                 .transformDirection(new Vector3f(0.0F, 0.0F, -1.0F))
                 .normalize();
         Vector3f origin = requiredViewTransform().worldMatrix().getTranslation(new Vector3f());
-        float remaining = range;
+        Optional<DoomWeaponHit> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
+        if (exactHit.isPresent()) {
+            return exactHit;
+        }
+        return autoAim(origin, direction, configuredRules);
+    }
+
+    /** Selects the nearest visible damageable entity whose horizontal bounds intersect the authored aim cone. */
+    private Optional<DoomWeaponHit> autoAim(Vector3f origin, Vector3f viewDirection, DoomCombatRules configuredRules) {
+        float forwardLength = (float) Math.hypot(viewDirection.x, viewDirection.z);
+        if (forwardLength == 0.0F) {
+            return Optional.empty();
+        }
+        float forwardX = viewDirection.x / forwardLength;
+        float forwardZ = viewDirection.z / forwardLength;
+        List<AimCandidate> candidates = new ArrayList<>();
+        for (Entity root : owner.world().roots()) {
+            collectCandidates(root, origin, forwardX, forwardZ, candidates);
+        }
+        candidates.sort(Comparator.comparingDouble(AimCandidate::distanceSquared));
+        for (AimCandidate candidate : candidates) {
+            Optional<DoomWeaponHit> resolvedHit = damageCandidate(origin, candidate, configuredRules);
+            if (resolvedHit.isPresent()) {
+                return resolvedHit;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Collects descriptor-selected targets recursively without depending on authored hierarchy position. */
+    private void collectCandidates(
+            Entity entity, Vector3f origin, float forwardX, float forwardZ, List<AimCandidate> destination) {
+        entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
+                .filter(target -> target.owner() != owner)
+                .flatMap(target -> candidate(target, origin, forwardX, forwardZ))
+                .ifPresent(destination::add);
+        entity.children().forEach(child -> collectCandidates(child, origin, forwardX, forwardZ, destination));
+    }
+
+    /** Projects one target against the configured horizontal angle and vertical slope window. */
+    private Optional<AimCandidate> candidate(
+            DoomHitscanTarget target, Vector3f origin, float forwardX, float forwardZ) {
+        Vector3f direction = target.aimPoint(new Vector3f()).sub(origin);
+        float horizontalDistance = (float) Math.hypot(direction.x, direction.z);
+        float distanceSquared = direction.lengthSquared();
+        if (horizontalDistance == 0.0F || distanceSquared > range * range) {
+            return Optional.empty();
+        }
+        float targetX = direction.x / horizontalDistance;
+        float targetZ = direction.z / horizontalDistance;
+        float dot = Math.clamp(forwardX * targetX + forwardZ * targetZ, -1.0F, 1.0F);
+        float centerAngle = (float) Math.acos(dot);
+        float edgeAngle = (float) Math.asin(Math.min(1.0F, target.aimRadius() / horizontalDistance));
+        float verticalSlope = Math.abs(direction.y / horizontalDistance);
+        if (centerAngle > autoAimAngle + edgeAngle || verticalSlope > autoAimMaximumSlope) {
+            return Optional.empty();
+        }
+        return Optional.of(new AimCandidate(target, direction.normalize(), distanceSquared));
+    }
+
+    /** Confirms that physics reaches the selected target before applying one damage roll. */
+    private Optional<DoomWeaponHit> damageCandidate(
+            Vector3f origin, AimCandidate candidate, DoomCombatRules configuredRules) {
+        Optional<CollisionRaycastHit3d> raycastHit = firstExternalHit(origin, candidate.direction(), range);
+        if (raycastHit
+                .map(result -> result.object().owner() == candidate.target().owner())
+                .orElse(false)) {
+            int appliedDamage = candidate.target().damage(configuredRules.rollWeaponDamage(weaponId, random));
+            return appliedDamage > 0 ? Optional.of(weaponHit(candidate.direction())) : Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    /** Applies damage to the first non-owner solid reached by one fully specified ray. */
+    private Optional<DoomWeaponHit> damageFirstTarget(
+            Vector3f origin, Vector3f direction, float maximumDistance, DoomCombatRules configuredRules) {
+        return firstExternalHit(origin, direction, maximumDistance)
+                .flatMap(result -> result.object()
+                        .owner()
+                        .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class))
+                .filter(target -> target.damage(configuredRules.rollWeaponDamage(weaponId, random)) > 0)
+                .map(target -> weaponHit(direction));
+    }
+
+    /** Captures one successful ray in the perspective coordinates used by the firing view. */
+    private DoomWeaponHit weaponHit(Vector3f worldDirection) {
+        return DoomWeaponHit.fromWorldDirection(
+                worldDirection,
+                requiredViewTransform().worldMatrix(),
+                requiredViewCamera().fieldOfViewDegrees());
+    }
+
+    /** Finds one ray's first non-owner solid while tolerating an origin inside the player's own body. */
+    private Optional<CollisionRaycastHit3d> firstExternalHit(
+            Vector3f originalOrigin, Vector3f direction, float maximumDistance) {
+        Vector3f origin = new Vector3f(originalOrigin);
+        float remaining = maximumDistance;
         while (remaining > 0.0F) {
             Optional<CollisionRaycastHit3d> result = physics.raycast(origin, direction, remaining);
             if (result.isEmpty()) {
-                return;
+                return Optional.empty();
             }
-            CollisionRaycastHit3d hit = result.orElseThrow();
-            if (hit.object().owner() != owner) {
-                hit.object()
-                        .owner()
-                        .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
-                        .ifPresent(target -> target.damage(configuredRules.rollWeaponDamage(weaponId, random)));
-                return;
+            CollisionRaycastHit3d raycastHit = result.orElseThrow();
+            if (raycastHit.object().owner() != owner) {
+                return Optional.of(raycastHit);
             }
-            float advance = hit.distance() + SELF_HIT_ADVANCE;
+            float advance = raycastHit.distance() + SELF_HIT_ADVANCE;
             origin.fma(advance, direction);
             remaining -= advance;
         }
+        return Optional.empty();
     }
 
     private DoomCombatRules requireRules() {
@@ -157,12 +268,23 @@ final class DoomHitscanWeapon
         return viewTransform.orElseThrow(() -> new IllegalStateException("view transform has not been bound"));
     }
 
+    private PerspectiveCamera3d requiredViewCamera() {
+        return viewCamera.orElseThrow(() -> new IllegalStateException("view camera has not been bound"));
+    }
+
     /** Requires endpoint binding before the active world accepts input. */
     private RuntimeSignal requiredFiredSignal() {
         if (fired == null) {
             throw new IllegalStateException("weapon fired signal has not been bound");
         }
         return fired;
+    }
+
+    private RuntimeSignal requiredHitSignal() {
+        if (hitSignal == null) {
+            throw new IllegalStateException("weapon hit signal has not been bound");
+        }
+        return hitSignal;
     }
 
     private static ResourceReference requireSourceAsset(ResourceReference reference, String name) {
@@ -179,5 +301,13 @@ final class DoomHitscanWeapon
             throw new IllegalArgumentException(name + " must not be blank");
         }
         return validValue;
+    }
+
+    /** One descriptor-selected target and its normalized aim ray. */
+    private record AimCandidate(DoomHitscanTarget target, Vector3f direction, float distanceSquared) {
+        private AimCandidate {
+            Objects.requireNonNull(target, "target");
+            direction = new Vector3f(Objects.requireNonNull(direction, "direction"));
+        }
     }
 }

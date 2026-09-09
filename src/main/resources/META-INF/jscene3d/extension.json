@@ -85,7 +85,11 @@
       "typeVersion": 1,
       "displayName": "Doom Combatant State",
       "description": "Holds mutable health initialized from one provider combatant definition.",
-      "providedCapabilities": ["io.github.glynch.doomed-corridors/damageable"],
+      "providedCapabilities": [
+        "io.github.glynch.doomed-corridors/damageable",
+        "io.github.glynch.doomed-corridors/hitscan-target"
+      ],
+      "requiredCapabilities": ["io.github.glynch.jscene3d.spatial3d/spatial-3d"],
       "properties": [
         {
           "id": "actor-catalog",
@@ -152,6 +156,13 @@
           "description": "Explicit transform supplying the weapon's world-space origin and direction."
         },
         {
+          "id": "view-camera",
+          "valueKind": "component_target",
+          "required": true,
+          "displayName": "View Camera",
+          "description": "Explicit perspective camera supplying the projection used for successful-hit feedback."
+        },
+        {
           "id": "fire-action",
           "valueKind": "text",
           "required": true,
@@ -164,6 +175,15 @@
           "id": "fired",
           "displayName": "Fired",
           "description": "Emitted after ammunition is consumed and one shot is resolved."
+        },
+        {
+          "id": "hit",
+          "payload": {
+            "type": "io.github.glynch.doomed-corridors/weapon-hit",
+            "typeVersion": 1
+          },
+          "displayName": "Hit",
+          "description": "Emitted with the camera-relative impact location when a resolved shot removes health."
         }
       ]
     },
@@ -204,6 +224,13 @@
           "required": true,
           "displayName": "Frame Duration",
           "description": "Positive duration of each firing frame in milliseconds."
+        },
+        {
+          "id": "hit-indicator-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Hit Indicator Duration",
+          "description": "Positive duration of the successful-hit indicator in milliseconds."
         }
       ],
       "actions": [
@@ -211,6 +238,15 @@
           "id": "receive-fired",
           "displayName": "Receive Fired",
           "description": "Restarts the firing animation and sound for one accepted shot."
+        },
+        {
+          "id": "receive-hit",
+          "payload": {
+            "type": "io.github.glynch.doomed-corridors/weapon-hit",
+            "typeVersion": 1
+          },
+          "displayName": "Receive Hit",
+          "description": "Places and restarts visual confirmation at the successful impact location."
         }
       ]
     }

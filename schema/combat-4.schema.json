@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-3.json",
-  "title": "Doomed Corridors combat rules version 3",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-4.json",
+  "title": "Doomed Corridors combat rules version 4",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "player", "weapons", "combatants", "pickups"],
   "properties": {
     "$schema": { "type": "string", "format": "uri-reference" },
-    "schemaVersion": { "const": 3 },
+    "schemaVersion": { "const": 4 },
     "player": { "$ref": "#/$defs/player" },
     "weapons": {
       "type": "array",
@@ -49,11 +49,22 @@
     "weapon": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "ammoPerShot", "range", "damageMinimum", "damageMaximum", "damageStep"],
+      "required": [
+        "id",
+        "ammoPerShot",
+        "range",
+        "autoAimAngleDegrees",
+        "autoAimMaximumSlope",
+        "damageMinimum",
+        "damageMaximum",
+        "damageStep"
+      ],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "ammoPerShot": { "type": "integer", "minimum": 1 },
         "range": { "type": "integer", "minimum": 1 },
+        "autoAimAngleDegrees": { "type": "number", "exclusiveMinimum": 0, "maximum": 45 },
+        "autoAimMaximumSlope": { "type": "number", "exclusiveMinimum": 0 },
         "damageMinimum": { "type": "integer", "minimum": 1 },
         "damageMaximum": { "type": "integer", "minimum": 1 },
         "damageStep": { "type": "integer", "minimum": 1 }

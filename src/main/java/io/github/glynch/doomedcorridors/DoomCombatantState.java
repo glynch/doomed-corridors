@@ -5,19 +5,26 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
+import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.World;
+import io.github.glynch.jscene3d.project.spatial3d.Spatial3dDescriptors;
+import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.util.Objects;
+import org.joml.Vector3f;
 
 /** Mutable descriptor-backed health for one imported combatant entity. */
-final class DoomCombatantState implements DoomDamageable, DoomRuleConsumer {
+final class DoomCombatantState implements DoomHitscanTarget, DoomRuleConsumer {
     private final Entity owner;
     private final World world;
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
     private final String actorId;
     private int health;
+    private float aimRadius;
+    private float aimHeight;
+    private Transform3d transform;
     private boolean configured;
 
     /** Retains explicit authored identities until application preparation initializes health. */
@@ -45,8 +52,35 @@ final class DoomCombatantState implements DoomDamageable, DoomRuleConsumer {
         if (configured) {
             throw new IllegalStateException("combatant state is already configured");
         }
-        health = Objects.requireNonNull(rules, "rules").combatantStartingHealth(actorId);
+        DoomCombatRules validRules = Objects.requireNonNull(rules, "rules");
+        DoomCombatRules.CombatantBounds bounds =
+                validRules.findCombatantBounds(actorId).orElseThrow();
+        health = validRules.combatantStartingHealth(actorId);
+        aimRadius = DoomUnits.toWorld(bounds.radius());
+        aimHeight = DoomUnits.toWorld(bounds.height());
+        transform = owner.capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                .orElseThrow(() -> new IllegalStateException("combatant entity has no spatial-3d capability"));
         configured = true;
+    }
+
+    @Override
+    public Entity owner() {
+        return owner;
+    }
+
+    @Override
+    public Vector3f aimPoint(Vector3f destination) {
+        requireConfigured();
+        return requiredTransform()
+                .worldMatrix()
+                .getTranslation(Objects.requireNonNull(destination, "destination"))
+                .add(0.0F, aimHeight * 0.5F, 0.0F);
+    }
+
+    @Override
+    public float aimRadius() {
+        requireConfigured();
+        return aimRadius;
     }
 
     @Override
@@ -89,5 +123,12 @@ final class DoomCombatantState implements DoomDamageable, DoomRuleConsumer {
         if (!configured) {
             throw new IllegalStateException("combatant state has not been configured");
         }
+    }
+
+    private Transform3d requiredTransform() {
+        if (transform == null) {
+            throw new IllegalStateException("combatant transform has not been configured");
+        }
+        return transform;
     }
 }

@@ -16,6 +16,18 @@
         "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
         "endpointId": "receive-fired"
       }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
+        "endpointId": "hit"
+      },
+      "action": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
+        "endpointId": "receive-hit"
+      }
     }
   ],
   "roots": [
@@ -83,6 +95,8 @@
             "turn-right-action": "turn-right",
             "move-speed": 8,
             "turn-speed-degrees": 180,
+            "maximum-keyboard-turn-speed-degrees": 360,
+            "keyboard-turn-acceleration-degrees": 540,
             "pointer-sensitivity": 0.0015,
             "maximum-pitch-degrees": 85
           }
@@ -108,6 +122,12 @@
               "$target": {
                 "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
                 "componentId": "82b8ae6d-47e9-4df6-9d85-01a6fca09dc6"
+              }
+            },
+            "view-camera": {
+              "$target": {
+                "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
+                "componentId": "3dc7d003-6eb6-4b5d-a13d-ab906176836b"
               }
             },
             "fire-action": "fire-primary"
@@ -138,7 +158,8 @@
             "fire-sound": {
               "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/audio/dspistol"
             },
-            "frame-milliseconds": 70
+            "frame-milliseconds": 70,
+            "hit-indicator-milliseconds": 120
           }
         }
       ],

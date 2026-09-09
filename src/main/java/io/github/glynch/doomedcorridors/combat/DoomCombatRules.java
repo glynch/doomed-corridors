@@ -97,6 +97,16 @@ public final class DoomCombatRules {
         return requireWeapon(weaponId).range();
     }
 
+    /** Returns one weapon's symmetric horizontal auto-aim half-angle in degrees. */
+    public float weaponAutoAimAngleDegrees(String weaponId) {
+        return requireWeapon(weaponId).autoAimAngleDegrees();
+    }
+
+    /** Returns one weapon's maximum absolute vertical auto-aim slope. */
+    public float weaponAutoAimMaximumSlope(String weaponId) {
+        return requireWeapon(weaponId).autoAimMaximumSlope();
+    }
+
     /** Rolls one configured weapon's inclusive discrete damage sequence. */
     public int rollWeaponDamage(String weaponId, RandomGenerator random) {
         WeaponDefinition weapon = requireWeapon(weaponId);
@@ -257,12 +267,25 @@ public final class DoomCombatRules {
 
     /** Validated rules for one hitscan weapon. */
     record WeaponDefinition(
-            String id, int ammoPerShot, int range, int damageMinimum, int damageMaximum, int damageStep) {
+            String id,
+            int ammoPerShot,
+            int range,
+            float autoAimAngleDegrees,
+            float autoAimMaximumSlope,
+            int damageMinimum,
+            int damageMaximum,
+            int damageStep) {
         /** Validates the discrete damage sequence and positive weapon dimensions. */
         WeaponDefinition {
             requireId(id, "weapon id");
             if (ammoPerShot <= 0 || range <= 0 || damageMinimum <= 0 || damageStep <= 0) {
                 throw new IllegalArgumentException("weapon numeric values must be positive");
+            }
+            if (!Float.isFinite(autoAimAngleDegrees) || autoAimAngleDegrees <= 0.0F || autoAimAngleDegrees > 45.0F) {
+                throw new IllegalArgumentException("weapon auto-aim angle must be finite and in (0, 45]");
+            }
+            if (!Float.isFinite(autoAimMaximumSlope) || autoAimMaximumSlope <= 0.0F) {
+                throw new IllegalArgumentException("weapon auto-aim maximum slope must be finite and positive");
             }
             if (damageMaximum < damageMinimum || (damageMaximum - damageMinimum) % damageStep != 0) {
                 throw new IllegalArgumentException("weapon damage range must contain complete damage steps");

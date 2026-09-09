@@ -23,8 +23,6 @@ public final class DoomCombatSession {
     private static final float FIXED_STEP_SECONDS = 1.0F / 35.0F;
     private static final float ENEMY_MAXIMUM_STEP = DoomUnits.toWorld(24.0F);
     private static final float PICKUP_MINIMUM_HEIGHT_DELTA = DoomUnits.toWorld(-8.0F);
-    private static final float AUTO_AIM_ANGLE = (float) Math.toRadians(5.625);
-    private static final float AUTO_AIM_MAXIMUM_SLOPE = 100.0F / 160.0F;
     private static final float INTERSECTION_TOLERANCE = 0.000_01F;
 
     private final DoomMap map;
@@ -358,12 +356,15 @@ public final class DoomCombatSession {
         if (target != null) {
             return target;
         }
-        target = closestAutoAimTarget(shooter, range, shooter.yawRadians());
+        target = closestAutoAimTarget(shooter, weapon, range, shooter.yawRadians());
         if (target != null) {
             return target;
         }
-        target = closestAutoAimTarget(shooter, range, shooter.yawRadians() + AUTO_AIM_ANGLE);
-        return target != null ? target : closestAutoAimTarget(shooter, range, shooter.yawRadians() - AUTO_AIM_ANGLE);
+        float autoAimAngle = (float) Math.toRadians(weapon.autoAimAngleDegrees());
+        target = closestAutoAimTarget(shooter, weapon, range, shooter.yawRadians() + autoAimAngle);
+        return target != null
+                ? target
+                : closestAutoAimTarget(shooter, weapon, range, shooter.yawRadians() - autoAimAngle);
     }
 
     /** Selects the nearest living actor intersected by one fully specified ray. */
@@ -383,12 +384,13 @@ public final class DoomCombatSession {
     }
 
     /** Selects the nearest visible actor reached by one classic horizontal auto-aim probe. */
-    private Target closestAutoAimTarget(DoomPlayerState shooter, float range, float yaw) {
+    private Target closestAutoAimTarget(
+            DoomPlayerState shooter, DoomCombatRules.WeaponDefinition weapon, float range, float yaw) {
         Target nearest = null;
         for (int index = 0; index < combatants.size(); index++) {
             DoomCombatantState combatant = combatants.get(index);
             if (combatant.status() == DoomCombatantStatus.ALIVE) {
-                Ray ray = autoAimRay(shooter, combatant, yaw);
+                Ray ray = autoAimRay(shooter, combatant, yaw, weapon.autoAimMaximumSlope());
                 float distance = combatantDistance(ray, combatant, range);
                 float wallDistance = nearestWallDistance(ray, range);
                 if (distance < wallDistance && (nearest == null || distance < nearest.distance())) {
@@ -400,15 +402,13 @@ public final class DoomCombatSession {
     }
 
     /** Aims toward a target's vertical center within Doom's classic aiming slope window. */
-    private static Ray autoAimRay(DoomPlayerState shooter, DoomCombatantState combatant, float yaw) {
+    private static Ray autoAimRay(
+            DoomPlayerState shooter, DoomCombatantState combatant, float yaw, float maximumSlope) {
         float distance = (float) Math.hypot(combatant.x() - shooter.x(), combatant.z() - shooter.z());
         float targetHeight = combatant.floorHeight() + combatant.height() * 0.5F;
         float slope = distance < INTERSECTION_TOLERANCE
                 ? 0.0F
-                : Math.clamp(
-                        (targetHeight - shooter.eyeHeight()) / distance,
-                        -AUTO_AIM_MAXIMUM_SLOPE,
-                        AUTO_AIM_MAXIMUM_SLOPE);
+                : Math.clamp((targetHeight - shooter.eyeHeight()) / distance, -maximumSlope, maximumSlope);
         return Ray.from(shooter, yaw, slope);
     }
 

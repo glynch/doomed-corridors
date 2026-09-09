@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat rules and validates actor-catalog references. */
 public final class DoomCombatRulesLoader {
-    private static final int SCHEMA_VERSION = 3;
+    private static final int SCHEMA_VERSION = 4;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -65,6 +65,8 @@ public final class DoomCombatRulesLoader {
                     value.id(),
                     value.ammoPerShot(),
                     value.range(),
+                    value.autoAimAngleDegrees(),
+                    value.autoAimMaximumSlope(),
                     value.damageMinimum(),
                     value.damageMaximum(),
                     value.damageStep()));
@@ -174,7 +176,14 @@ public final class DoomCombatRulesLoader {
 
     /** Direct JSON weapon binding retained only for conversion and validation. */
     private record RawWeapon(
-            String id, int ammoPerShot, int range, int damageMinimum, int damageMaximum, int damageStep) {}
+            String id,
+            int ammoPerShot,
+            int range,
+            float autoAimAngleDegrees,
+            float autoAimMaximumSlope,
+            int damageMinimum,
+            int damageMaximum,
+            int damageStep) {}
 
     /** Direct JSON combatant binding retained only for conversion and validation. */
     private record RawCombatant(String actor, int health, int radius, int height, RawBehavior behavior) {}

@@ -239,10 +239,41 @@ final class ProjectHostIntegrationTest {
             assertThat(playerState.bullets()).isEqualTo(49);
             assertThat(presentation.restarts()).isEqualTo(1);
             assertThat(weaponPresentation.isFiring()).isTrue();
+            assertThat(weaponPresentation.isHitIndicatorVisible()).isFalse();
+
+            ShotLine assistedLine = unobstructedAutoAimShot(actors, physics);
+            DoomHitscanTarget assistedTarget = assistedLine
+                    .target()
+                    .capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
+                    .orElseThrow();
+            int healthBeforeAssistedShot = assistedTarget.health();
+            var assistedOrientation =
+                    new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), assistedLine.direction());
+            view.setWorldPose(assistedLine.origin(), assistedOrientation);
+            Vector3f runtimeDirection = view.worldMatrix()
+                    .transformDirection(new Vector3f(0.0F, 0.0F, -1.0F))
+                    .normalize();
+            assertThat(runtimeDirection.angle(assistedLine.direction())).isCloseTo(0.0F, within(1.0E-4F));
+            Vector3f assistedAimDirection = assistedTarget
+                    .aimPoint(new Vector3f())
+                    .sub(assistedLine.origin())
+                    .normalize();
+            assertThat(runtimeDirection.angle(assistedAimDirection))
+                    .isCloseTo((float) Math.toRadians(5.25F), within(1.0E-4F));
+            input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            input.publish(ActionSnapshot.empty());
+
+            assertThat(assistedTarget.health()).isLessThan(healthBeforeAssistedShot);
+            assertThat(weaponPresentation.isHitIndicatorVisible()).isTrue();
+            assertThat(weaponPresentation.hitIndicatorPosition(1600, 900).distance(800.0F, 450.0F))
+                    .isGreaterThan(40.0F);
+            loaded.world().advanceFrame(Duration.ofMillis(120), 0.0F);
+            assertThat(weaponPresentation.isHitIndicatorVisible()).isFalse();
 
             ShotLine firingLine = unobstructedShot(actors, physics);
             Entity target = firingLine.target();
-            var orientation = new Quaternionf().lookAlong(firingLine.direction(), new Vector3f(0.0F, 1.0F, 0.0F));
+            var orientation = new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), firingLine.direction());
             view.setWorldPose(firingLine.origin(), orientation);
 
             for (int shot = 0; shot < 4; shot++) {
@@ -251,12 +282,12 @@ final class ProjectHostIntegrationTest {
                 input.publish(ActionSnapshot.empty());
             }
 
-            assertThat(playerState.bullets()).isEqualTo(45);
+            assertThat(playerState.bullets()).isEqualTo(44);
             assertThat(target.isDestroyed()).isTrue();
             assertThat(actors.children()).hasSize(118);
             assertThat(physics.collisionObjectCount()).isEqualTo(36);
             assertThat(physics.collisionShapeCount()).isEqualTo(36);
-            assertThat(presentation.restarts()).isEqualTo(5);
+            assertThat(presentation.restarts()).isEqualTo(6);
         }
         assertThat(presentation.overlay()).isNull();
         assertThat(presentation.soundClosed()).isTrue();
@@ -473,6 +504,47 @@ final class ProjectHostIntegrationTest {
             }
         }
         throw new AssertionError("MAP01 has no combatant with an unobstructed test ray");
+    }
+
+    /** Finds a visible target ray offset far enough to miss geometry but still lie within the authored aim cone. */
+    private static ShotLine unobstructedAutoAimShot(Entity actors, Physics3dWorldModule physics) {
+        List<Vector3f> axes = List.of(
+                new Vector3f(1.0F, 0.0F, 0.0F),
+                new Vector3f(-1.0F, 0.0F, 0.0F),
+                new Vector3f(0.0F, 0.0F, 1.0F),
+                new Vector3f(0.0F, 0.0F, -1.0F));
+        float missAngle = (float) Math.toRadians(5.25F);
+        for (Entity entity : actors.children()) {
+            Optional<DoomHitscanTarget> selected =
+                    entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class);
+            if (selected.isEmpty()) {
+                continue;
+            }
+            DoomHitscanTarget target = selected.orElseThrow();
+            Vector3f center = target.aimPoint(new Vector3f());
+            for (float distance : List.of(8.0F, 12.0F, 16.0F)) {
+                if (Math.asin(target.aimRadius() / distance) >= missAngle) {
+                    continue;
+                }
+                for (Vector3f axis : axes) {
+                    Vector3f origin = new Vector3f(axis).mul(distance).add(center);
+                    Vector3f exactDirection = new Vector3f(center).sub(origin).normalize();
+                    Optional<CollisionRaycastHit3d> exactHit = physics.raycast(origin, exactDirection, distance + 1.0F);
+                    if (exactHit.map(result -> result.object().owner() == entity)
+                            .orElse(false)) {
+                        Vector3f missedDirection = new Vector3f(exactDirection).rotateY(missAngle);
+                        Optional<CollisionRaycastHit3d> missedHit =
+                                physics.raycast(origin, missedDirection, distance + 1.0F);
+                        if (missedHit
+                                .map(result -> result.object().owner() != entity)
+                                .orElse(true)) {
+                            return new ShotLine(entity, origin, missedDirection);
+                        }
+                    }
+                }
+            }
+        }
+        throw new AssertionError("MAP01 has no visible combatant suitable for an assisted test shot");
     }
 
     /** Advances the active hosted world by a deterministic number of 25 ms fixed steps. */

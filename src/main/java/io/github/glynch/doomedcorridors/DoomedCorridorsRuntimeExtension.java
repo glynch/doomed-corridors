@@ -194,12 +194,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     PcmAudioResource.class);
             Duration frameDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
                     properties, DoomedCorridorsRuntimeTypes.FRAME_MILLISECONDS_PROPERTY));
+            Duration hitIndicatorDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
+                    properties, DoomedCorridorsRuntimeTypes.HIT_INDICATOR_MILLISECONDS_PROPERTY));
             return new DoomWeaponPresentation(
                     context.world().requireModule(PresentationWorldModule.class),
                     readyFrame,
                     fireFrames,
                     fireSound,
-                    frameDuration);
+                    frameDuration,
+                    hitIndicatorDuration);
         }
     }
 }

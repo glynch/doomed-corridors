@@ -109,6 +109,16 @@ particular player-state component. The capability is safe descriptor metadata
 which a future editor can inspect; the Java runtime extension supplies its
 implementation.
 
+The project-runtime pistol is also active. Version-four combat rules retain its
+2,048-unit range and author the horizontal auto-aim angle and maximum vertical
+slope. Firing tries the exact view ray before selecting the nearest visible
+damageable entity whose bounds intersect that window; physics raycasts remain
+authoritative for wall occlusion. Separate `fired` and `hit` signals let the
+world connect every accepted shot to imported weapon animation and sound while
+showing the short centre hit marker only after health is actually removed.
+Keyboard turning similarly keeps its initial rate, maximum rate, and acceleration
+in the controller's authored properties rather than application Java.
+
 The headless combat-model slice is also complete. A project-declared, versioned
 combat document defines the player's initial health and ammunition, the pistol's
 range and discrete damage values, and the zombieman's health, collision cylinder,

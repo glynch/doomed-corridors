@@ -6,6 +6,7 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
@@ -15,6 +16,7 @@ import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.RuntimeAction;
+import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayloadAction;
 import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
@@ -38,12 +40,12 @@ final class DoomWeaponPresentationTest {
         Texture3dResource second = texture((byte) 3);
         PcmAudioResource sound = PcmAudioResource.owning(PcmAudio.mono16(11_025, new short[] {1, 2}));
 
-        DoomWeaponPresentation component =
-                new DoomWeaponPresentation(presentation, ready, List.of(first, second), sound, Duration.ofMillis(70));
+        DoomWeaponPresentation component = new DoomWeaponPresentation(
+                presentation, ready, List.of(first, second), sound, Duration.ofMillis(70), Duration.ofMillis(120));
         component.bindEndpoints(endpoints);
         var readyImage = component.currentFrame();
 
-        endpoints.action.execute();
+        endpoints.fired.execute();
 
         assertThat(component.isFiring()).isTrue();
         assertThat(component.currentFrame()).isNotSameAs(readyImage);
@@ -53,6 +55,12 @@ final class DoomWeaponPresentationTest {
         component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(70), Duration.ZERO, 0.0F));
         assertThat(component.isFiring()).isFalse();
         assertThat(component.currentFrame()).isSameAs(readyImage);
+
+        endpoints.hit.execute(new RuntimePayload(
+                DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE, new DoomWeaponHit(0.0F, 0.0F, 74.0F)));
+        assertThat(component.isHitIndicatorVisible()).isTrue();
+        component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(120), Duration.ZERO, 0.0F));
+        assertThat(component.isHitIndicatorVisible()).isFalse();
 
         component.close();
         component.close();
@@ -71,7 +79,8 @@ final class DoomWeaponPresentationTest {
 
     /** Captures the one action implemented by the component. */
     private static final class RecordingEndpoints implements ComponentEndpoints {
-        private RuntimeAction action;
+        private RuntimeAction fired;
+        private RuntimePayloadAction hit;
 
         @Override
         public RuntimeSignal signal(EndpointId endpoint) {
@@ -80,12 +89,20 @@ final class DoomWeaponPresentationTest {
 
         @Override
         public void action(EndpointId endpoint, RuntimeAction implementation) {
-            action = implementation;
+            if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION)) {
+                fired = implementation;
+            } else {
+                throw new AssertionError("unexpected endpoint: " + endpoint);
+            }
         }
 
         @Override
         public void action(EndpointId endpoint, RuntimePayloadAction implementation) {
-            throw new AssertionError("weapon presentation action has no payload");
+            if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)) {
+                hit = implementation;
+            } else {
+                throw new AssertionError("unexpected endpoint: " + endpoint);
+            }
         }
     }
 

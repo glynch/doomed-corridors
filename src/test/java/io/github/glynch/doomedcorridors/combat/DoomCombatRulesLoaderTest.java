@@ -37,6 +37,8 @@ final class DoomCombatRulesLoaderTest {
             assertThat(rules.hasWeapon("pistol")).isTrue();
             assertThat(rules.weaponAmmoPerShot("pistol")).isEqualTo(1);
             assertThat(rules.weaponRange("pistol")).isEqualTo(2048);
+            assertThat(rules.weaponAutoAimAngleDegrees("pistol")).isEqualTo(5.625F);
+            assertThat(rules.weaponAutoAimMaximumSlope("pistol")).isEqualTo(0.625F);
             assertThat(rules.rollWeaponDamage("pistol", new Random(0L))).isIn(5, 10, 15);
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
             assertThat(rules.combatantStartingHealth("zombieman")).isEqualTo(20);
@@ -52,7 +54,7 @@ final class DoomCombatRulesLoaderTest {
         Path source = temporaryDirectory.resolve("combat.json");
         Files.writeString(source, """
                 {
-                  "schemaVersion": 3,
+                  "schemaVersion": 4,
                   "player": {
                     "startingHealth": 100,
                     "maximumHealth": 200,
@@ -64,6 +66,8 @@ final class DoomCombatRulesLoaderTest {
                     "id": "pistol",
                     "ammoPerShot": 1,
                     "range": 2048,
+                    "autoAimAngleDegrees": 5.625,
+                    "autoAimMaximumSlope": 0.625,
                     "damageMinimum": 5,
                     "damageMaximum": 15,
                     "damageStep": 5

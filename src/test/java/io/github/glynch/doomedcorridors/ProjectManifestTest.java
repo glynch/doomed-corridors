@@ -191,7 +191,9 @@ final class ProjectManifestTest {
                         .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE)
                         .orElseThrow()
                         .providedCapabilities())
-                .containsExactly(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY);
+                .containsExactly(
+                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY,
+                        DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY);
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE)
                         .orElseThrow())
@@ -201,7 +203,14 @@ final class ProjectManifestTest {
                     assertThat(weapon.requiredCapabilities())
                             .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
                     assertThat(weapon.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
-                    assertThat(weapon.signals()).containsOnlyKeys(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
+                    assertThat(weapon.signals())
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL,
+                                    DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL);
+                    assertThat(weapon.signals()
+                                    .get(DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL)
+                                    .payload())
+                            .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
                 });
         assertThat(result.catalog()
                         .findComponent(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE)
@@ -209,7 +218,14 @@ final class ProjectManifestTest {
                 .satisfies(presentation -> {
                     assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(presentation.actions())
-                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION);
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION,
+                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION);
+                    assertThat(presentation
+                                    .actions()
+                                    .get(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)
+                                    .payload())
+                            .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
                 });
     }
 

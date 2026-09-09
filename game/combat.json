@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/combat-3.schema.json",
-  "schemaVersion": 3,
+  "$schema": "../schema/combat-4.schema.json",
+  "schemaVersion": 4,
   "player": {
     "startingHealth": 100,
     "maximumHealth": 200,
@@ -13,6 +13,8 @@
       "id": "pistol",
       "ammoPerShot": 1,
       "range": 2048,
+      "autoAimAngleDegrees": 5.625,
+      "autoAimMaximumSlope": 0.625,
       "damageMinimum": 5,
       "damageMaximum": 15,
       "damageStep": 5

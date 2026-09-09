@@ -8,6 +8,7 @@ import io.github.glynch.jscene3d.project.component.CapabilityId;
 import io.github.glynch.jscene3d.project.component.ComponentType;
 import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.component.PropertyId;
+import io.github.glynch.jscene3d.project.extension.RegisteredType;
 
 /** Stable component and property identities shared by project publication and application runtime behavior. */
 public final class DoomedCorridorsRuntimeTypes {
@@ -19,6 +20,9 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Source-asset type for the provider-owned combat rules. */
     public static final String COMBAT_RULES_ASSET_TYPE = EXTENSION_ID + "/combat-rules";
+
+    /** Runtime payload type carrying the camera-relative position of a successful weapon hit. */
+    public static final RegisteredType WEAPON_HIT_PAYLOAD_TYPE = new RegisteredType(EXTENSION_ID + "/weapon-hit", 1);
 
     /** Runtime type for the player resource state. */
     public static final ComponentType PLAYER_STATE_TYPE = ComponentType.of(EXTENSION_ID + "/player-state", 1);
@@ -42,6 +46,9 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Semantic capability exposing mutable damage state on the exact target entity. */
     public static final CapabilityId DAMAGEABLE_CAPABILITY = new CapabilityId(EXTENSION_ID + "/damageable");
 
+    /** Semantic capability exposing target geometry and damage application for hitscan weapons. */
+    public static final CapabilityId HITSCAN_TARGET_CAPABILITY = new CapabilityId(EXTENSION_ID + "/hitscan-target");
+
     /** Semantic capability identifying the exact player weapon component. */
     public static final CapabilityId WEAPON_CAPABILITY = new CapabilityId(EXTENSION_ID + "/weapon");
 
@@ -60,6 +67,9 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Explicit component target supplying the weapon's world-space origin and direction. */
     public static final PropertyId VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
 
+    /** Explicit component target supplying the weapon's perspective projection. */
+    public static final PropertyId VIEW_CAMERA_PROPERTY = new PropertyId("view-camera");
+
     /** Semantic input action which fires the weapon. */
     public static final PropertyId FIRE_ACTION_PROPERTY = new PropertyId("fire-action");
 
@@ -74,6 +84,9 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Duration of each firing overlay frame in milliseconds. */
     public static final PropertyId FRAME_MILLISECONDS_PROPERTY = new PropertyId("frame-milliseconds");
+
+    /** Duration of the successful-hit indicator in milliseconds. */
+    public static final PropertyId HIT_INDICATOR_MILLISECONDS_PROPERTY = new PropertyId("hit-indicator-milliseconds");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");
@@ -90,8 +103,14 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Signal emitted exactly once after a weapon accepts and resolves one shot. */
     public static final EndpointId WEAPON_FIRED_SIGNAL = new EndpointId("fired");
 
+    /** Signal emitted only when an accepted shot applies damage to a target. */
+    public static final EndpointId WEAPON_HIT_SIGNAL = new EndpointId("hit");
+
     /** Presentation action receiving one accepted weapon shot. */
     public static final EndpointId RECEIVE_WEAPON_FIRED_ACTION = new EndpointId("receive-fired");
+
+    /** Presentation action receiving one shot which applied damage. */
+    public static final EndpointId RECEIVE_WEAPON_HIT_ACTION = new EndpointId("receive-hit");
 
     /** Prevents construction of this identity container. */
     private DoomedCorridorsRuntimeTypes() {
