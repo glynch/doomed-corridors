@@ -248,6 +248,7 @@ final class ProjectManifestTest {
                 .extracting(type -> type.type().id().value())
                 .containsExactly(
                         "io.github.glynch.jscene3d.doom/door",
+                        "io.github.glynch.jscene3d.doom/floor",
                         EXTENSION_ID + "/player-state",
                         EXTENSION_ID + "/pickup",
                         EXTENSION_ID + "/combatant-state",

@@ -32,6 +32,7 @@ import io.github.glynch.jscene3d.doom.material.DoomPatchDataException;
 import io.github.glynch.jscene3d.doom.material.DoomPatchDecoder;
 import io.github.glynch.jscene3d.doom.material.DoomPatchImage;
 import io.github.glynch.jscene3d.doom.material.RgbaImage;
+import io.github.glynch.jscene3d.doom.runtime.DoomCollisionCategories;
 import io.github.glynch.jscene3d.game.presentation.GamePresentationDescriptors;
 import io.github.glynch.jscene3d.game.presentation.GamePresentationResourceWriter;
 import io.github.glynch.jscene3d.materials.AlphaMode;
@@ -786,7 +787,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         Physics3dDescriptors.shapeProperty(), reference(importId, shapeIdentity),
                         Physics3dDescriptors.localPositionProperty(),
                                 numbers(0.0F, DoomUnits.toWorld(bounds.height()) / 2.0F, 0.0F),
-                        Physics3dDescriptors.categoryBitsProperty(), number(2))));
+                        Physics3dDescriptors.categoryBitsProperty(), number(DoomCollisionCategories.MONSTER))));
         components.add(component(
                 importId,
                 rootLocator + "/combatant-body",

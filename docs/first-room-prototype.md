@@ -32,6 +32,7 @@ truth.
 - Spawn the player from the map's player-start thing.
 - Support Doom-style horizontal movement, collision, mouse look, and hitscan fire.
 - Publish supported manual doors as movable render and collision entities.
+- Publish MAP01's supported moving floor with its source-authored walk-over trigger.
 - Import enough sprites, sounds, one weapon, one enemy, health, and ammo behavior
   for a coherent encounter.
 - Surface unsupported map constructs and missing lumps as structured diagnostics.
@@ -218,8 +219,19 @@ presentation plays the imported normal or blaze opening and closing effects.
 Hosted-project tests prove interaction wall obstruction, collision-free traversal
 while open, safe reopening, collision restoration after closing, sound-handle
 cleanup, and closed initial editor-preview state.
-Lifts, navigation beyond last-visible-position pursuit, and other sector specials
-remain later vertical slices.
+
+MAP01's type-19 moving floor is descriptor-driven as well. The engine Doom
+importer derives the controlled tagged sector, its highest surrounding-floor
+destination, and the classic movement rate from source map data. It removes only
+that sector's floor plane from the static batches, then publishes the plane with
+its own transform, material mesh, collision body, and Doom floor component. A
+thin oriented sensor follows the source trigger linedef and accepts the Player
+collision category only; its overlap signal targets the floor action explicitly.
+The floor lowers once, clamps exactly at its derived destination, and cannot be
+reactivated. The same transform moves rendering and collision, while editor
+preview composition retains the raised source state without executing gameplay.
+Additional lift and moving-floor profiles, navigation beyond last-visible-position
+pursuit, and other sector specials remain later vertical slices.
 
 This is a vertical slice through the real pipeline, not the limit of the game.
 Later increments expand the supported vanilla Doom II semantics and playable

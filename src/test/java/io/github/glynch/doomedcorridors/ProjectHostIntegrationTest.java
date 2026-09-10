@@ -8,8 +8,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.jscene3d.doom.runtime.DoomCollisionCategories;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoor;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoorDescriptors;
+import io.github.glynch.jscene3d.doom.runtime.DoomFloor;
+import io.github.glynch.jscene3d.doom.runtime.DoomFloorDescriptors;
 import io.github.glynch.jscene3d.game.application.ApplicationCommand;
 import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
@@ -26,6 +29,7 @@ import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
 import io.github.glynch.jscene3d.project.physics3d.CollisionShape3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
+import io.github.glynch.jscene3d.project.physics3d.TriangleMeshCollisionShape3dResource;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
@@ -69,6 +73,7 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId VIEW_TRANSFORM = ComponentId.from("82b8ae6d-47e9-4df6-9d85-01a6fca09dc6");
     private static final ComponentId FIRST_RENDERER = componentId("maps/MAP01/root/mesh-renderers/00000");
     private static final ComponentId STATIC_COLLISION_SHAPE = componentId("maps/MAP01/root/collision/static-shape");
+    private static final ComponentId MOVING_FLOOR_SHAPE = componentId("maps/MAP01/floors/00034/collision/shape");
     private static final ComponentId ZOMBIEMAN_TRANSFORM =
             actorComponentId("maps/MAP01/actors/definitions/zombieman/root/transform");
     private static final ComponentId ZOMBIEMAN_BILLBOARD =
@@ -192,14 +197,14 @@ final class ProjectHostIntegrationTest {
             assertThat(placement.instantiationKind()).isEqualTo(EntityInstantiationKind.PLACEMENT);
             assertThat(placement.instantiatedDefinition()).contains(MAP_DEFINITION);
             assertThat(placement.componentIds()).hasSize(81);
-            assertThat(placement.children()).hasSize(4);
+            assertThat(placement.children()).hasSize(6);
             assertThat(renderer.isVisible()).isTrue();
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(45);
+                    .isEqualTo(47);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(45);
+                    .isEqualTo(47);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -289,9 +294,10 @@ final class ProjectHostIntegrationTest {
                             ZOMBIEMAN_DEATH_FRAMES.get(3),
                             ZOMBIEMAN_DEATH_FRAMES.get(4),
                             ZOMBIEMAN_PRESENTATION);
-            assertThat(actorTransform.position().x()).isFinite();
-            assertThat(actorTransform.position().y()).isFinite();
-            assertThat(actorTransform.position().z()).isFinite();
+            assertThat(Float.isFinite(actorTransform.position().x())
+                            && Float.isFinite(actorTransform.position().y())
+                            && Float.isFinite(actorTransform.position().z()))
+                    .isTrue();
             assertThat(billboard.alignment()).isEqualTo(BillboardAlignment.CYLINDRICAL);
             assertThat(billboard.size().x()).isPositive();
             assertThat(billboard.size().y()).isPositive();
@@ -299,6 +305,7 @@ final class ProjectHostIntegrationTest {
             assertThat(walkFrames).allMatch(frame -> !frame.isVisible());
             assertThat(attackFrames).allMatch(frame -> !frame.isVisible());
             assertThat(shape.localPosition().y()).isEqualTo(0.875F);
+            assertThat(shape.filter().categoryBits()).isEqualTo(DoomCollisionCategories.MONSTER);
             assertThat(body.isClosed()).isFalse();
             assertThat(state.health()).isEqualTo(20);
             assertThat(behavior.isAlerted()).isFalse();
@@ -381,8 +388,8 @@ final class ProjectHostIntegrationTest {
             assertThat(body.isClosed()).isTrue();
             assertThat(zombieman.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(44);
-            assertThat(physics.collisionShapeCount()).isEqualTo(44);
+            assertThat(physics.collisionObjectCount()).isEqualTo(46);
+            assertThat(physics.collisionShapeCount()).isEqualTo(46);
             assertThat(presentationWorld.positionalRestarts()).isEqualTo(2);
 
             loaded.world().advanceFrame(Duration.ofMillis(560), 0.0F);
@@ -489,8 +496,8 @@ final class ProjectHostIntegrationTest {
             assertThat(playerState.bullets()).isEqualTo(44);
             assertThat(target.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(44);
-            assertThat(physics.collisionShapeCount()).isEqualTo(44);
+            assertThat(physics.collisionObjectCount()).isEqualTo(46);
+            assertThat(physics.collisionShapeCount()).isEqualTo(46);
             assertThat(presentation.restarts()).isEqualTo(6);
         }
         assertThat(presentation.overlayCount()).isZero();
@@ -931,7 +938,11 @@ final class ProjectHostIntegrationTest {
         DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
 
         try (HostedProject loaded = load(cache)) {
-            assertThat(root(loaded, MAP_PLACEMENT).children()).hasSize(4).allSatisfy(entity -> {
+            List<Entity> doors = root(loaded, MAP_PLACEMENT).children().stream()
+                    .filter(entity -> entity.capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
+                            .isPresent())
+                    .toList();
+            assertThat(doors).hasSize(4).allSatisfy(entity -> {
                 DoomDoor door = entity.capability(DoomDoorDescriptors.DOOR_CAPABILITY, DoomDoor.class)
                         .orElseThrow();
                 Transform3d transform = entity.capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
@@ -939,6 +950,50 @@ final class ProjectHostIntegrationTest {
                 assertThat(door.phase()).isEqualTo(DoomDoor.Phase.CLOSED);
                 assertThat(transform.position().y()).isEqualTo(door.currentHeight());
             });
+        }
+    }
+
+    /** Composes MAP01's type-19 floor raised and moves its rendered collision surface to the derived destination. */
+    @Test
+    void composesAndLowersMovingFloor() {
+        Path cache = temporaryDirectory.resolve("floor-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity floorEntity = movingFloor(root(loaded, MAP_PLACEMENT));
+            DoomFloor floor = floorEntity
+                    .capability(DoomFloorDescriptors.FLOOR_CAPABILITY, DoomFloor.class)
+                    .orElseThrow();
+            Transform3d transform = floorEntity
+                    .capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                    .orElseThrow();
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            assertThat(floor.profile()).isEqualTo(DoomFloor.Profile.WALK_ONCE_LOWER_TO_HIGHEST_SURROUNDING);
+            assertThat(floor.phase()).isEqualTo(DoomFloor.Phase.RAISED);
+            assertThat(transform.position().y()).isEqualTo(floor.currentHeight());
+
+            loaded.world().activate();
+            CollisionRaycastHit3d raisedSurface = findMovingFloorSurface(physics, floorEntity);
+            float raisedHeight = raisedSurface.point(new Vector3f()).y;
+            assertThat(floor.activate()).isTrue();
+
+            advanceFixed(loaded, 50);
+
+            assertThat(floor.phase()).isEqualTo(DoomFloor.Phase.LOWERED);
+            assertThat(floor.currentHeight()).isCloseTo(raisedHeight - 1.0F, within(1.0E-5F));
+            assertThat(transform.position().y()).isEqualTo(floor.currentHeight());
+            CollisionRaycastHit3d loweredSurface = physics.raycast(
+                            new Vector3f(
+                                    raisedSurface.point(new Vector3f()).x,
+                                    raisedHeight - 0.1F,
+                                    raisedSurface.point(new Vector3f()).z),
+                            new Vector3f(0.0F, -1.0F, 0.0F),
+                            4.0F)
+                    .orElseThrow();
+            assertThat(loweredSurface.object().owner()).isSameAs(floorEntity);
+            assertThat(loweredSurface.point(new Vector3f()).y).isCloseTo(floor.currentHeight(), within(1.0E-5F));
+            assertThat(floor.activate()).isFalse();
         }
     }
 
@@ -1032,6 +1087,35 @@ final class ProjectHostIntegrationTest {
             }
         }
         throw new AssertionError("no collision surface found for generated door " + door.authoredId());
+    }
+
+    /** Finds the generated MAP01 floor by its engine-owned semantic capability. */
+    private static Entity movingFloor(Entity map) {
+        return map.children().stream()
+                .filter(entity -> entity.capability(DoomFloorDescriptors.FLOOR_CAPABILITY, DoomFloor.class)
+                        .isPresent())
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** Finds a downward collision sample owned by the independently movable floor. */
+    private static CollisionRaycastHit3d findMovingFloorSurface(Physics3dWorldModule physics, Entity floor) {
+        CollisionShape3d shape =
+                floor.component(MOVING_FLOOR_SHAPE, CollisionShape3d.class).orElseThrow();
+        TriangleMeshCollisionShape3dResource mesh = (TriangleMeshCollisionShape3dResource) shape.resource();
+        Vector3f sample = new Vector3f();
+        for (int index = 0; index < 3; index++) {
+            sample.add(mesh.vertex(mesh.index(index), new Vector3f()));
+        }
+        sample.div(3.0F);
+        floor.capability(Spatial3dDescriptors.spatialCapability(), Transform3d.class)
+                .orElseThrow()
+                .worldMatrix()
+                .transformPosition(sample);
+        return physics.raycast(new Vector3f(sample).add(0.0F, 0.1F, 0.0F), new Vector3f(0.0F, -1.0F, 0.0F), 4.0F)
+                .filter(hit -> hit.object().owner() == floor)
+                .orElseThrow(() -> new AssertionError(
+                        "generated moving floor has no collision at its first triangle: " + floor.authoredId()));
     }
 
     /** Finds a short ray which reaches one generated door only after crossing a nearer static solid. */

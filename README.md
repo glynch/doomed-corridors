@@ -122,16 +122,19 @@ The descriptor-authored MAP01 world currently provides:
   lowered death view, hidden weapon, disabled controls, and retained world and
   HUD presentation;
 - manual open-stay and blaze raise/wait/close doors published as independently
-  movable render and collision entities.
+  movable render and collision entities;
+- MAP01's classic type-19 walk-once floor, published independently from static
+  geometry with a player-only crossing trigger and synchronized render and
+  collision movement.
 
 Component participation, references, signals, actions, and update phases come
 from project and generated descriptors. Game-specific Java code is supplied by
 the manifest-selected Doomed Corridors runtime extension; the desktop launcher
 contains no knowledge of this game.
 
-Only MAP01 is currently selected. Lifts, navigation beyond last-visible-position
-pursuit, other sector specials, and restarting after player death remain later
-vertical slices.
+Only MAP01 is currently selected. Additional lift and moving-floor profiles,
+navigation beyond last-visible-position pursuit, and other sector specials remain
+later vertical slices.
 
 On process launch, the splash appears before world composition and reports the
 real loading phase. It remains until both the authored two-second minimum and

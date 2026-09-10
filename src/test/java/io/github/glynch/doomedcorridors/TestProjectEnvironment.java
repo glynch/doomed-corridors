@@ -29,20 +29,16 @@ final class TestProjectEnvironment implements ProjectRuntimeEnvironment {
 
     /** Retains one standard project-content environment and its test presentation module. */
     TestProjectEnvironment(Path cache, PresentationWorldModule presentation) {
-        this(cache, presentation, Optional.empty());
+        delegate = new StandardProjectEnvironment(cache);
+        this.presentation = presentation;
+        application = Optional.empty();
     }
 
     /** Retains content services while replacing native presentation and application control for host tests. */
     TestProjectEnvironment(Path cache, PresentationWorldModule presentation, ApplicationControl application) {
-        this(cache, presentation, Optional.of(application));
-    }
-
-    /** Retains the standard environment and optional test-owned application control replacement. */
-    private TestProjectEnvironment(
-            Path cache, PresentationWorldModule presentation, Optional<ApplicationControl> application) {
         delegate = new StandardProjectEnvironment(cache);
         this.presentation = presentation;
-        this.application = application;
+        this.application = Optional.of(application);
     }
 
     @Override
