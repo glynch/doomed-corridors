@@ -49,6 +49,18 @@
         {"device": "gamepad", "control": "button-south"}
       ]
     },
+    "select-pistol": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "DIGIT_1"}
+      ]
+    },
+    "select-shotgun": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "DIGIT_2"}
+      ]
+    },
     "menu-previous": {
       "valueType": "button",
       "bindings": [

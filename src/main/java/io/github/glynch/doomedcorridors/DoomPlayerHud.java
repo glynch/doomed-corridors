@@ -18,6 +18,7 @@ final class DoomPlayerHud implements ComponentReferenceBinder, ComponentUpdateCa
     private @Nullable DoomPlayerState playerState;
     private @Nullable ScreenNumber healthNumber;
     private @Nullable ScreenNumber ammoNumber;
+    private @Nullable ScreenNumber armorNumber;
 
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
@@ -27,13 +28,16 @@ final class DoomPlayerHud implements ComponentReferenceBinder, ComponentUpdateCa
         healthNumber =
                 validReferences.component(DoomedCorridorsDescriptors.HUD_HEALTH_NUMBER_PROPERTY, ScreenNumber.class);
         ammoNumber = validReferences.component(DoomedCorridorsDescriptors.HUD_AMMO_NUMBER_PROPERTY, ScreenNumber.class);
+        armorNumber =
+                validReferences.component(DoomedCorridorsDescriptors.HUD_ARMOR_NUMBER_PROPERTY, ScreenNumber.class);
     }
 
     @Override
     public void onFrameUpdate(FrameUpdateContext update) {
         Objects.requireNonNull(update, "update");
         requiredHealthNumber().setValue(requiredPlayerState().health());
-        requiredAmmoNumber().setValue(requiredPlayerState().bullets());
+        requiredAmmoNumber().setValue(requiredPlayerState().activeAmmunition());
+        requiredArmorNumber().setValue(requiredPlayerState().armor());
     }
 
     private DoomPlayerState requiredPlayerState() {
@@ -46,5 +50,9 @@ final class DoomPlayerHud implements ComponentReferenceBinder, ComponentUpdateCa
 
     private ScreenNumber requiredAmmoNumber() {
         return Objects.requireNonNull(ammoNumber, "ammo number has not been bound");
+    }
+
+    private ScreenNumber requiredArmorNumber() {
+        return Objects.requireNonNull(armorNumber, "armour number has not been bound");
     }
 }

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/actors-2.json",
+  "title": "Doomed Corridors actor catalog version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "actors"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": 2 },
+    "actors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/actor" }
+    }
+  },
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thingType", "id", "name", "category"],
+      "properties": {
+        "thingType": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "category": {
+          "enum": ["marker", "enemy", "weapon", "ammunition", "health", "armor", "decoration", "corpse"]
+        },
+        "spriteFrame": { "type": "string", "pattern": "^[A-Z0-9]{4}[A-Z]$" },
+        "collision": { "$ref": "#/$defs/collision" }
+      }
+    },
+    "collision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["radius", "height"],
+      "properties": {
+        "radius": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 2 }
+      }
+    }
+  }
+}

@@ -76,6 +76,42 @@
         "componentId": "64fbcd73-b051-4348-9fc5-834183678794",
         "endpointId": "receive-died"
       }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
+        "endpointId": "fired"
+      },
+      "action": {
+        "entityId": "f917db29-05fe-4bc5-822f-0df200b0a27f",
+        "componentId": "c1d2ac4d-fcd3-41cc-9923-8097f1f890ce",
+        "endpointId": "receive-fired"
+      }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
+        "endpointId": "hit"
+      },
+      "action": {
+        "entityId": "f917db29-05fe-4bc5-822f-0df200b0a27f",
+        "componentId": "c1d2ac4d-fcd3-41cc-9923-8097f1f890ce",
+        "endpointId": "receive-hit"
+      }
+    },
+    {
+      "signal": {
+        "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+        "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434",
+        "endpointId": "died"
+      },
+      "action": {
+        "entityId": "f917db29-05fe-4bc5-822f-0df200b0a27f",
+        "componentId": "c1d2ac4d-fcd3-41cc-9923-8097f1f890ce",
+        "endpointId": "receive-died"
+      }
     }
   ],
   "roots": [
@@ -131,13 +167,27 @@
           }
         },
         {
+          "componentId": "d2be3f2a-4818-4108-88aa-0f73125974e5",
+          "type": "io.github.glynch.doomed-corridors/weapon-selector",
+          "typeVersion": 1,
+          "properties": {
+            "player-state": {
+              "$target": {
+                "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434"
+              }
+            },
+            "weapons": ["pistol", "shotgun"],
+            "actions": ["select-pistol", "select-shotgun"]
+          }
+        },
+        {
           "componentId": "3cf4b320-4186-4610-b67d-ebd843d53fc9",
           "type": "io.github.glynch.doomed-corridors/hitscan-weapon",
           "typeVersion": 1,
           "properties": {
             "actor-catalog": {"$ref": "asset:actors"},
             "combat-rules": {"$ref": "asset:combat"},
-            "weapon-id": "pistol",
             "view-transform": {
               "$target": {
                 "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
@@ -158,6 +208,13 @@
           "type": "io.github.glynch.doomed-corridors/weapon-presentation",
           "typeVersion": 1,
           "properties": {
+            "player-state": {
+              "$target": {
+                "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434"
+              }
+            },
+            "weapon-id": "pistol",
             "ready-frame": {
               "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/pisga0"
             },
@@ -230,6 +287,45 @@
         }
       ],
       "children": [
+        {
+          "entryType": "local",
+          "entityId": "f917db29-05fe-4bc5-822f-0df200b0a27f",
+          "name": "Shotgun Presentation",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "c1d2ac4d-fcd3-41cc-9923-8097f1f890ce",
+              "type": "io.github.glynch.doomed-corridors/weapon-presentation",
+              "typeVersion": 1,
+              "properties": {
+                "player-state": {
+                  "$target": {
+                    "entityId": "0b295328-b5a3-4f41-9f34-e9b4abc430a7",
+                    "componentId": "c416639d-dd1d-40d7-a9bd-6042f7206434"
+                  }
+                },
+                "weapon-id": "shotgun",
+                "ready-frame": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtga0"
+                },
+                "fire-frames": [
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtgb0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtgc0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtgd0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtgc0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/images/shtgb0"}
+                ],
+                "fire-sound": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/weapons/audio/dsshotgn"
+                },
+                "frame-milliseconds": 90,
+                "hit-indicator-milliseconds": 120,
+                "death-lower-milliseconds": 1000
+              }
+            }
+          ],
+          "children": []
+        },
         {
           "entryType": "local",
           "entityId": "e58fd38b-dc23-4b75-8877-27377c9fbfac",
@@ -391,6 +487,12 @@
                 "entityId": "daa471fd-eb3f-43e2-bbd2-eef5cbf39e02",
                 "componentId": "00f54e60-dd1c-47e2-a180-83bfcefdc2d9"
               }
+            },
+            "armor-number": {
+              "$target": {
+                "entityId": "7cd92c6a-e493-467b-a255-0c0ff984b0f0",
+                "componentId": "27e0bb5b-5324-47e3-9a5c-49f3b9e1c2b5"
+              }
             }
           }
         }
@@ -482,6 +584,52 @@
                 ],
                 "initial-value": 50,
                 "alignment": "right"
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "7cd92c6a-e493-467b-a255-0c0ff984b0f0",
+          "name": "Armour",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "b24163f5-c3fb-41bb-b260-dae7b61c8e24",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 1,
+                "pivot-x": 0.5,
+                "pivot-y": 1,
+                "offset-x": 0,
+                "offset-y": -8,
+                "width": 80,
+                "height": 18
+              }
+            },
+            {
+              "componentId": "27e0bb5b-5324-47e3-9a5c-49f3b9e1c2b5",
+              "type": "io.github.glynch.jscene3d.presentation/bitmap-number",
+              "typeVersion": 1,
+              "properties": {
+                "digits": [
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum0"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum1"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum2"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum3"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum4"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum5"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum6"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum7"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum8"},
+                  {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttnum9"}
+                ],
+                "suffix": {"$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/hud/images/sttprcnt"},
+                "initial-value": 0,
+                "alignment": "left"
               }
             }
           ],

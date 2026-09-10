@@ -13,6 +13,7 @@ import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBind
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Collects one imported pickup when its authored sensor overlaps the player character. */
 final class DoomPickup implements ComponentEndpointBinder {
@@ -21,10 +22,19 @@ final class DoomPickup implements ComponentEndpointBinder {
     private final Resource resource;
     private final int amount;
     private final int limit;
+    private final int armorProtectionPercent;
+    private final Optional<String> grantedWeapon;
     private boolean collected;
 
     /** Stores validated provider rules and the exact entity-lifecycle authority for this instance. */
-    DoomPickup(Entity owner, World world, String resource, int amount, int limit) {
+    DoomPickup(
+            Entity owner,
+            World world,
+            String resource,
+            int amount,
+            int limit,
+            int armorProtectionPercent,
+            String grantedWeapon) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.world = Objects.requireNonNull(world, "world");
         this.resource = Resource.from(resource);
@@ -33,6 +43,12 @@ final class DoomPickup implements ComponentEndpointBinder {
         }
         this.amount = amount;
         this.limit = limit;
+        if (armorProtectionPercent < 0 || armorProtectionPercent > 100) {
+            throw new IllegalArgumentException("armorProtectionPercent must be in [0, 100]");
+        }
+        this.armorProtectionPercent = armorProtectionPercent;
+        this.grantedWeapon = Optional.of(Objects.requireNonNull(grantedWeapon, "grantedWeapon"))
+                .filter(value -> !value.isBlank());
     }
 
     /** Binds the descriptor-declared overlap receiver. */
@@ -60,7 +76,7 @@ final class DoomPickup implements ComponentEndpointBinder {
                 .owner()
                 .capability(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .orElse(null);
-        if (player != null && player.collect(resource, amount, limit) > 0) {
+        if (player != null && player.collect(resource, amount, limit, armorProtectionPercent, grantedWeapon)) {
             collect();
         }
     }
@@ -74,7 +90,9 @@ final class DoomPickup implements ComponentEndpointBinder {
     /** Resource kinds currently represented by the player's runtime state. */
     enum Resource {
         HEALTH,
-        BULLETS;
+        ARMOR,
+        BULLETS,
+        SHELLS;
 
         /** Parses the lower-case provider spelling published in component data. */
         private static Resource from(String value) {

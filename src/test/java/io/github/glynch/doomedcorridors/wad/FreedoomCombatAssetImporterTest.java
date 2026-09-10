@@ -38,12 +38,13 @@ final class FreedoomCombatAssetImporterTest {
         assertThat(result.diagnostics()).isEmpty();
         DoomCombatAssets assets = result.assets().orElseThrow();
         assertThat(assets.images())
-                .hasSize(28)
-                .containsKeys("PISGA0", "POSSA1", "POSSE1", "POSSG1", "POSSL0", "STTNUM0");
+                .hasSize(32)
+                .containsKeys("PISGA0", "SHTGA0", "SHTGD0", "POSSA1", "POSSE1", "POSSG1", "POSSL0", "STTNUM0");
         assertThat(assets.sounds())
-                .hasSize(15)
+                .hasSize(16)
                 .containsKeys(
                         "DSPISTOL",
+                        "DSSHOTGN",
                         "DSPOSIT1",
                         "DSPOPAIN",
                         "DSPODTH3",

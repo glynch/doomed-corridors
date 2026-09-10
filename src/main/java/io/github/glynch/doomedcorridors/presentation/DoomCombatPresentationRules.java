@@ -14,7 +14,8 @@ import java.util.Set;
 
 /** Immutable provider-authored bindings from combat identities to WAD presentation assets. */
 public final class DoomCombatPresentationRules {
-    private final Weapon weapon;
+    private final List<Weapon> weapons;
+    private final Map<String, Weapon> weaponsById;
     private final Player player;
     private final Pickups pickups;
     private final Doors doors;
@@ -23,8 +24,9 @@ public final class DoomCombatPresentationRules {
 
     /** Indexes one weapon, combatant bindings, and HUD patch names. */
     DoomCombatPresentationRules(
-            Weapon weapon, Player player, Pickups pickups, Doors doors, List<Combatant> combatants, Hud hud) {
-        this.weapon = Objects.requireNonNull(weapon, "weapon");
+            List<Weapon> weapons, Player player, Pickups pickups, Doors doors, List<Combatant> combatants, Hud hud) {
+        this.weapons = List.copyOf(Objects.requireNonNull(weapons, "weapons"));
+        this.weaponsById = indexWeapons(this.weapons);
         this.player = Objects.requireNonNull(player, "player");
         this.pickups = Objects.requireNonNull(pickups, "pickups");
         this.doors = Objects.requireNonNull(doors, "doors");
@@ -34,7 +36,12 @@ public final class DoomCombatPresentationRules {
 
     /** Returns the selected weapon presentation. */
     public Weapon weapon() {
-        return weapon;
+        return weapons.getFirst();
+    }
+
+    /** Returns all weapon presentation bindings in declaration order. */
+    public List<Weapon> weapons() {
+        return weapons;
     }
 
     /** Returns player pain and death sound bindings. */
@@ -65,8 +72,10 @@ public final class DoomCombatPresentationRules {
     /** Returns all exact patch lump names needed by this presentation. */
     public Set<String> imageLumps() {
         Set<String> names = new LinkedHashSet<>();
-        names.add(weapon.readyFrame());
-        names.addAll(weapon.fireFrames());
+        for (Weapon weapon : weapons) {
+            names.add(weapon.readyFrame());
+            names.addAll(weapon.fireFrames());
+        }
         for (Combatant combatant : combatants.values()) {
             CombatantAnimations animations = combatant.animations();
             names.addAll(animations.walkFrames());
@@ -82,7 +91,7 @@ public final class DoomCombatPresentationRules {
     /** Returns all exact DMX sound lump names needed by this presentation. */
     public Set<String> soundLumps() {
         Set<String> names = new LinkedHashSet<>();
-        names.add(weapon.fireSound());
+        weapons.forEach(weapon -> names.add(weapon.fireSound()));
         names.add(player.painSound());
         names.add(player.deathSound());
         names.add(pickups.collectSound());
@@ -103,6 +112,26 @@ public final class DoomCombatPresentationRules {
     /** Returns configured combatant actor IDs in declaration order. */
     Set<String> combatantActorIds() {
         return combatants.keySet();
+    }
+
+    /** Returns configured weapon IDs in declaration order. */
+    Set<String> weaponIds() {
+        return weaponsById.keySet();
+    }
+
+    /** Builds a duplicate-rejecting, non-empty weapon index. */
+    private static Map<String, Weapon> indexWeapons(List<Weapon> definitions) {
+        if (definitions.isEmpty()) {
+            throw new IllegalArgumentException("weapons must not be empty");
+        }
+        Map<String, Weapon> indexed = new LinkedHashMap<>();
+        for (Weapon weapon : definitions) {
+            Weapon value = Objects.requireNonNull(weapon, "weapon");
+            if (indexed.putIfAbsent(value.id(), value) != null) {
+                throw new IllegalArgumentException("Duplicate weapon presentation: " + value.id());
+            }
+        }
+        return Map.copyOf(indexed);
     }
 
     /** Builds a duplicate-rejecting combatant index. */

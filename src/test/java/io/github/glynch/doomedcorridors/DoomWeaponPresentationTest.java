@@ -6,6 +6,8 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
+import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.audio.PcmAudio;
@@ -17,15 +19,20 @@ import io.github.glynch.jscene3d.game.presentation.PositionalSound;
 import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.component.EndpointId;
+import io.github.glynch.jscene3d.project.component.PropertyId;
+import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.RuntimeAction;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayloadAction;
 import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
+import io.github.glynch.jscene3d.project.value.ResourceReference;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.OverlayImage;
 import io.github.glynch.jscene3d.render.Renderer;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import org.joml.Vector3fc;
@@ -45,13 +52,25 @@ final class DoomWeaponPresentationTest {
 
         DoomWeaponPresentation component = new DoomWeaponPresentation(
                 presentation,
+                "pistol",
                 ready,
                 List.of(first, second),
                 sound,
-                Duration.ofMillis(70),
-                Duration.ofMillis(120),
-                Duration.ofSeconds(1));
+                new DoomWeaponPresentation.Timing(
+                        Duration.ofMillis(70), Duration.ofMillis(120), Duration.ofSeconds(1)));
         component.bindEndpoints(endpoints);
+        DoomPlayerState player =
+                new DoomPlayerState(ResourceReference.asset("actors"), ResourceReference.asset("combat"));
+        player.configure(new DoomCombatRulesLoader()
+                .load(
+                        Path.of("game/combat.json"),
+                        new DoomActorCatalogLoader()
+                                .load(Path.of("game/actors.json"))
+                                .catalog()
+                                .orElseThrow())
+                .rules()
+                .orElseThrow());
+        component.bindReferences(new PlayerReferences(player));
         var readyImage = component.currentFrame();
 
         assertThat(endpoints.died).isNotNull();
@@ -89,6 +108,25 @@ final class DoomWeaponPresentationTest {
         first.close();
         second.close();
         sound.close();
+    }
+
+    /** Resolves only the explicit player-state target used by weapon presentation. */
+    private record PlayerReferences(DoomPlayerState player) implements ComponentReferenceResolver {
+        @Override
+        public Entity entity(PropertyId property) {
+            throw new AssertionError("weapon presentation declares no entity target");
+        }
+
+        @Override
+        public <T> T component(PropertyId property, Class<T> valueType) {
+            assertThat(property).isEqualTo(DoomedCorridorsDescriptors.WEAPON_SELECTOR_PLAYER_STATE_PROPERTY);
+            return valueType.cast(player);
+        }
+
+        @Override
+        public <T> List<T> components(PropertyId property, Class<T> valueType) {
+            throw new AssertionError("weapon presentation declares no component-target array");
+        }
     }
 
     /** Creates one one-pixel sRGB overlay-image resource with distinct content. */

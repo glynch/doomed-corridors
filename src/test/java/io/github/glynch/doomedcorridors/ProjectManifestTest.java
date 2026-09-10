@@ -177,6 +177,8 @@ final class ProjectManifestTest {
                         "turn-right",
                         "interact",
                         "fire-primary",
+                        "select-pistol",
+                        "select-shotgun",
                         "menu-previous",
                         "menu-next",
                         "menu-confirm",
@@ -256,6 +258,7 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/enemy-target",
                         EXTENSION_ID + "/enemy-behavior",
                         EXTENSION_ID + "/hitscan-weapon",
+                        EXTENSION_ID + "/weapon-selector",
                         EXTENSION_ID + "/weapon-presentation",
                         EXTENSION_ID + "/player-presentation",
                         EXTENSION_ID + "/player-lifecycle",
@@ -346,7 +349,8 @@ final class ProjectManifestTest {
                             .containsOnlyKeys(
                                     DoomedCorridorsDescriptors.HUD_PLAYER_STATE_PROPERTY,
                                     DoomedCorridorsDescriptors.HUD_HEALTH_NUMBER_PROPERTY,
-                                    DoomedCorridorsDescriptors.HUD_AMMO_NUMBER_PROPERTY);
+                                    DoomedCorridorsDescriptors.HUD_AMMO_NUMBER_PROPERTY,
+                                    DoomedCorridorsDescriptors.HUD_ARMOR_NUMBER_PROPERTY);
                 });
     }
 

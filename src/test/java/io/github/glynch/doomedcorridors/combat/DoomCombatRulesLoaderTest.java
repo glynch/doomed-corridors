@@ -20,7 +20,7 @@ final class DoomCombatRulesLoaderTest {
     @TempDir
     Path temporaryDirectory;
 
-    /** Loads the checked-in pistol, player, and zombieman rules. */
+    /** Loads the checked-in player resource and weapon rules. */
     @Test
     void loadsProjectCombatRules() {
         DoomCombatRulesLoadResult result =
@@ -31,19 +31,38 @@ final class DoomCombatRulesLoaderTest {
         assertThat(result.rules()).hasValueSatisfying(rules -> {
             assertThat(rules.startingHealth()).isEqualTo(100);
             assertThat(rules.maximumHealth()).isEqualTo(200);
+            assertThat(rules.startingArmor()).isZero();
+            assertThat(rules.maximumArmor()).isEqualTo(200);
             assertThat(rules.startingBullets()).isEqualTo(50);
             assertThat(rules.maximumBullets()).isEqualTo(200);
+            assertThat(rules.startingShells()).isZero();
+            assertThat(rules.maximumShells()).isEqualTo(50);
             assertThat(rules.primaryWeaponId()).isEqualTo("pistol");
             assertThat(rules.hasWeapon("pistol")).isTrue();
+            assertThat(rules.hasWeapon("shotgun")).isTrue();
+            assertThat(rules.weaponAmmunition("shotgun")).isEqualTo(DoomCombatRules.Ammunition.SHELLS);
+            assertThat(rules.weaponPelletCount("shotgun")).isEqualTo(7);
             assertThat(rules.weaponAmmoPerShot("pistol")).isEqualTo(1);
             assertThat(rules.weaponRange("pistol")).isEqualTo(2048);
             assertThat(rules.weaponAutoAimAngleDegrees("pistol")).isEqualTo(5.625F);
             assertThat(rules.weaponAutoAimMaximumSlope("pistol")).isEqualTo(0.625F);
             assertThat(rules.rollWeaponDamage("pistol", new Random(0L))).isIn(5, 10, 15);
+        });
+    }
+
+    /** Loads the checked-in combatant and pickup rules. */
+    @Test
+    void loadsProjectCombatantAndPickupRules() {
+        DoomCombatRulesLoadResult result =
+                new DoomCombatRulesLoader().load(Path.of("game/combat.json"), actorCatalog());
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.rules()).hasValueSatisfying(rules -> {
             assertThat(rules.combatantDefinitionCount()).isEqualTo(1);
             assertThat(rules.combatantStartingHealth("zombieman")).isEqualTo(20);
             assertThat(rules.rollEnemyDamage("zombieman", new Random(0L))).isIn(3, 6, 9, 12, 15);
-            assertThat(rules.pickupDefinitionCount()).isEqualTo(6);
+            assertThat(rules.pickupDefinitionCount()).isEqualTo(11);
             assertThat(rules.findCombatantBounds("zombieman")).contains(new DoomCombatRules.CombatantBounds(20, 56));
             assertThat(rules.findCombatantBounds("stimpack")).isEmpty();
         });
@@ -55,17 +74,23 @@ final class DoomCombatRulesLoaderTest {
         Path source = temporaryDirectory.resolve("combat.json");
         Files.writeString(source, """
                 {
-                  "schemaVersion": 4,
+                  "schemaVersion": 5,
                   "player": {
                     "startingHealth": 100,
                     "maximumHealth": 200,
+                    "startingArmor": 0,
+                    "maximumArmor": 200,
                     "startingBullets": 50,
                     "maximumBullets": 200,
+                    "startingShells": 0,
+                    "maximumShells": 50,
                     "startingWeapon": "pistol"
                   },
                   "weapons": [{
                     "id": "pistol",
+                    "ammunition": "bullets",
                     "ammoPerShot": 1,
+                    "pelletCount": 1,
                     "range": 2048,
                     "autoAimAngleDegrees": 5.625,
                     "autoAimMaximumSlope": 0.625,
@@ -106,7 +131,7 @@ final class DoomCombatRulesLoaderTest {
     void rejectsPickupResourceCategoryMismatch() throws IOException {
         Path source = temporaryDirectory.resolve("combat.json");
         String mismatched = Files.readString(Path.of("game/combat.json"))
-                .replace("\"actor\": \"stimpack\"", "\"actor\": \"shotgun-shells\"");
+                .replace("\"actor\": \"stimpack\"", "\"actor\": \"chainsaw\"");
         Files.writeString(source, mismatched);
 
         DoomCombatRulesLoadResult result = new DoomCombatRulesLoader().load(source, actorCatalog());
@@ -114,7 +139,7 @@ final class DoomCombatRulesLoaderTest {
         assertThat(result.rules()).isEmpty();
         assertThat(result.diagnostics()).singleElement().satisfies(diagnostic -> {
             assertThat(diagnostic.code()).isEqualTo("doom.combat.rules-invalid");
-            assertThat(diagnostic.message()).contains("shotgun-shells", "category");
+            assertThat(diagnostic.message()).contains("chainsaw", "category");
         });
     }
 

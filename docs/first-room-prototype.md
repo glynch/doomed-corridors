@@ -85,12 +85,11 @@ the resulting 119 placements. The entry world places that definition, and the
 generic 3D runtime displays the actors through alpha-masked cylindrical
 billboard components with WAD-derived anchors and scale.
 
-Configured combatants now also publish their provider-authored radius and height
-as a shared capsule collision resource. Each reusable combatant definition owns
-an independently positioned collision-shape component and a movable solid
-character body, so every living placement blocks the player and moves through
-the same collision-aware physics API. Pickups, corpses, and decorative actors do
-not acquire blocking bodies merely because they have visible billboards.
+Actors with provider-authored radius and height publish shared capsule collision
+resources. Combatants own movable solid character bodies, pickups own non-blocking
+contact sensors, and solid decorations own static bodies. Corpses and decorations
+without authored bounds remain non-blocking; visible billboards alone never imply
+collision.
 
 The first imported actor behavior now also runs through the project runtime.
 The player owns a game-specific state component initialized from the declared
@@ -111,9 +110,9 @@ particular player-state component. The capability is safe descriptor metadata
 which a future editor can inspect; the Java runtime extension supplies its
 implementation.
 
-The project-runtime pistol is also active. Version-four combat rules retain its
-2,048-unit range and author the horizontal auto-aim angle and maximum vertical
-slope. Firing tries the exact view ray before selecting the nearest visible
+The project-runtime pistol and shotgun are active. Version-five combat rules retain
+their 2,048-unit range and author ammunition pools, pellet counts, horizontal
+auto-aim angles, and maximum vertical slopes. Firing tries the exact view ray before selecting the nearest visible
 damageable entity whose bounds intersect that window; physics raycasts remain
 authoritative for wall occlusion. Separate `fired` and `hit` signals let the
 world connect every accepted shot to imported weapon animation and sound while
@@ -156,8 +155,8 @@ classic 41-unit standing height to the 6-unit death height, and the weapon moves
 below the viewport while the world and HUD remain visible.
 
 The combat-model slice is also complete. A project-declared, versioned combat
-document defines the player's initial health and ammunition, the pistol's range
-and discrete damage values, and the zombieman's health, collision cylinder,
+document defines the player's initial health, armor, ammunition, owned weapon,
+pistol and shotgun rules, and the zombieman's health, collision cylinder,
 awareness, movement, reaction time, attack cadence, and damage. Descriptor-selected
 World components consume that provider data, use the engine physics module for
 pitched hitscan and collision-aware pursuit, and communicate through declared
@@ -193,18 +192,19 @@ generic desktop launcher. Recursive project references inside runtime resource
 definitions are included, while source Java, tests, import-only WAD data, editable
 branding masters, and exporter implementation classes remain absent.
 
-The health-and-ammunition pickup slice is complete. Versioned provider rules
-declare the player's absolute health and bullet capacities plus per-actor amounts,
-ordinary or bonus limits, and contact radii. Descriptor-authored pickup sensors
+The resource-pickup slice is complete. Versioned provider rules declare the player's
+absolute health, armor, bullet, and shell capacities plus per-actor amounts,
+ordinary or bonus limits, protection rates, weapon grants, and contact radii. Descriptor-authored pickup sensors
 collect useful overlapping items once by entity identity and signal the applied
 resource amount without depending on rendering. Presentation hides the collected
 billboard, updates the descriptor-authored HUD numbers, and plays the imported
 `DSITEMUP` effect. The HUD is an ordinary entity hierarchy built from
 generic screen-canvas, screen-region, and bitmap-number components; its
-Doom-specific binding component only copies player health and ammunition into
-explicitly targeted number components. Stimpacks, medikits, health bonuses,
-soulspheres, ammunition clips, and bullet boxes are active; shell, rocket, and
-cell inventory follows with the weapons that consume those resources.
+Doom-specific binding component only copies player health, armor, and selected
+weapon ammunition into explicitly targeted number components. Stimpacks, medikits,
+health bonuses, soulspheres, armor bonuses, green and blue armor, ammunition clips,
+bullet boxes, shotgun shells, and the shotgun are active; rocket and cell inventory
+follow with the weapons that consume those resources.
 
 Supported manual doors are also descriptor-driven. The engine Doom importer
 recognizes classic open-stay and blaze raise specials, removes their surfaces from

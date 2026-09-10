@@ -17,3 +17,10 @@ Available profiles:
   the ledge should lower to the surrounding floor height.
 - `moving-floor-staircase` starts at the bottom center of the four steps beyond moving floor sector 34. Click once to
   capture the pointer, do not turn, then hold `W`. The player should climb all four steps and enter the raised room.
+- `shotgun-pickup` starts immediately west of the MAP01 shotgun, facing it. Click once to capture the pointer, then
+  hold `W` briefly. The shotgun should disappear, the first-person weapon should change to the shotgun, the HUD should
+  show `8` shells, and subsequent clicks should use the shotgun animation and sound. Press `1` for the pistol and `2`
+  for the shotgun.
+- `green-armor-pickup` starts immediately west of the green armor, facing it. Click once to capture the pointer, then
+  hold `W` briefly. The armor should disappear and the centered HUD value should become `100%`. This profile remains
+  invulnerable so the pickup can be inspected without having to survive the surrounding encounter.

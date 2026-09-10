@@ -72,7 +72,10 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         RuntimeProperties.positiveInteger(
                                 context.properties(), DoomedCorridorsDescriptors.PICKUP_AMOUNT_PROPERTY),
                         RuntimeProperties.positiveInteger(
-                                context.properties(), DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY)));
+                                context.properties(), DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY),
+                        RuntimeProperties.nonNegativeInteger(
+                                context.properties(), DoomedCorridorsDescriptors.PICKUP_ARMOR_PROTECTION_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.PICKUP_GRANTED_WEAPON_PROPERTY)));
         validRegistry.register(
                 DoomedCorridorsDescriptors.COMBATANT_STATE_TYPE,
                 context -> new DoomCombatantState(
@@ -99,8 +102,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                         context.world().requireModule(Physics3dWorldModule.class),
                         context.properties().resourceReference(DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY),
                         context.properties().resourceReference(DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY),
-                        context.properties().text(DoomedCorridorsDescriptors.WEAPON_ID_PROPERTY),
                         context.properties().text(DoomedCorridorsDescriptors.FIRE_ACTION_PROPERTY)));
+        validRegistry.register(
+                DoomedCorridorsDescriptors.WEAPON_SELECTOR_TYPE,
+                context -> new DoomWeaponSelector(
+                        context.world().requireModule(InputWorldModule.class),
+                        RuntimeProperties.textValues(
+                                context.properties(), DoomedCorridorsDescriptors.SELECTABLE_WEAPONS_PROPERTY),
+                        RuntimeProperties.textValues(
+                                context.properties(), DoomedCorridorsDescriptors.WEAPON_SELECTION_ACTIONS_PROPERTY)));
         validRegistry.register(DoomedCorridorsDescriptors.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
         validRegistry.register(DoomedCorridorsDescriptors.PLAYER_PRESENTATION_TYPE, new PlayerPresentationFactory());
         validRegistry.register(
@@ -395,12 +405,11 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     properties, DoomedCorridorsDescriptors.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY));
             return new DoomWeaponPresentation(
                     context.world().requireModule(PresentationWorldModule.class),
+                    properties.text(DoomedCorridorsDescriptors.WEAPON_ID_PROPERTY),
                     readyFrame,
                     fireFrames,
                     fireSound,
-                    frameDuration,
-                    hitIndicatorDuration,
-                    deathLowerDuration);
+                    new DoomWeaponPresentation.Timing(frameDuration, hitIndicatorDuration, deathLowerDuration));
         }
     }
 

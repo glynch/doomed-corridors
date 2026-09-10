@@ -32,10 +32,10 @@ The actor catalog in
 [`game/actors.json`](game/actors.json) assigns Doom II meanings and initial
 sprite frames to the numeric thing types stored in classic maps.
 [`game/combat.json`](game/combat.json) defines initial player
-resources, the pistol's hitscan and damage rules, and the zombieman's health and
+resources, pistol and shotgun hitscan rules, and the zombieman's health and
 collision bounds, awareness, pursuit, attack timing, and damage. It also defines
-player resource capacities and effects for stimpacks, medikits, health bonuses,
-soulspheres, ammunition clips, and bullet boxes.
+player resource capacities and effects for health, armor, bullet, shell, and
+shotgun pickups.
 [`game/combat-presentation.json`](game/combat-presentation.json) binds those
 identities to WAD-backed weapon, movement, attack, pain, death, pickup sound, and
 HUD assets without embedding their lump names in the application. The entry
@@ -108,12 +108,13 @@ The descriptor-authored MAP01 world currently provides:
   as placements of reusable generated entity definitions;
 - capsule-based first-person movement with wall sliding, floor changes, and
   bounded step traversal;
-- a hitscan pistol with ammunition consumption, imported animation and sound,
-  auto-aim within authored limits, and a hit indicator;
+- selectable pistol and shotgun hitscan weapons with separate ammunition pools,
+  imported animation and sound, auto-aim within authored limits, and a hit indicator;
 - enemies with authored sight, pursuit, collision, attacks, pain, death,
   positional audio, and non-blocking corpses;
-- useful-only health and bullet pickup collection through authored sensors;
-- a descriptor-authored HUD showing live health and bullet ammunition;
+- useful-only health, armor, bullet, shell, and shotgun pickup collection through
+  authored sensors;
+- a descriptor-authored HUD showing live health, armor, and selected-weapon ammunition;
 - a descriptor-authored startup and pause menu using project-owned background
   and title artwork, with Resume, New Game, and Quit application transitions;
 - a project-authored launch splash with a two-second minimum presentation,
@@ -153,6 +154,7 @@ replacement world is built; a load failure preserves the existing session.
 Click the game window to capture the pointer; that acquisition click does not
 fire. W/A/S/D move, the mouse looks while captured, and the left/right arrow
 keys turn. Subsequent left mouse clicks fire while the pointer is captured.
+Press 1 to select the pistol or 2 to select the shotgun after collecting it.
 Held keyboard turning accelerates from the
 authored initial rate to its authored maximum; releasing or reversing the key
 resets that rate. E activates the nearest unobstructed supported door within the
@@ -175,8 +177,9 @@ yet save project changes.
 ## Development
 
 Implementation plans and architectural decisions are documented under
-[`docs/`](docs/). The first playable milestone is described in
-[`docs/first-room-prototype.md`](docs/first-room-prototype.md).
+[`docs/`](docs/). Current controls and actor behavior are listed in the
+[`gameplay guide`](docs/gameplay-guide.md), and the first playable milestone is
+described in [`docs/first-room-prototype.md`](docs/first-room-prototype.md).
 
 ### Optional VS Code multi-root workspace
 

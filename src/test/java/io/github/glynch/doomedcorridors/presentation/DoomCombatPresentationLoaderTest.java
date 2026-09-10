@@ -27,6 +27,9 @@ final class DoomCombatPresentationLoaderTest {
         assertThat(rules.weapon().id()).isEqualTo("pistol");
         assertThat(rules.weapon().readyFrame()).isEqualTo("PISGA0");
         assertThat(rules.weapon().fireFrames()).containsExactly("PISGB0", "PISGC0", "PISGD0", "PISGE0");
+        assertThat(rules.weapons())
+                .extracting(DoomCombatPresentationRules.Weapon::id)
+                .containsExactly("pistol", "shotgun");
         assertThat(rules.combatant("zombieman").animations().deathFrames())
                 .containsExactly("POSSH0", "POSSI0", "POSSJ0", "POSSK0", "POSSL0");
         assertThat(rules.combatant("zombieman").animations().walkFrames())
@@ -36,8 +39,8 @@ final class DoomCombatPresentationLoaderTest {
         assertThat(rules.doors())
                 .isEqualTo(new DoomCombatPresentationRules.Doors("DSDOROPN", "DSDORCLS", "DSBDOPN", "DSBDCLS"));
         assertThat(rules.hud().digits()).hasSize(10);
-        assertThat(rules.imageLumps()).hasSize(28);
-        assertThat(rules.soundLumps()).hasSize(15);
+        assertThat(rules.imageLumps()).hasSize(32);
+        assertThat(rules.soundLumps()).hasSize(16);
     }
 
     /** Loads the companion combat rules used for cross-document validation. */

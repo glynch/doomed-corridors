@@ -16,6 +16,8 @@ import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
+import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceResolver;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallbacks;
 import io.github.glynch.jscene3d.render.Overlay;
 import io.github.glynch.jscene3d.render.OverlayCanvas;
@@ -25,14 +27,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.joml.Vector2f;
+import org.jspecify.annotations.Nullable;
 
 /** Presents one descriptor-configured first-person weapon through a screen overlay and local sound. */
 final class DoomWeaponPresentation
-        implements Overlay, ComponentEndpointBinder, ComponentUpdateCallbacks, AutoCloseable {
+        implements Overlay, ComponentEndpointBinder, ComponentReferenceBinder, ComponentUpdateCallbacks, AutoCloseable {
     private static final float REFERENCE_WIDTH = 320.0F;
     private static final float REFERENCE_HEIGHT = 200.0F;
 
     private final OverlayImage readyFrame;
+    private final String weaponId;
     private final List<OverlayImage> fireFrames;
     private final Duration frameDuration;
     private final Duration hitIndicatorDuration;
@@ -46,17 +50,19 @@ final class DoomWeaponPresentation
     private int fireFrameIndex = -1;
     private boolean dead;
     private boolean closed;
+    private @Nullable DoomPlayerState playerState;
 
     /** Converts shared texture resources and acquires component-owned host presentation handles. */
     DoomWeaponPresentation(
             PresentationWorldModule presentation,
+            String weaponId,
             OverlayImageResource readyFrame,
             List<OverlayImageResource> fireFrames,
             PcmAudioResource fireSound,
-            Duration frameDuration,
-            Duration hitIndicatorDuration,
-            Duration deathLowerDuration) {
+            Timing timing) {
         PresentationWorldModule validPresentation = Objects.requireNonNull(presentation, "presentation");
+        Timing validTiming = Objects.requireNonNull(timing, "timing");
+        this.weaponId = Objects.requireNonNull(weaponId, "weaponId");
         this.readyFrame = Objects.requireNonNull(readyFrame, "readyFrame").image();
         this.fireFrames = List.copyOf(Objects.requireNonNull(fireFrames, "fireFrames")).stream()
                 .map(OverlayImageResource::image)
@@ -64,16 +70,16 @@ final class DoomWeaponPresentation
         if (this.fireFrames.isEmpty()) {
             throw new IllegalArgumentException("fireFrames must not be empty");
         }
-        this.frameDuration = Objects.requireNonNull(frameDuration, "frameDuration");
-        if (frameDuration.isZero() || frameDuration.isNegative()) {
+        this.frameDuration = validTiming.frameDuration();
+        if (this.frameDuration.isZero() || this.frameDuration.isNegative()) {
             throw new IllegalArgumentException("frameDuration must be positive");
         }
-        this.hitIndicatorDuration = Objects.requireNonNull(hitIndicatorDuration, "hitIndicatorDuration");
-        if (hitIndicatorDuration.isZero() || hitIndicatorDuration.isNegative()) {
+        this.hitIndicatorDuration = validTiming.hitIndicatorDuration();
+        if (this.hitIndicatorDuration.isZero() || this.hitIndicatorDuration.isNegative()) {
             throw new IllegalArgumentException("hitIndicatorDuration must be positive");
         }
-        this.deathLowerDuration = Objects.requireNonNull(deathLowerDuration, "deathLowerDuration");
-        if (deathLowerDuration.isZero() || deathLowerDuration.isNegative()) {
+        this.deathLowerDuration = validTiming.deathLowerDuration();
+        if (this.deathLowerDuration.isZero() || this.deathLowerDuration.isNegative()) {
             throw new IllegalArgumentException("deathLowerDuration must be positive");
         }
         this.fireSound = validPresentation.createLocalSound(
@@ -84,6 +90,21 @@ final class DoomWeaponPresentation
             this.fireSound.close();
             throw failure;
         }
+    }
+
+    /** Groups the three independently authored weapon-presentation durations. */
+    record Timing(Duration frameDuration, Duration hitIndicatorDuration, Duration deathLowerDuration) {
+        Timing {
+            Objects.requireNonNull(frameDuration, "frameDuration");
+            Objects.requireNonNull(hitIndicatorDuration, "hitIndicatorDuration");
+            Objects.requireNonNull(deathLowerDuration, "deathLowerDuration");
+        }
+    }
+
+    @Override
+    public void bindReferences(ComponentReferenceResolver references) {
+        playerState = Objects.requireNonNull(references, "references")
+                .component(DoomedCorridorsDescriptors.WEAPON_SELECTOR_PLAYER_STATE_PROPERTY, DoomPlayerState.class);
     }
 
     /** Binds the descriptor-declared firing, hit, and terminal-player receivers. */
@@ -121,7 +142,7 @@ final class DoomWeaponPresentation
     @Override
     public void paint(OverlayCanvas canvas, int width, int height) {
         Objects.requireNonNull(canvas, "canvas");
-        if (!isVisible()) {
+        if (!isVisible() || !requiredPlayerState().activeWeapon().equals(weaponId)) {
             return;
         }
         OverlayImage frame = currentFrame();
@@ -194,7 +215,7 @@ final class DoomWeaponPresentation
         if (closed) {
             throw new IllegalStateException("weapon presentation is closed");
         }
-        if (dead) {
+        if (dead || !requiredPlayerState().activeWeapon().equals(weaponId)) {
             return;
         }
         fireFrameIndex = 0;
@@ -208,6 +229,9 @@ final class DoomWeaponPresentation
             throw new IllegalStateException("weapon presentation is closed");
         }
         RuntimePayload validPayload = Objects.requireNonNull(payload, "payload");
+        if (!requiredPlayerState().activeWeapon().equals(weaponId)) {
+            return;
+        }
         if (!validPayload.type().equals(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE)
                 || !(validPayload.value() instanceof DoomWeaponHitLocation weaponHit)) {
             throw new IllegalArgumentException("receive-hit requires the declared Doom weapon-hit payload");
@@ -230,6 +254,11 @@ final class DoomWeaponPresentation
         hitIndicatorRemaining = Duration.ZERO;
         hitIndicator = Optional.empty();
         deathLowerElapsed = Duration.ZERO;
+    }
+
+    /** Requires explicit player-state binding before presentation begins. */
+    private DoomPlayerState requiredPlayerState() {
+        return Objects.requireNonNull(playerState, "player state has not been bound");
     }
 
     /** Draws a compact red X at the perspective-projected successful-hit location. */

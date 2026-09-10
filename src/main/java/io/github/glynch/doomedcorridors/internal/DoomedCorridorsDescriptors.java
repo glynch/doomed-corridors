@@ -46,6 +46,9 @@ public final class DoomedCorridorsDescriptors {
     /** Runtime type for one input-driven hitscan weapon. */
     public static final ComponentType HITSCAN_WEAPON_TYPE = ComponentType.of(EXTENSION_ID + "/hitscan-weapon", 1);
 
+    /** Runtime type selecting an owned weapon from authored input bindings. */
+    public static final ComponentType WEAPON_SELECTOR_TYPE = ComponentType.of(EXTENSION_ID + "/weapon-selector", 1);
+
     /** Runtime type for first-person weapon overlay and local firing sound. */
     public static final ComponentType WEAPON_PRESENTATION_TYPE =
             ComponentType.of(EXTENSION_ID + "/weapon-presentation", 1);
@@ -156,6 +159,15 @@ public final class DoomedCorridorsDescriptors {
     /** Provider weapon identity used to configure one weapon component. */
     public static final PropertyId WEAPON_ID_PROPERTY = new PropertyId("weapon-id");
 
+    /** Explicit player-state target shared by weapon selection and presentation. */
+    public static final PropertyId WEAPON_SELECTOR_PLAYER_STATE_PROPERTY = new PropertyId("player-state");
+
+    /** Ordered stable weapon identities selectable by authored input actions. */
+    public static final PropertyId SELECTABLE_WEAPONS_PROPERTY = new PropertyId("weapons");
+
+    /** Ordered semantic input actions parallel to selectable weapon identities. */
+    public static final PropertyId WEAPON_SELECTION_ACTIONS_PROPERTY = new PropertyId("actions");
+
     /** Explicit component target supplying the weapon's world-space origin and direction. */
     public static final PropertyId VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
 
@@ -238,6 +250,9 @@ public final class DoomedCorridorsDescriptors {
 
     /** Explicit generic screen-number target displaying bullet ammunition. */
     public static final PropertyId HUD_AMMO_NUMBER_PROPERTY = new PropertyId("ammo-number");
+
+    /** Explicit generic screen-number target displaying player armour. */
+    public static final PropertyId HUD_ARMOR_NUMBER_PROPERTY = new PropertyId("armor-number");
 
     /** Explicit component target supplying the interaction ray origin and direction. */
     public static final PropertyId INTERACTION_VIEW_TRANSFORM_PROPERTY = new PropertyId("view-transform");
@@ -349,6 +364,12 @@ public final class DoomedCorridorsDescriptors {
 
     /** Pickup resource-limit property. */
     public static final PropertyId PICKUP_LIMIT_PROPERTY = new PropertyId("limit");
+
+    /** Optional weapon identity granted by one pickup, or an empty string. */
+    public static final PropertyId PICKUP_GRANTED_WEAPON_PROPERTY = new PropertyId("granted-weapon");
+
+    /** Armour damage-protection percentage selected by one armour pickup. */
+    public static final PropertyId PICKUP_ARMOR_PROTECTION_PROPERTY = new PropertyId("armor-protection-percent");
 
     /** Pickup action receiving the generic physics overlap payload. */
     public static final EndpointId RECEIVE_OVERLAP_ACTION = new EndpointId("receive-overlap");

@@ -1,13 +1,22 @@
 {
-  "$schema": "../schema/combat-presentation-4.schema.json",
-  "schemaVersion": 4,
-  "weapon": {
-    "id": "pistol",
-    "readyFrame": "PISGA0",
-    "fireFrames": ["PISGB0", "PISGC0", "PISGD0", "PISGE0"],
-    "frameMilliseconds": 70,
-    "fireSound": "DSPISTOL"
-  },
+  "$schema": "../schema/combat-presentation-5.schema.json",
+  "schemaVersion": 5,
+  "weapons": [
+    {
+      "id": "pistol",
+      "readyFrame": "PISGA0",
+      "fireFrames": ["PISGB0", "PISGC0", "PISGD0", "PISGE0"],
+      "frameMilliseconds": 70,
+      "fireSound": "DSPISTOL"
+    },
+    {
+      "id": "shotgun",
+      "readyFrame": "SHTGA0",
+      "fireFrames": ["SHTGB0", "SHTGC0", "SHTGD0", "SHTGC0", "SHTGB0"],
+      "frameMilliseconds": 90,
+      "fireSound": "DSSHOTGN"
+    }
+  ],
   "player": {
     "painSound": "DSPLPAIN",
     "deathSound": "DSPLDETH"

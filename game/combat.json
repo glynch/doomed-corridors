@@ -1,17 +1,35 @@
 {
-  "$schema": "../schema/combat-4.schema.json",
-  "schemaVersion": 4,
+  "$schema": "../schema/combat-5.schema.json",
+  "schemaVersion": 5,
   "player": {
     "startingHealth": 100,
     "maximumHealth": 200,
+    "startingArmor": 0,
+    "maximumArmor": 200,
     "startingBullets": 50,
     "maximumBullets": 200,
+    "startingShells": 0,
+    "maximumShells": 50,
     "startingWeapon": "pistol"
   },
   "weapons": [
     {
       "id": "pistol",
+      "ammunition": "bullets",
       "ammoPerShot": 1,
+      "pelletCount": 1,
+      "range": 2048,
+      "autoAimAngleDegrees": 5.625,
+      "autoAimMaximumSlope": 0.625,
+      "damageMinimum": 5,
+      "damageMaximum": 15,
+      "damageStep": 5
+    },
+    {
+      "id": "shotgun",
+      "ammunition": "shells",
+      "ammoPerShot": 1,
+      "pelletCount": 7,
       "range": 2048,
       "autoAimAngleDegrees": 5.625,
       "autoAimMaximumSlope": 0.625,
@@ -44,9 +62,14 @@
   "pickups": [
     { "actor": "ammunition-clip", "resource": "bullets", "amount": 10, "limit": 200, "radius": 20 },
     { "actor": "box-of-bullets", "resource": "bullets", "amount": 50, "limit": 200, "radius": 20 },
+    { "actor": "shotgun-shells", "resource": "shells", "amount": 4, "limit": 50, "radius": 20 },
+    { "actor": "shotgun", "resource": "shells", "amount": 8, "limit": 50, "radius": 20, "grantedWeapon": "shotgun" },
     { "actor": "stimpack", "resource": "health", "amount": 10, "limit": 100, "radius": 20 },
     { "actor": "medikit", "resource": "health", "amount": 25, "limit": 100, "radius": 20 },
     { "actor": "health-bonus", "resource": "health", "amount": 1, "limit": 200, "radius": 20 },
-    { "actor": "soulsphere", "resource": "health", "amount": 100, "limit": 200, "radius": 20 }
+    { "actor": "soulsphere", "resource": "health", "amount": 100, "limit": 200, "radius": 20 },
+    { "actor": "armor-bonus", "resource": "armor", "amount": 1, "limit": 200, "radius": 20, "armorProtectionPercent": 33 },
+    { "actor": "green-armor", "resource": "armor", "amount": 100, "limit": 100, "radius": 20, "armorProtectionPercent": 33 },
+    { "actor": "blue-armor", "resource": "armor", "amount": 200, "limit": 200, "radius": 20, "armorProtectionPercent": 50 }
   ]
 }

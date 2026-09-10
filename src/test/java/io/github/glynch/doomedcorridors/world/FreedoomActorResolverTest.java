@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalog;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
+import io.github.glynch.doomedcorridors.actor.DoomActorCategory;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
 import io.github.glynch.doomedcorridors.actor.DoomActorSprites;
 import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
@@ -19,6 +20,8 @@ import io.github.glynch.doomedcorridors.wad.WadLoader;
 import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +43,17 @@ final class FreedoomActorResolverTest {
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.actors()).hasSize(119);
+        assertThat(result.actors().stream()
+                        .collect(Collectors.groupingBy(
+                                actor -> actor.definition().category(), Collectors.counting())))
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        DoomActorCategory.AMMUNITION, 10L,
+                        DoomActorCategory.ARMOR, 22L,
+                        DoomActorCategory.CORPSE, 1L,
+                        DoomActorCategory.DECORATION, 47L,
+                        DoomActorCategory.ENEMY, 18L,
+                        DoomActorCategory.HEALTH, 19L,
+                        DoomActorCategory.WEAPON, 2L));
         assertThat(result.actors())
                 .extracting(actor -> actor.definition().id())
                 .contains("zombieman", "shotgun-guy", "imp", "shotgun", "stimpack");

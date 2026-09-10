@@ -16,7 +16,7 @@ import java.util.Optional;
 
 /** Loads the versioned actor catalog owned by the Doomed Corridors Game Provider. */
 public final class DoomActorCatalogLoader {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -76,7 +76,13 @@ public final class DoomActorCatalogLoader {
                 required(raw.id(), "id"),
                 required(raw.name(), "name"),
                 category,
-                Optional.ofNullable(raw.spriteFrame()));
+                Optional.ofNullable(raw.spriteFrame()),
+                Optional.ofNullable(raw.collision()).map(DoomActorCatalogLoader::collisionBounds));
+    }
+
+    /** Converts optional physical actor metadata into validated engine-independent bounds. */
+    private static DoomActorCollisionBounds collisionBounds(RawCollision collision) {
+        return new DoomActorCollisionBounds(collision.radius(), collision.height());
     }
 
     /** Requires a JSON string field before domain construction. */
@@ -98,5 +104,9 @@ public final class DoomActorCatalogLoader {
     private record RawCatalog(@JsonProperty("$schema") String schema, int schemaVersion, List<RawActor> actors) {}
 
     /** Nullable JSON actor fields retained only long enough for semantic validation. */
-    private record RawActor(int thingType, String id, String name, String category, String spriteFrame) {}
+    private record RawActor(
+            int thingType, String id, String name, String category, String spriteFrame, RawCollision collision) {}
+
+    /** Nullable JSON collision binding retained only long enough for semantic validation. */
+    private record RawCollision(int radius, int height) {}
 }

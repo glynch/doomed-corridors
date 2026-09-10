@@ -33,6 +33,21 @@ public final class RuntimeProperties {
         return converted;
     }
 
+    /** Converts one descriptor-validated number into a non-negative exact integer. */
+    public static int nonNegativeInteger(ComponentProperties properties, PropertyId property) {
+        var number = number(properties, property);
+        final int converted;
+        try {
+            converted = number.intValueExact();
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(property + " must be representable as an exact integer", exception);
+        }
+        if (converted < 0) {
+            throw new IllegalArgumentException(property + " must be non-negative");
+        }
+        return converted;
+    }
+
     /** Converts one descriptor-validated number into a positive finite float. */
     public static float positiveFloat(ComponentProperties properties, PropertyId property) {
         float converted = finiteFloat(properties, property);
@@ -70,6 +85,24 @@ public final class RuntimeProperties {
         return elements.stream()
                 .map(element -> resourceReference(element, property))
                 .toList();
+    }
+
+    /** Converts one homogeneous descriptor-validated array into immutable text values. */
+    public static List<String> textValues(ComponentProperties properties, PropertyId property) {
+        ProjectValue value =
+                Objects.requireNonNull(properties, "properties").value(Objects.requireNonNull(property, "property"));
+        if (!(value instanceof ProjectValue.ArrayValue(var elements))) {
+            throw new IllegalArgumentException(property + " must be an array");
+        }
+        return elements.stream().map(element -> text(element, property)).toList();
+    }
+
+    /** Converts one already shape-validated array element into text. */
+    private static String text(ProjectValue value, PropertyId property) {
+        if (!(value instanceof ProjectValue.TextValue(String text))) {
+            throw new IllegalArgumentException(property + " must contain only text values");
+        }
+        return text;
     }
 
     /** Converts one already shape-validated array element into its resource reference. */

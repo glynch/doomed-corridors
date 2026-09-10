@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat asset and timing bindings. */
 public final class DoomCombatPresentationLoader {
-    private static final int SCHEMA_VERSION = 4;
+    private static final int SCHEMA_VERSION = 5;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -54,13 +54,15 @@ public final class DoomCombatPresentationLoader {
 
     /** Converts nullable JSON bindings into validated presentation rules. */
     private static DoomCombatPresentationRules toRules(RawPresentation raw) {
-        RawWeapon rawWeapon = Objects.requireNonNull(raw.weapon(), "weapon is required");
-        DoomCombatPresentationRules.Weapon weapon = new DoomCombatPresentationRules.Weapon(
-                rawWeapon.id(),
-                rawWeapon.readyFrame(),
-                rawWeapon.fireFrames(),
-                Duration.ofMillis(rawWeapon.frameMilliseconds()),
-                rawWeapon.fireSound());
+        List<RawWeapon> rawWeapons = Objects.requireNonNull(raw.weapons(), "weapons are required");
+        List<DoomCombatPresentationRules.Weapon> weapons = rawWeapons.stream()
+                .map(rawWeapon -> new DoomCombatPresentationRules.Weapon(
+                        rawWeapon.id(),
+                        rawWeapon.readyFrame(),
+                        rawWeapon.fireFrames(),
+                        Duration.ofMillis(rawWeapon.frameMilliseconds()),
+                        rawWeapon.fireSound()))
+                .toList();
         RawPlayer rawPlayer = Objects.requireNonNull(raw.player(), "player is required");
         DoomCombatPresentationRules.Player player =
                 new DoomCombatPresentationRules.Player(rawPlayer.painSound(), rawPlayer.deathSound());
@@ -92,14 +94,14 @@ public final class DoomCombatPresentationLoader {
         }
         RawHud rawHud = Objects.requireNonNull(raw.hud(), "hud is required");
         DoomCombatPresentationRules.Hud hud = new DoomCombatPresentationRules.Hud(rawHud.digits(), rawHud.percent());
-        return new DoomCombatPresentationRules(weapon, player, pickups, doors, combatants, hud);
+        return new DoomCombatPresentationRules(weapons, player, pickups, doors, combatants, hud);
     }
 
     /** Requires all bindings to name combat identities from the companion rules. */
     private static void validateCombatReferences(DoomCombatPresentationRules presentation, DoomCombatRules combat) {
-        if (!presentation.weapon().id().equals(combat.primaryWeaponId())) {
-            throw new IllegalArgumentException("Presented weapon is not the primary combat weapon: "
-                    + presentation.weapon().id());
+        if (!presentation.weaponIds().containsAll(combat.weaponIds())
+                || !combat.weaponIds().containsAll(presentation.weaponIds())) {
+            throw new IllegalArgumentException("Presented weapons do not match configured combat weapons");
         }
         for (String actorId : presentation.combatantActorIds()) {
             if (!combat.hasCombatant(actorId)) {
@@ -119,7 +121,7 @@ public final class DoomCombatPresentationLoader {
     private record RawPresentation(
             @JsonProperty("$schema") String schema,
             int schemaVersion,
-            RawWeapon weapon,
+            List<RawWeapon> weapons,
             RawPlayer player,
             RawPickups pickups,
             RawDoors doors,

@@ -63,10 +63,15 @@ final class ProjectHostIntegrationTest {
     private static final AssetId MAP_DEFINITION = AssetId.from("15a64477-b57f-3ae3-bf65-33cd6baab7b6");
     private static final AssetId ACTOR_MAP_DEFINITION = AssetId.from("d0bc35d1-a26e-3d3f-bc8b-9e909b4d5efe");
     private static final EntityId PLAYER_ENTITY = EntityId.from("0b295328-b5a3-4f41-9f34-e9b4abc430a7");
+    private static final EntityId PLAYER_VIEW = EntityId.from("e58fd38b-dc23-4b75-8877-27377c9fbfac");
+    private static final EntityId SHOTGUN_PRESENTATION_ENTITY = EntityId.from("f917db29-05fe-4bc5-822f-0df200b0a27f");
     private static final EntityId PLAYER_CONTROLS = EntityId.from("5c76aa79-5270-4b2a-83c2-7451c50a7c40");
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
     private static final EntityId PLAYER_HUD = EntityId.from("c4f5ca56-661a-424d-aec2-b423d299af47");
+    private static final EntityId HEALTH_HUD = EntityId.from("62ee89f1-3746-49ba-9534-60b91b98ce30");
+    private static final EntityId AMMO_HUD = EntityId.from("daa471fd-eb3f-43e2-bbd2-eef5cbf39e02");
+    private static final EntityId ARMOR_HUD = EntityId.from("7cd92c6a-e493-467b-a255-0c0ff984b0f0");
     private static final EntityId GAME_OVER = EntityId.from("ae31f849-77f6-4269-be03-bc3d90937324");
     private static final EntityId RESTART_CURSOR = EntityId.from("a02bfece-c08b-4044-9f9f-1c5d27ccfe82");
     private static final EntityId MAIN_MENU_CURSOR = EntityId.from("7cea67f4-5e36-4256-a658-a27056d421d0");
@@ -111,19 +116,27 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId ENEMY_TARGET = actorComponentId("maps/MAP01/actors/root/enemy-target");
     private static final ComponentId STIMPACK_PICKUP =
             actorComponentId("maps/MAP01/actors/definitions/stimpack/root/pickup");
+    private static final ComponentId SHOTGUN_PICKUP =
+            actorComponentId("maps/MAP01/actors/definitions/shotgun/root/pickup");
+    private static final ComponentId GREEN_ARMOR_PICKUP =
+            actorComponentId("maps/MAP01/actors/definitions/green-armor/root/pickup");
     private static final ComponentId PLAYER_CONTROLLER = ComponentId.from("486f49a3-fe97-4a6c-b92d-533a1995493c");
     private static final ComponentId DOOR_INTERACTOR = ComponentId.from("2b67d91b-24ac-4f1c-94e7-8308dfc2ed70");
     private static final ComponentId PLAYER_WEAPON = ComponentId.from("3cf4b320-4186-4610-b67d-ebd843d53fc9");
     private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
+    private static final ComponentId SHOTGUN_PRESENTATION = ComponentId.from("c1d2ac4d-fcd3-41cc-9923-8097f1f890ce");
     private static final ComponentId PLAYER_PRESENTATION = ComponentId.from("7be3f3e4-e576-4710-8382-260037317921");
     private static final ComponentId PLAYER_LIFECYCLE = ComponentId.from("10bfeecd-9583-4182-8f0c-1165e98fc714");
     private static final ComponentId MAIN_MENU_COMPONENT = ComponentId.from("f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9");
     private static final ComponentId HEALTH_NUMBER = ComponentId.from("2313f424-d11e-4c6b-95a2-1c8dbe583b7d");
     private static final ComponentId AMMO_NUMBER = ComponentId.from("00f54e60-dd1c-47e2-a180-83bfcefdc2d9");
+    private static final ComponentId ARMOR_NUMBER = ComponentId.from("27e0bb5b-5324-47e3-9a5c-49f3b9e1c2b5");
     private static final InputAction MOVE = new InputAction("move");
     private static final InputAction LOOK = new InputAction("look");
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
     private static final InputAction FIRE_PRIMARY = new InputAction("fire-primary");
+    private static final InputAction SELECT_PISTOL = new InputAction("select-pistol");
+    private static final InputAction SELECT_SHOTGUN = new InputAction("select-shotgun");
     private static final InputAction INTERACT = new InputAction("interact");
     private static final InputAction MENU_NEXT = new InputAction("menu-next");
     private static final InputAction MENU_CONFIRM = new InputAction("menu-confirm");
@@ -166,10 +179,12 @@ final class ProjectHostIntegrationTest {
             Entity placement = root(loaded, MAP_PLACEMENT);
             CharacterBody3d character =
                     player.component(PLAYER_BODY, CharacterBody3d.class).orElseThrow();
+            DoomPlayerState playerState = player.capability(
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                    .orElseThrow();
             Transform3d playerTransform =
                     player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
-            Transform3d viewTransform = player.children()
-                    .getFirst()
+            Transform3d viewTransform = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             renderer = placement.component(FIRST_RENDERER, MeshRenderer3d.class).orElseThrow();
@@ -187,6 +202,7 @@ final class ProjectHostIntegrationTest {
                             "Game Over",
                             "World Presentation");
             assertThat(character.isClosed()).isFalse();
+            assertDefaultPlayerResources(playerState);
             assertThat(player.componentIds())
                     .contains(PLAYER_WEAPON, WEAPON_PRESENTATION, PLAYER_PRESENTATION, PLAYER_LIFECYCLE)
                     .doesNotContain(PLAYER_CONTROLLER);
@@ -205,9 +221,9 @@ final class ProjectHostIntegrationTest {
             assertThat(mesh.isClosed()).isFalse();
             assertThat(material.isClosed()).isFalse();
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionObjectCount())
-                    .isEqualTo(47);
+                    .isEqualTo(129);
             assertThat(loaded.world().requireModule(Physics3dWorldModule.class).collisionShapeCount())
-                    .isEqualTo(47);
+                    .isEqualTo(129);
             assertThat(loaded.world().requireModule(Spatial3dWorldModule.class).isReadyToRender())
                     .isFalse();
 
@@ -391,8 +407,8 @@ final class ProjectHostIntegrationTest {
             assertThat(body.isClosed()).isTrue();
             assertThat(zombieman.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(46);
-            assertThat(physics.collisionShapeCount()).isEqualTo(46);
+            assertThat(physics.collisionObjectCount()).isEqualTo(128);
+            assertThat(physics.collisionShapeCount()).isEqualTo(128);
             assertThat(presentationWorld.positionalRestarts()).isEqualTo(2);
 
             loaded.world().advanceFrame(Duration.ofMillis(560), 0.0F);
@@ -420,8 +436,7 @@ final class ProjectHostIntegrationTest {
             assertThat(player.capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
                             .orElseThrow())
                     .isSameAs(playerState);
-            Transform3d view = player.children()
-                    .getFirst()
+            Transform3d view = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
@@ -431,12 +446,10 @@ final class ProjectHostIntegrationTest {
                             WEAPON_PRESENTATION, DoomWeaponPresentation.class)
                     .orElseThrow();
             Entity hud = root(loaded, PLAYER_HUD);
-            ScreenNumber healthNumber = hud.children()
-                    .getFirst()
+            ScreenNumber healthNumber = child(hud, HEALTH_HUD)
                     .component(HEALTH_NUMBER, ScreenNumber.class)
                     .orElseThrow();
-            ScreenNumber ammoNumber = hud.children()
-                    .getLast()
+            ScreenNumber ammoNumber = child(hud, AMMO_HUD)
                     .component(AMMO_NUMBER, ScreenNumber.class)
                     .orElseThrow();
 
@@ -444,7 +457,7 @@ final class ProjectHostIntegrationTest {
             loaded.world().advanceFrame(Duration.ZERO, 0.0F);
             assertThat(healthNumber.value()).isEqualTo(100);
             assertThat(ammoNumber.value()).isEqualTo(50);
-            assertThat(presentation.overlayCount()).isEqualTo(4);
+            assertThat(presentation.overlayCount()).isEqualTo(5);
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
             input.publish(ActionSnapshot.empty());
@@ -499,8 +512,8 @@ final class ProjectHostIntegrationTest {
             assertThat(playerState.bullets()).isEqualTo(44);
             assertThat(target.isDestroyed()).isFalse();
             assertThat(actors.children()).hasSize(119);
-            assertThat(physics.collisionObjectCount()).isEqualTo(46);
-            assertThat(physics.collisionShapeCount()).isEqualTo(46);
+            assertThat(physics.collisionObjectCount()).isEqualTo(128);
+            assertThat(physics.collisionShapeCount()).isEqualTo(128);
             assertThat(presentation.restarts()).isEqualTo(6);
         }
         assertThat(presentation.overlayCount()).isZero();
@@ -537,7 +550,7 @@ final class ProjectHostIntegrationTest {
                 .orElseThrow();
         DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
                 .orElseThrow();
-        assertThat(presentationWorld.overlayCount()).isEqualTo(4);
+        assertThat(presentationWorld.overlayCount()).isEqualTo(5);
         assertThat(gameOver.isLocallyEnabled()).isFalse();
         assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER, DOOR_INTERACTOR, MAIN_MENU_COMPONENT);
         assertThat(state.damage(10)).isEqualTo(10);
@@ -555,10 +568,7 @@ final class ProjectHostIntegrationTest {
     private static void assertTerminalPlayerState(TestPresentationWorldModule presentationWorld, HostedProject loaded) {
         Entity player = root(loaded, PLAYER_ENTITY);
         Entity controls = child(player, PLAYER_CONTROLS);
-        Entity view = player.children().stream()
-                .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
-                .findFirst()
-                .orElseThrow();
+        Entity view = child(player, PLAYER_VIEW);
         Entity hud = root(loaded, PLAYER_HUD);
         DoomPlayerState state = player.component(
                         ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
@@ -638,10 +648,7 @@ final class ProjectHostIntegrationTest {
 
         try (HostedProject loaded = load(cache, new TestPresentationWorldModule())) {
             Entity player = root(loaded, PLAYER_ENTITY);
-            Entity view = player.children().stream()
-                    .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
-                    .findFirst()
-                    .orElseThrow();
+            Entity view = child(player, PLAYER_VIEW);
             DoomPlayerState state = player.component(
                             ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
                     .orElseThrow();
@@ -732,6 +739,118 @@ final class ProjectHostIntegrationTest {
         }
     }
 
+    /** Collects the imported shotgun, selects both owned weapons, and fires from the shell pool. */
+    @Test
+    void collectsSelectsAndFiresShotgunFromPlaytestProfile() {
+        Path cache = temporaryDirectory.resolve("shotgun-playtest-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        PlaytestProfile profile = new PlaytestProfileLoader().load(PROJECT_ROOT, "shotgun-pickup");
+        ProjectLaunchRequest request =
+                ProjectLaunchRequest.playtest(profile.name(), profile.scene(), profile.parameters());
+        TestPresentationWorldModule presentation = new TestPresentationWorldModule();
+
+        try (HostedProject loaded = load(cache, request, presentation)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState state = player.capability(
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                    .orElseThrow();
+            Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
+            Entity shotgun = actor(actors, "Shotgun 27");
+            DoomPickup pickup =
+                    shotgun.component(SHOTGUN_PICKUP, DoomPickup.class).orElseThrow();
+            DoomWeaponPresentation pistol = player.component(WEAPON_PRESENTATION, DoomWeaponPresentation.class)
+                    .orElseThrow();
+            DoomWeaponPresentation shotgunPresentation = child(player, SHOTGUN_PRESENTATION_ENTITY)
+                    .component(SHOTGUN_PRESENTATION, DoomWeaponPresentation.class)
+                    .orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            assertThat(state.activeWeapon()).isEqualTo("pistol");
+            assertThat(state.ownsWeapon("shotgun")).isFalse();
+            assertThat(state.shells()).isZero();
+
+            loaded.world().activate();
+            input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
+            advanceFixed(loaded, 12);
+
+            assertThat(pickup.isCollected()).isTrue();
+            assertThat(shotgun.isDestroyed()).isTrue();
+            assertThat(state.ownsWeapon("shotgun")).isTrue();
+            assertThat(state.activeWeapon()).isEqualTo("shotgun");
+            assertThat(state.shells()).isEqualTo(8);
+
+            input.publish(ActionSnapshot.builder().pressed(SELECT_PISTOL).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            assertThat(state.activeWeapon()).isEqualTo("pistol");
+
+            input.publish(ActionSnapshot.builder().pressed(SELECT_SHOTGUN).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            assertThat(state.activeWeapon()).isEqualTo("shotgun");
+
+            input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            assertThat(state.shells()).isEqualTo(7);
+            assertThat(shotgunPresentation.isFiring()).isTrue();
+            assertThat(pistol.isFiring()).isFalse();
+        }
+    }
+
+    /** Collects imported green armor from its repeatable playtest entry point. */
+    @Test
+    void collectsGreenArmorFromPlaytestProfile() {
+        Path cache = temporaryDirectory.resolve("green-armor-playtest-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        PlaytestProfile profile = new PlaytestProfileLoader().load(PROJECT_ROOT, "green-armor-pickup");
+        ProjectLaunchRequest request =
+                ProjectLaunchRequest.playtest(profile.name(), profile.scene(), profile.parameters());
+
+        try (HostedProject loaded = load(cache, request)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState state = player.capability(
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                    .orElseThrow();
+            Entity armor = actor(root(loaded, ACTOR_MAP_PLACEMENT), "Green Armor 15");
+            DoomPickup pickup =
+                    armor.component(GREEN_ARMOR_PICKUP, DoomPickup.class).orElseThrow();
+            ScreenNumber armorNumber = child(root(loaded, PLAYER_HUD), ARMOR_HUD)
+                    .component(ARMOR_NUMBER, ScreenNumber.class)
+                    .orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            assertThat(state.armor()).isZero();
+            loaded.world().activate();
+            loaded.world().advanceFrame(Duration.ZERO, 0.0F);
+            assertThat(armorNumber.value()).isZero();
+            input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
+            advanceFixed(loaded, 12);
+            loaded.world().advanceFrame(Duration.ZERO, 0.0F);
+
+            assertThat(pickup.isCollected()).isTrue();
+            assertThat(armor.isDestroyed()).isTrue();
+            assertThat(state.armor()).isEqualTo(100);
+            assertThat(armorNumber.value()).isEqualTo(100);
+        }
+    }
+
+    /** Publishes provider-authored solid decoration bounds as blocking physics bodies. */
+    @Test
+    void blocksRaysAtSolidImportedDecoration() {
+        Path cache = temporaryDirectory.resolve("solid-decoration-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            Entity pillar = actor(root(loaded, ACTOR_MAP_PLACEMENT), "Tech Pillar 28");
+            Physics3dWorldModule physics = loaded.world().requireModule(Physics3dWorldModule.class);
+
+            loaded.world().activate();
+            CollisionRaycastHit3d hit = physics.raycast(
+                            new Vector3f(61.0F, 2.5F, 3.0F), new Vector3f(0.0F, 0.0F, -1.0F), 4.0F)
+                    .orElseThrow();
+
+            assertThat(hit.object().owner()).isSameAs(pillar);
+        }
+    }
+
     /** Moves the composed player from semantic input while its child camera follows the resolved body pose. */
     @Test
     void movesHostedPlayerAndAttachedCamera() {
@@ -744,8 +863,7 @@ final class ProjectHostIntegrationTest {
                     player.component(PLAYER_BODY, CharacterBody3d.class).orElseThrow();
             Transform3d playerTransform =
                     player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
-            Transform3d viewTransform = player.children()
-                    .getFirst()
+            Transform3d viewTransform = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
@@ -804,8 +922,7 @@ final class ProjectHostIntegrationTest {
                     .orElseThrow();
             Transform3d playerTransform =
                     player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
-            Transform3d viewTransform = player.children()
-                    .getFirst()
+            Transform3d viewTransform = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
@@ -900,8 +1017,7 @@ final class ProjectHostIntegrationTest {
 
         try (HostedProject loaded = load(cache, presentation)) {
             Entity player = root(loaded, PLAYER_ENTITY);
-            Transform3d view = player.children()
-                    .getFirst()
+            Transform3d view = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             Entity doorEntity = root(loaded, MAP_PLACEMENT).children().getFirst();
@@ -1081,8 +1197,7 @@ final class ProjectHostIntegrationTest {
 
         try (HostedProject loaded = load(cache)) {
             Entity player = root(loaded, PLAYER_ENTITY);
-            Transform3d view = player.children()
-                    .getFirst()
+            Transform3d view = child(player, PLAYER_VIEW)
                     .component(VIEW_TRANSFORM, Transform3d.class)
                     .orElseThrow();
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
@@ -1119,10 +1234,16 @@ final class ProjectHostIntegrationTest {
 
     /** Loads one explicit playtest request through the same desktop-equivalent environment. */
     private static HostedProject load(Path cache, ProjectLaunchRequest request) {
+        return load(cache, request, new TestPresentationWorldModule());
+    }
+
+    /** Loads one explicit playtest request with an observable host-owned presentation module. */
+    private static HostedProject load(
+            Path cache, ProjectLaunchRequest request, TestPresentationWorldModule presentation) {
         ProjectRuntimeHost host = new ProjectRuntimeHost(
                 ENGINE_VERSION,
                 ProjectHostIntegrationTest.class.getClassLoader(),
-                new TestProjectEnvironment(cache, new TestPresentationWorldModule()));
+                new TestProjectEnvironment(cache, presentation));
         return host.loadEntry(PROJECT_ROOT, request);
     }
 
@@ -1252,6 +1373,16 @@ final class ProjectHostIntegrationTest {
                 .filter(entity -> entity.name().orElseThrow().equals(name))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    /** Verifies that an ordinary launch retains the authored initial player loadout. */
+    private static void assertDefaultPlayerResources(DoomPlayerState playerState) {
+        assertThat(playerState.health()).isEqualTo(100);
+        assertThat(playerState.armor()).isZero();
+        assertThat(playerState.bullets()).isEqualTo(50);
+        assertThat(playerState.shells()).isZero();
+        assertThat(playerState.activeWeapon()).isEqualTo("pistol");
+        assertThat(playerState.ownsWeapon("shotgun")).isFalse();
     }
 
     /** Finds one short unobstructed ray into a damageable actor from its surrounding map space. */

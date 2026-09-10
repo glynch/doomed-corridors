@@ -32,7 +32,7 @@ import java.util.Random;
 import java.util.random.RandomGenerator;
 import org.joml.Vector3f;
 
-/** Input-driven Doom hitscan weapon using the authored player view as its firing pose. */
+/** Input-driven controller which fires the player's selected Doom hitscan weapon from the authored view. */
 final class DoomHitscanWeapon
         implements DoomRuleConsumer, ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks {
     private static final float SELF_HIT_ADVANCE = 1.0E-4F;
@@ -42,7 +42,6 @@ final class DoomHitscanWeapon
     private final Physics3dWorldModule physics;
     private final ResourceReference actorCatalog;
     private final ResourceReference combatRules;
-    private final String weaponId;
     private final InputAction fireAction;
     private final RandomGenerator random;
     private Optional<Transform3d> viewTransform = Optional.empty();
@@ -50,6 +49,9 @@ final class DoomHitscanWeapon
     private RuntimeSignal fired;
     private RuntimeSignal hitSignal;
     private int ammunitionPerShot;
+    private int pelletCount;
+    private DoomCombatRules.Ammunition ammunition;
+    private String firingWeaponId;
     private float range;
     private float autoAimAngle;
     private float autoAimMaximumSlope;
@@ -62,14 +64,12 @@ final class DoomHitscanWeapon
             Physics3dWorldModule physics,
             ResourceReference actorCatalog,
             ResourceReference combatRules,
-            String weaponId,
             String fireAction) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.input = Objects.requireNonNull(input, "input");
         this.physics = Objects.requireNonNull(physics, "physics");
         this.actorCatalog = requireSourceAsset(actorCatalog, "actor-catalog");
         this.combatRules = requireSourceAsset(combatRules, "combat-rules");
-        this.weaponId = requireText(weaponId, "weapon-id");
         this.fireAction = new InputAction(requireText(fireAction, "fire-action"));
         random = new Random(owner.authoredId().value().getMostSignificantBits()
                 ^ owner.authoredId().value().getLeastSignificantBits());
@@ -91,13 +91,6 @@ final class DoomHitscanWeapon
             throw new IllegalStateException("weapon is already configured");
         }
         DoomCombatRules validRules = Objects.requireNonNull(configuredRules, "configuredRules");
-        if (!validRules.hasWeapon(weaponId)) {
-            throw new IllegalArgumentException("combat rules do not define weapon: " + weaponId);
-        }
-        ammunitionPerShot = validRules.weaponAmmoPerShot(weaponId);
-        range = DoomUnits.toWorld(validRules.weaponRange(weaponId));
-        autoAimAngle = (float) Math.toRadians(validRules.weaponAutoAimAngleDegrees(weaponId));
-        autoAimMaximumSlope = validRules.weaponAutoAimMaximumSlope(weaponId);
         rules = validRules;
     }
 
@@ -130,13 +123,29 @@ final class DoomHitscanWeapon
         if (player.health() == 0) {
             return;
         }
-        if (!player.spendBullets(ammunitionPerShot)) {
+        selectFiringRules(player.activeWeapon());
+        if (!player.spendAmmunition(ammunition, ammunitionPerShot)) {
             return;
         }
         Optional<DoomWeaponHitLocation> resolvedHit = fire();
         requiredFiredSignal().emit();
         resolvedHit.ifPresent(weaponHit -> requiredHitSignal()
                 .emit(new RuntimePayload(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE, weaponHit)));
+    }
+
+    /** Selects the provider rules for the player's currently active owned weapon. */
+    private void selectFiringRules(String selectedWeaponId) {
+        DoomCombatRules configuredRules = requireRules();
+        if (!configuredRules.hasWeapon(selectedWeaponId)) {
+            throw new IllegalStateException("player selected an undefined weapon: " + selectedWeaponId);
+        }
+        firingWeaponId = selectedWeaponId;
+        ammunitionPerShot = configuredRules.weaponAmmoPerShot(selectedWeaponId);
+        ammunition = configuredRules.weaponAmmunition(selectedWeaponId);
+        pelletCount = configuredRules.weaponPelletCount(selectedWeaponId);
+        range = DoomUnits.toWorld(configuredRules.weaponRange(selectedWeaponId));
+        autoAimAngle = (float) Math.toRadians(configuredRules.weaponAutoAimAngleDegrees(selectedWeaponId));
+        autoAimMaximumSlope = configuredRules.weaponAutoAimMaximumSlope(selectedWeaponId);
     }
 
     /** Traces the exact authored view ray before applying the configured Doom-style auto-aim cone. */
@@ -147,11 +156,17 @@ final class DoomHitscanWeapon
                 .transformDirection(new Vector3f(0.0F, 0.0F, -1.0F))
                 .normalize();
         Vector3f origin = requiredViewTransform().worldMatrix().getTranslation(new Vector3f());
-        Optional<DoomWeaponHitLocation> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
-        if (exactHit.isPresent()) {
-            return exactHit;
+        Optional<DoomWeaponHitLocation> firstHit = Optional.empty();
+        for (int pellet = 0; pellet < pelletCount; pellet++) {
+            Optional<DoomWeaponHitLocation> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
+            if (exactHit.isEmpty()) {
+                exactHit = autoAim(origin, direction, configuredRules);
+            }
+            if (firstHit.isEmpty()) {
+                firstHit = exactHit;
+            }
         }
-        return autoAim(origin, direction, configuredRules);
+        return firstHit;
     }
 
     /** Selects the nearest visible damageable entity whose horizontal bounds intersect the authored aim cone. */
@@ -215,7 +230,7 @@ final class DoomHitscanWeapon
         if (raycastHit
                 .map(result -> result.object().owner() == candidate.target().owner())
                 .orElse(false)) {
-            int appliedDamage = candidate.target().damage(configuredRules.rollWeaponDamage(weaponId, random));
+            int appliedDamage = candidate.target().damage(configuredRules.rollWeaponDamage(firingWeaponId, random));
             return appliedDamage > 0 ? Optional.of(weaponHit(candidate.direction())) : Optional.empty();
         }
         return Optional.empty();
@@ -228,7 +243,7 @@ final class DoomHitscanWeapon
                 .flatMap(result -> result.object()
                         .owner()
                         .capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class))
-                .filter(target -> target.damage(configuredRules.rollWeaponDamage(weaponId, random)) > 0)
+                .filter(target -> target.damage(configuredRules.rollWeaponDamage(firingWeaponId, random)) > 0)
                 .map(target -> weaponHit(direction));
     }
 

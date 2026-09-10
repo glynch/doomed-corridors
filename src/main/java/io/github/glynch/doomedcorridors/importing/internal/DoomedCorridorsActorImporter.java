@@ -8,6 +8,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActor;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalog;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoadResult;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
+import io.github.glynch.doomedcorridors.actor.DoomActorCollisionBounds;
 import io.github.glynch.doomedcorridors.actor.DoomActorDefinition;
 import io.github.glynch.doomedcorridors.actor.DoomActorDiagnostic;
 import io.github.glynch.doomedcorridors.actor.DoomActorResolution;
@@ -257,7 +258,6 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Decodes selected weapon, HUD, and combatant audio so runtime publication never needs the source WAD. */
     private static Optional<CombatPresentationAssets> importPresentationAssets(
             ImportPreparationContext context, WadArchive archive, DoomCombatPresentationRules presentation) {
-        DoomCombatPresentationRules.Weapon weapon = presentation.weapon();
         try {
             WadLump paletteLump = requiredLump(archive, "PLAYPAL");
             byte[] palette = archive.readAllBytes(paletteLump, paletteLump.size());
@@ -266,8 +266,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             }
             Map<String, RgbaImage> images = new LinkedHashMap<>();
             List<String> requiredImages = new ArrayList<>();
-            requiredImages.add(weapon.readyFrame());
-            requiredImages.addAll(weapon.fireFrames());
+            for (DoomCombatPresentationRules.Weapon weapon : presentation.weapons()) {
+                requiredImages.add(weapon.readyFrame());
+                requiredImages.addAll(weapon.fireFrames());
+            }
             requiredImages.addAll(presentation.hud().digits());
             requiredImages.add(presentation.hud().percent());
             for (String image : requiredImages) {
@@ -441,22 +443,26 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         for (DoomActorDefinition definition : definitions.values()) {
             Optional<DoomCombatRules.PickupDefinition> pickup = rules.findPickup(definition.id());
             Optional<DoomCombatRules.CombatantBounds> combatant = rules.findCombatantBounds(definition.id());
+            Optional<DoomActorCollisionBounds> collision = definition.collisionBounds();
             ActorPresentation actorPresentation = actorPresentation(definition, sprites, presentation.presentation());
             if (pickup.isPresent()) {
                 publishPickupShape(context, prefix, definition, pickup.orElseThrow());
             }
-            if (combatant.isPresent()) {
-                publishCombatantShape(context, prefix, definition, combatant.orElseThrow());
-                if (actorPresentation.combatant().isPresent()) {
-                    publishCombatantSounds(
-                            context,
-                            prefix,
-                            definition.id(),
-                            actorPresentation.combatant().orElseThrow().rules(),
-                            presentation.sounds());
-                }
+            if (collision.isPresent()) {
+                publishSolidShape(context, prefix, definition, collision.orElseThrow());
             }
-            publishActorDefinition(context, prefix, definition, actorPresentation, pickup, combatant, ruleReferences);
+            if (combatant.isPresent() && actorPresentation.combatant().isPresent()) {
+                publishCombatantSounds(
+                        context,
+                        prefix,
+                        definition.id(),
+                        actorPresentation.combatant().orElseThrow().rules(),
+                        presentation.sounds());
+            }
+            publishActorDefinition(
+                    context,
+                    new ActorDefinitionPublication(
+                            prefix, definition, actorPresentation, pickup, combatant, collision, ruleReferences));
         }
         publishActorPlacements(context, prefix, actors, definitions, rules);
     }
@@ -501,13 +507,20 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Publishes the selected weapon, HUD images, and listener-relative player sounds. */
     private static void publishPlayerPresentationResources(
             ImportPreparationContext context, String prefix, CombatPresentationAssets assets) throws IOException {
-        DoomCombatPresentationRules.Weapon weapon = assets.presentation().weapon();
-        List<String> frames = new ArrayList<>();
-        frames.add(weapon.readyFrame());
-        frames.addAll(weapon.fireFrames());
-        for (String frame : frames) {
-            publishOverlayImage(
-                    context, weaponImageIdentity(prefix, frame), assets.images().get(frame));
+        for (DoomCombatPresentationRules.Weapon weapon : assets.presentation().weapons()) {
+            Set<String> frames = new TreeSet<>();
+            frames.add(weapon.readyFrame());
+            frames.addAll(weapon.fireFrames());
+            for (String frame : frames) {
+                publishOverlayImage(
+                        context,
+                        weaponImageIdentity(prefix, frame),
+                        assets.images().get(frame));
+            }
+            publishSound(
+                    context,
+                    weaponSoundIdentity(prefix, weapon.fireSound()),
+                    assets.sounds().get(weapon.fireSound()));
         }
         for (String digit : assets.presentation().hud().digits()) {
             publishOverlayImage(
@@ -516,10 +529,6 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         String percent = assets.presentation().hud().percent();
         publishOverlayImage(
                 context, hudImageIdentity(prefix, percent), assets.images().get(percent));
-        publishSound(
-                context,
-                weaponSoundIdentity(prefix, weapon.fireSound()),
-                assets.sounds().get(weapon.fireSound()));
         DoomCombatPresentationRules.Player player = assets.presentation().player();
         publishSound(
                 context,
@@ -627,11 +636,8 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     }
 
     /** Publishes one provider-sized capsule used by every placement of a solid combatant definition. */
-    private static void publishCombatantShape(
-            ImportPreparationContext context,
-            String prefix,
-            DoomActorDefinition actor,
-            DoomCombatRules.CombatantBounds bounds)
+    private static void publishSolidShape(
+            ImportPreparationContext context, String prefix, DoomActorDefinition actor, DoomActorCollisionBounds bounds)
             throws IOException {
         float radius = DoomUnits.toWorld(bounds.radius());
         float segmentLength = DoomUnits.toWorld(bounds.height() - 2.0F * bounds.radius());
@@ -642,15 +648,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     }
 
     /** Publishes one reusable provider actor definition backed by its shared idle-frame material. */
-    private static void publishActorDefinition(
-            ImportPreparationContext context,
-            String prefix,
-            DoomActorDefinition actor,
-            ActorPresentation presentation,
-            Optional<DoomCombatRules.PickupDefinition> pickup,
-            Optional<DoomCombatRules.CombatantBounds> combatant,
-            RuleReferences ruleReferences)
+    private static void publishActorDefinition(ImportPreparationContext context, ActorDefinitionPublication publication)
             throws IOException {
+        String prefix = publication.prefix();
+        DoomActorDefinition actor = publication.actor();
+        ActorPresentation presentation = publication.presentation();
+        Optional<DoomCombatRules.PickupDefinition> pickup = publication.pickup();
+        Optional<DoomCombatRules.CombatantBounds> combatant = publication.combatant();
+        Optional<DoomActorCollisionBounds> collision = publication.collision();
+        RuleReferences ruleReferences = publication.ruleReferences();
         String definitionIdentity = actorDefinitionIdentity(prefix, actor.id());
         AssetId definitionId = assetId(context.definition().id(), definitionIdentity);
         String rootLocator = definitionIdentity + "/root";
@@ -677,14 +683,23 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 components,
                 connections,
                 references));
-        combatant.ifPresent(bounds -> addCombatantComponents(
-                new CombatantPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
-                bounds,
-                ruleReferences,
-                presentation.combatant(),
-                components,
-                connections,
-                references));
+        if (combatant.isPresent()) {
+            addCombatantComponents(
+                    new CombatantPublication(context.definition().id(), prefix, actor, rootLocator, rootId),
+                    collision.orElseThrow(() ->
+                            new IllegalStateException("Combatant actor is missing collision bounds: " + actor.id())),
+                    ruleReferences,
+                    presentation.combatant(),
+                    components,
+                    connections,
+                    references);
+        } else {
+            collision.ifPresent(bounds -> addStaticCollisionComponents(
+                    new StaticCollisionPublication(
+                            context.definition().id(), prefix, actor, rootLocator, rootId, bounds),
+                    components,
+                    references));
+        }
         List<EntityContract.Parameter> parameters = new ArrayList<>();
         parameters.add(new EntityContract.Parameter(
                 POSITION_ARGUMENT,
@@ -744,7 +759,12 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                 new ProjectValue.TextValue(
                                         pickup.resource().name().toLowerCase(Locale.ROOT)),
                         DoomedCorridorsDescriptors.PICKUP_AMOUNT_PROPERTY, number(pickup.amount()),
-                        DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY, number(pickup.limit()))));
+                        DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY, number(pickup.limit()),
+                        DoomedCorridorsDescriptors.PICKUP_GRANTED_WEAPON_PROPERTY,
+                                new ProjectValue.TextValue(
+                                        pickup.grantedWeapon().orElse("")),
+                        DoomedCorridorsDescriptors.PICKUP_ARMOR_PROTECTION_PROPERTY,
+                                number(pickup.armorProtectionPercent()))));
         connections.add(new SignalConnection(
                 EndpointTarget.component(publication.rootId(), sensorId, Physics3dDescriptors.overlapEnteredSignal()),
                 EndpointTarget.component(
@@ -755,7 +775,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Adds an explicitly shaped movable solid body to one configured combatant definition. */
     private static void addCombatantComponents(
             CombatantPublication publication,
-            DoomCombatRules.CombatantBounds bounds,
+            DoomActorCollisionBounds bounds,
             RuleReferences ruleReferences,
             Optional<CombatantPresentation> presentation,
             List<ComponentDefinition> components,
@@ -809,6 +829,33 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                 componentTarget(publication.rootId(), bodyId))));
         presentation.ifPresent(
                 value -> addCombatantPresentation(publication, stateId, value, components, connections, references));
+        references.add(shapeIdentity);
+    }
+
+    /** Adds static collision to solid scenery and currently inert solid actors. */
+    private static void addStaticCollisionComponents(
+            StaticCollisionPublication publication, List<ComponentDefinition> components, List<String> references) {
+        String importId = publication.importId();
+        String prefix = publication.prefix();
+        DoomActorDefinition actor = publication.actor();
+        String rootLocator = publication.rootLocator();
+        EntityId rootId = publication.rootId();
+        DoomActorCollisionBounds bounds = publication.bounds();
+        ComponentId shapeId = componentId(importId, rootLocator + "/solid-shape");
+        String shapeIdentity = collisionShapeIdentity(prefix, actor.id());
+        components.add(component(
+                importId,
+                rootLocator + "/solid-shape",
+                Physics3dDescriptors.collisionShapeType(),
+                Map.of(
+                        Physics3dDescriptors.shapeProperty(), reference(importId, shapeIdentity),
+                        Physics3dDescriptors.localPositionProperty(),
+                                numbers(0.0F, DoomUnits.toWorld(bounds.height()) / 2.0F, 0.0F))));
+        components.add(component(
+                importId,
+                rootLocator + "/solid-body",
+                Physics3dDescriptors.staticBodyType(),
+                Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(rootId, shapeId))));
         references.add(shapeIdentity);
     }
 
@@ -1383,6 +1430,25 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Stable inputs identifying where solid combatant components are published in one actor definition. */
     private record CombatantPublication(
             String importId, String prefix, DoomActorDefinition actor, String rootLocator, EntityId rootId) {}
+
+    /** Complete provider inputs used to publish one reusable actor definition. */
+    private record ActorDefinitionPublication(
+            String prefix,
+            DoomActorDefinition actor,
+            ActorPresentation presentation,
+            Optional<DoomCombatRules.PickupDefinition> pickup,
+            Optional<DoomCombatRules.CombatantBounds> combatant,
+            Optional<DoomActorCollisionBounds> collision,
+            RuleReferences ruleReferences) {}
+
+    /** Stable inputs used to add one actor definition's static collision body. */
+    private record StaticCollisionPublication(
+            String importId,
+            String prefix,
+            DoomActorDefinition actor,
+            String rootLocator,
+            EntityId rootId,
+            DoomActorCollisionBounds bounds) {}
 
     /** Portable source references embedded in every provider-defined combatant state component. */
     private record RuleReferences(ProjectValue.ReferenceValue actorCatalog, ProjectValue.ReferenceValue combatRules) {}

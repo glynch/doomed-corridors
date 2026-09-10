@@ -32,6 +32,7 @@ final class DoomActorCatalogLoaderTest {
             assertThat(definition.id()).isEqualTo("zombieman");
             assertThat(definition.category()).isEqualTo(DoomActorCategory.ENEMY);
             assertThat(definition.spriteFrame()).contains("POSSA");
+            assertThat(definition.collisionBounds()).contains(new DoomActorCollisionBounds(20, 56));
         });
         assertThat(catalog.definition(14)).hasValueSatisfying(definition -> {
             assertThat(definition.category()).isEqualTo(DoomActorCategory.MARKER);
@@ -45,7 +46,7 @@ final class DoomActorCatalogLoaderTest {
         Path source = temporaryDirectory.resolve("actors.json");
         Files.writeString(source, """
                 {
-                  "schemaVersion": 1,
+                  "schemaVersion": 2,
                   "actors": [
                     { "thingType": 1, "id": "same", "name": "First", "category": "marker" },
                     { "thingType": 2, "id": "same", "name": "Second", "category": "marker" }
@@ -77,7 +78,7 @@ final class DoomActorCatalogLoaderTest {
     @Test
     void rejectsUnsupportedSchemaVersion() throws IOException {
         Path source = temporaryDirectory.resolve("future.json");
-        Files.writeString(source, "{\"schemaVersion\":2,\"actors\":[]}");
+        Files.writeString(source, "{\"schemaVersion\":3,\"actors\":[]}");
 
         DoomActorCatalogLoadResult result = new DoomActorCatalogLoader().load(source);
 

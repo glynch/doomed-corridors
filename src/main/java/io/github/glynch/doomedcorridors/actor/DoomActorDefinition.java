@@ -10,7 +10,12 @@ import java.util.regex.Pattern;
 
 /** Provider-owned meaning assigned to one classic Doom thing type. */
 public record DoomActorDefinition(
-        int thingType, String id, String name, DoomActorCategory category, Optional<String> spriteFrame) {
+        int thingType,
+        String id,
+        String name,
+        DoomActorCategory category,
+        Optional<String> spriteFrame,
+        Optional<DoomActorCollisionBounds> collisionBounds) {
     private static final Pattern SPRITE_FRAME = Pattern.compile("[A-Z0-9]{4}[A-Z]");
 
     /** Creates a validated actor definition. */
@@ -25,12 +30,22 @@ public record DoomActorDefinition(
         Objects.requireNonNull(category, "category");
         Objects.requireNonNull(spriteFrame, "spriteFrame")
                 .ifPresent(value -> requireMatch(value, SPRITE_FRAME, "spriteFrame"));
+        Objects.requireNonNull(collisionBounds, "collisionBounds");
         if (category == DoomActorCategory.MARKER && spriteFrame.isPresent()) {
             throw new IllegalArgumentException("marker definitions must not have a sprite frame");
         }
         if (category != DoomActorCategory.MARKER && spriteFrame.isEmpty()) {
             throw new IllegalArgumentException("visible actor definitions require a sprite frame");
         }
+        if (category == DoomActorCategory.MARKER && collisionBounds.isPresent()) {
+            throw new IllegalArgumentException("marker definitions must not have collision bounds");
+        }
+    }
+
+    /** Creates a non-solid definition for callers which do not require authored collision. */
+    public DoomActorDefinition(
+            int thingType, String id, String name, DoomActorCategory category, Optional<String> spriteFrame) {
+        this(thingType, id, name, category, spriteFrame, Optional.empty());
     }
 
     /** Requires a lower-case, hyphen-separated provider identifier. */

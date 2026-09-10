@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jscene3d.org/schemas/doomed-corridors/combat-5.json",
+  "title": "Doomed Corridors combat rules version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "player", "weapons", "combatants", "pickups"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": 5 },
+    "player": { "$ref": "#/$defs/player" },
+    "weapons": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/weapon" } },
+    "combatants": { "type": "array", "items": { "$ref": "#/$defs/combatant" } },
+    "pickups": { "type": "array", "items": { "$ref": "#/$defs/pickup" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+    "player": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startingHealth", "maximumHealth", "startingArmor", "maximumArmor", "startingBullets", "maximumBullets", "startingShells", "maximumShells", "startingWeapon"],
+      "properties": {
+        "startingHealth": { "type": "integer", "minimum": 1 },
+        "maximumHealth": { "type": "integer", "minimum": 1 },
+        "startingArmor": { "type": "integer", "minimum": 0 },
+        "maximumArmor": { "type": "integer", "minimum": 0 },
+        "startingBullets": { "type": "integer", "minimum": 0 },
+        "maximumBullets": { "type": "integer", "minimum": 0 },
+        "startingShells": { "type": "integer", "minimum": 0 },
+        "maximumShells": { "type": "integer", "minimum": 0 },
+        "startingWeapon": { "$ref": "#/$defs/id" }
+      }
+    },
+    "weapon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ammunition", "ammoPerShot", "pelletCount", "range", "autoAimAngleDegrees", "autoAimMaximumSlope", "damageMinimum", "damageMaximum", "damageStep"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "ammunition": { "enum": ["bullets", "shells"] },
+        "ammoPerShot": { "type": "integer", "minimum": 1 },
+        "pelletCount": { "type": "integer", "minimum": 1 },
+        "range": { "type": "integer", "minimum": 1 },
+        "autoAimAngleDegrees": { "type": "number", "exclusiveMinimum": 0, "maximum": 45 },
+        "autoAimMaximumSlope": { "type": "number", "exclusiveMinimum": 0 },
+        "damageMinimum": { "type": "integer", "minimum": 1 },
+        "damageMaximum": { "type": "integer", "minimum": 1 },
+        "damageStep": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "combatant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "health", "radius", "height", "behavior"],
+      "properties": {
+        "actor": { "$ref": "#/$defs/id" },
+        "health": { "type": "integer", "minimum": 1 },
+        "radius": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "behavior": { "$ref": "#/$defs/enemyBehavior" }
+      }
+    },
+    "enemyBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sightRange", "attackRange", "preferredRange", "moveSpeed", "reactionMilliseconds", "attackIntervalMilliseconds", "damage"],
+      "properties": {
+        "sightRange": { "type": "integer", "minimum": 1 },
+        "attackRange": { "type": "integer", "minimum": 1 },
+        "preferredRange": { "type": "integer", "minimum": 1 },
+        "moveSpeed": { "type": "integer", "minimum": 1 },
+        "reactionMilliseconds": { "type": "integer", "minimum": 1 },
+        "attackIntervalMilliseconds": { "type": "integer", "minimum": 1 },
+        "damage": { "$ref": "#/$defs/damage" }
+      }
+    },
+    "damage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum", "maximum", "step"],
+      "properties": {
+        "minimum": { "type": "integer", "minimum": 1 },
+        "maximum": { "type": "integer", "minimum": 1 },
+        "step": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "pickup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "resource", "amount", "limit", "radius"],
+      "properties": {
+        "actor": { "$ref": "#/$defs/id" },
+        "resource": { "enum": ["health", "armor", "bullets", "shells"] },
+        "amount": { "type": "integer", "minimum": 1 },
+        "limit": { "type": "integer", "minimum": 1 },
+        "radius": { "type": "integer", "minimum": 1 },
+        "grantedWeapon": { "$ref": "#/$defs/id" },
+        "armorProtectionPercent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    }
+  }
+}

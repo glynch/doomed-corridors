@@ -10,7 +10,12 @@ import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 /** Mutable project-runtime health and ammunition state for one player entity. */
 final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, ComponentEndpointBinder {
@@ -18,8 +23,16 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
     private final ResourceReference combatRules;
     private int health;
     private int maximumHealth;
+    private int armor;
+    private int maximumArmor;
+    private int armorProtectionPercent;
     private int bullets;
     private int maximumBullets;
+    private int shells;
+    private int maximumShells;
+    private final Set<String> weapons = new LinkedHashSet<>();
+    private final Map<String, DoomCombatRules.Ammunition> weaponAmmunition = new LinkedHashMap<>();
+    private String activeWeapon;
     private RuntimeSignal hurtSignal;
     private RuntimeSignal diedSignal;
     private boolean invulnerable;
@@ -59,8 +72,17 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         }
         health = validRules.startingHealth();
         maximumHealth = validRules.maximumHealth();
+        armor = validRules.startingArmor();
+        maximumArmor = validRules.maximumArmor();
         bullets = validRules.startingBullets();
         maximumBullets = validRules.maximumBullets();
+        shells = validRules.startingShells();
+        maximumShells = validRules.maximumShells();
+        activeWeapon = validRules.primaryWeaponId();
+        weapons.add(activeWeapon);
+        validRules
+                .weaponIds()
+                .forEach(weaponId -> weaponAmmunition.put(weaponId, validRules.weaponAmmunition(weaponId)));
         configured = true;
     }
 
@@ -85,16 +107,70 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         return bullets;
     }
 
+    /** Returns current shell ammunition after application preparation. */
+    int shells() {
+        requireConfigured();
+        return shells;
+    }
+
+    /** Returns current armour points after application preparation. */
+    int armor() {
+        requireConfigured();
+        return armor;
+    }
+
+    /** Returns the stable identifier of the currently selected weapon. */
+    String activeWeapon() {
+        requireConfigured();
+        return activeWeapon;
+    }
+
+    /** Returns the ammunition count displayed for the currently selected weapon. */
+    int activeAmmunition() {
+        DoomCombatRules.Ammunition ammunition = weaponAmmunition.get(activeWeapon());
+        if (ammunition == null) {
+            throw new IllegalStateException("active weapon has no configured ammunition pool: " + activeWeapon());
+        }
+        return ammunition(ammunition);
+    }
+
+    /** Selects an owned weapon and reports whether selection changed. */
+    boolean selectWeapon(String weaponId) {
+        requireConfigured();
+        String selected = Objects.requireNonNull(weaponId, "weaponId");
+        if (!weapons.contains(selected) || activeWeapon.equals(selected)) {
+            return false;
+        }
+        activeWeapon = selected;
+        return true;
+    }
+
+    /** Returns whether this player currently owns the named weapon. */
+    boolean ownsWeapon(String weaponId) {
+        requireConfigured();
+        return weapons.contains(Objects.requireNonNull(weaponId, "weaponId"));
+    }
+
     /** Spends the requested positive bullet amount when available. */
     boolean spendBullets(int amount) {
+        return spendAmmunition(DoomCombatRules.Ammunition.BULLETS, amount);
+    }
+
+    /** Spends the requested positive amount from one ammunition pool when available. */
+    boolean spendAmmunition(DoomCombatRules.Ammunition ammunition, int amount) {
         requireConfigured();
         if (amount <= 0) {
             throw new IllegalArgumentException("amount must be positive");
         }
-        if (bullets < amount) {
+        int available = ammunition(Objects.requireNonNull(ammunition, "ammunition"));
+        if (available < amount) {
             return false;
         }
-        bullets -= amount;
+        if (ammunition == DoomCombatRules.Ammunition.BULLETS) {
+            bullets -= amount;
+        } else {
+            shells -= amount;
+        }
         return true;
     }
 
@@ -108,9 +184,11 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         if (invulnerable) {
             return 0;
         }
-        int applied = (int) Math.min((long) health, amount);
-        health -= applied;
-        if (applied == 0) {
+        int absorbed = Math.min(armor, amount * armorProtectionPercent / 100);
+        armor -= absorbed;
+        int appliedToHealth = (int) Math.min(health, (long) amount - absorbed);
+        health -= appliedToHealth;
+        if (appliedToHealth == 0 && absorbed == 0) {
             return 0;
         }
         if (health > 0) {
@@ -118,23 +196,53 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         } else {
             requiredDiedSignal().emit();
         }
-        return applied;
+        return appliedToHealth;
     }
 
     /** Applies one useful pickup and returns the exact amount accepted by the player. */
-    int collect(DoomPickup.Resource resource, int amount, int limit) {
+    boolean collect(
+            DoomPickup.Resource resource,
+            int amount,
+            int limit,
+            int protectionPercent,
+            Optional<String> grantedWeapon) {
         requireConfigured();
-        return switch (Objects.requireNonNull(resource, "resource")) {
-            case HEALTH -> {
-                int applied = acceptedAmount(health, maximumHealth, amount, limit);
-                health += applied;
-                yield applied;
-            }
-            case BULLETS -> {
-                int applied = acceptedAmount(bullets, maximumBullets, amount, limit);
-                bullets += applied;
-                yield applied;
-            }
+        int applied =
+                switch (Objects.requireNonNull(resource, "resource")) {
+                    case HEALTH -> {
+                        int accepted = acceptedAmount(health, maximumHealth, amount, limit);
+                        health += accepted;
+                        yield accepted;
+                    }
+                    case ARMOR -> {
+                        int accepted = acceptedAmount(armor, maximumArmor, amount, limit);
+                        armor += accepted;
+                        if (accepted > 0) {
+                            armorProtectionPercent = Math.max(armorProtectionPercent, protectionPercent);
+                        }
+                        yield accepted;
+                    }
+                    case BULLETS -> {
+                        int accepted = acceptedAmount(bullets, maximumBullets, amount, limit);
+                        bullets += accepted;
+                        yield accepted;
+                    }
+                    case SHELLS -> {
+                        int accepted = acceptedAmount(shells, maximumShells, amount, limit);
+                        shells += accepted;
+                        yield accepted;
+                    }
+                };
+        boolean weaponGranted = grantedWeapon.map(weapons::add).orElse(false);
+        grantedWeapon.filter(weapon -> weaponGranted).ifPresent(weapon -> activeWeapon = weapon);
+        return applied > 0 || weaponGranted;
+    }
+
+    /** Returns the current count in one ammunition pool. */
+    private int ammunition(DoomCombatRules.Ammunition ammunition) {
+        return switch (ammunition) {
+            case BULLETS -> bullets;
+            case SHELLS -> shells;
         };
     }
 

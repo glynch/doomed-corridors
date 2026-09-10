@@ -19,6 +19,7 @@ import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
 import java.nio.file.Path;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /** Verifies descriptor-backed player damage and terminal signal semantics. */
@@ -58,6 +59,33 @@ final class DoomPlayerStateTest {
         assertThat(state.health()).isEqualTo(100);
         assertThat(endpoints.hurt.emissions).isZero();
         assertThat(endpoints.died.emissions).isZero();
+    }
+
+    /** Applies armour absorption and grants/selects the first collected shotgun with shell ammunition. */
+    @Test
+    void collectsArmorAndShotgunResources() {
+        RecordingEndpoints endpoints = new RecordingEndpoints();
+        DoomPlayerState state =
+                new DoomPlayerState(ResourceReference.asset("actors"), ResourceReference.asset("combat"));
+        state.bindEndpoints(endpoints);
+        state.configure(rules());
+
+        assertThat(state.collect(DoomPickup.Resource.ARMOR, 100, 100, 33, Optional.empty()))
+                .isTrue();
+        assertThat(state.armor()).isEqualTo(100);
+        assertThat(state.damage(30)).isEqualTo(21);
+        assertThat(state.health()).isEqualTo(79);
+        assertThat(state.armor()).isEqualTo(91);
+
+        assertThat(state.collect(DoomPickup.Resource.SHELLS, 8, 50, 0, Optional.of("shotgun")))
+                .isTrue();
+        assertThat(state.ownsWeapon("shotgun")).isTrue();
+        assertThat(state.activeWeapon()).isEqualTo("shotgun");
+        assertThat(state.activeAmmunition()).isEqualTo(8);
+        assertThat(state.spendAmmunition(DoomCombatRules.Ammunition.SHELLS, 1)).isTrue();
+        assertThat(state.shells()).isEqualTo(7);
+        assertThat(state.selectWeapon("pistol")).isTrue();
+        assertThat(state.activeAmmunition()).isEqualTo(50);
     }
 
     private static DoomCombatRules rules() {

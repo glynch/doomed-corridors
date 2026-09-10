@@ -34,7 +34,7 @@ public final class DoomCombatRules {
                     "startingWeapon does not name a defined weapon: " + player.startingWeapon());
         }
         this.combatants = indexCombatants(combatants);
-        this.pickups = indexPickups(pickups, player);
+        this.pickups = indexPickups(pickups, player, this.weapons);
     }
 
     /** Returns the player's initial health. */
@@ -55,6 +55,26 @@ public final class DoomCombatRules {
     /** Returns the player's bullet-ammunition capacity. */
     public int maximumBullets() {
         return player.maximumBullets();
+    }
+
+    /** Returns the player's initial shell count. */
+    public int startingShells() {
+        return player.startingShells();
+    }
+
+    /** Returns the player's shell-ammunition capacity. */
+    public int maximumShells() {
+        return player.maximumShells();
+    }
+
+    /** Returns the player's initial armour points. */
+    public int startingArmor() {
+        return player.startingArmor();
+    }
+
+    /** Returns the player's armour-point capacity. */
+    public int maximumArmor() {
+        return player.maximumArmor();
     }
 
     /** Returns the stable identifier of the initially selected weapon. */
@@ -90,6 +110,21 @@ public final class DoomCombatRules {
     /** Returns the bullet cost of firing one configured weapon. */
     public int weaponAmmoPerShot(String weaponId) {
         return requireWeapon(weaponId).ammoPerShot();
+    }
+
+    /** Returns the ammunition pool consumed by one configured weapon. */
+    public Ammunition weaponAmmunition(String weaponId) {
+        return requireWeapon(weaponId).ammunition();
+    }
+
+    /** Returns the number of independently damaged pellets in one shot. */
+    public int weaponPelletCount(String weaponId) {
+        return requireWeapon(weaponId).pelletCount();
+    }
+
+    /** Returns configured weapon IDs in declaration order. */
+    public Set<String> weaponIds() {
+        return weapons.keySet();
     }
 
     /** Returns one configured weapon's maximum distance in Doom map units. */
@@ -213,19 +248,26 @@ public final class DoomCombatRules {
 
     /** Indexes pickup definitions and checks each per-item limit against player capacity. */
     private static Map<String, PickupDefinition> indexPickups(
-            List<PickupDefinition> definitions, PlayerDefinition player) {
+            List<PickupDefinition> definitions, PlayerDefinition player, Map<String, WeaponDefinition> weapons) {
         Map<String, PickupDefinition> indexed = new LinkedHashMap<>();
         for (PickupDefinition definition : List.copyOf(Objects.requireNonNull(definitions, "pickups"))) {
             PickupDefinition validDefinition = Objects.requireNonNull(definition, "pickup");
             int capacity =
                     switch (validDefinition.resource()) {
                         case HEALTH -> player.maximumHealth();
+                        case ARMOR -> player.maximumArmor();
                         case BULLETS -> player.maximumBullets();
+                        case SHELLS -> player.maximumShells();
                     };
             if (validDefinition.limit() > capacity) {
                 throw new IllegalArgumentException(
                         "Pickup limit exceeds player capacity: " + validDefinition.actorId());
             }
+            validDefinition.grantedWeapon().ifPresent(weaponId -> {
+                if (!weapons.containsKey(weaponId)) {
+                    throw new IllegalArgumentException("Pickup grants an unknown weapon: " + validDefinition.actorId());
+                }
+            });
             PickupDefinition previous = indexed.putIfAbsent(validDefinition.actorId(), validDefinition);
             if (previous != null) {
                 throw new IllegalArgumentException("Duplicate pickup actor id: " + validDefinition.actorId());
@@ -265,7 +307,15 @@ public final class DoomCombatRules {
 
     /** Validated starting resources and absolute capacities for the player. */
     record PlayerDefinition(
-            int startingHealth, int maximumHealth, int startingBullets, int maximumBullets, String startingWeapon) {
+            int startingHealth,
+            int maximumHealth,
+            int startingArmor,
+            int maximumArmor,
+            int startingBullets,
+            int maximumBullets,
+            int startingShells,
+            int maximumShells,
+            String startingWeapon) {
         /** Validates resource ranges and the selected weapon identity. */
         PlayerDefinition {
             if (startingHealth <= 0 || maximumHealth < startingHealth) {
@@ -274,6 +324,12 @@ public final class DoomCombatRules {
             if (startingBullets < 0 || maximumBullets < startingBullets) {
                 throw new IllegalArgumentException("bullet values must satisfy 0 <= startingBullets <= maximumBullets");
             }
+            if (startingShells < 0 || maximumShells < startingShells) {
+                throw new IllegalArgumentException("shell values must satisfy 0 <= startingShells <= maximumShells");
+            }
+            if (startingArmor < 0 || maximumArmor < startingArmor) {
+                throw new IllegalArgumentException("armour values must satisfy 0 <= startingArmor <= maximumArmor");
+            }
             requireId(startingWeapon, "startingWeapon");
         }
     }
@@ -281,7 +337,9 @@ public final class DoomCombatRules {
     /** Validated rules for one hitscan weapon. */
     record WeaponDefinition(
             String id,
+            Ammunition ammunition,
             int ammoPerShot,
+            int pelletCount,
             int range,
             float autoAimAngleDegrees,
             float autoAimMaximumSlope,
@@ -291,7 +349,8 @@ public final class DoomCombatRules {
         /** Validates the discrete damage sequence and positive weapon dimensions. */
         WeaponDefinition {
             requireId(id, "weapon id");
-            if (ammoPerShot <= 0 || range <= 0 || damageMinimum <= 0 || damageStep <= 0) {
+            Objects.requireNonNull(ammunition, "ammunition");
+            if (ammoPerShot <= 0 || pelletCount <= 0 || range <= 0 || damageMinimum <= 0 || damageStep <= 0) {
                 throw new IllegalArgumentException("weapon numeric values must be positive");
             }
             if (!Float.isFinite(autoAimAngleDegrees) || autoAimAngleDegrees <= 0.0F || autoAimAngleDegrees > 45.0F) {
@@ -324,13 +383,28 @@ public final class DoomCombatRules {
     }
 
     /** Validated resource effect and contact radius for one collectable actor identity. */
-    public record PickupDefinition(String actorId, PickupResource resource, int amount, int limit, int radius) {
+    public record PickupDefinition(
+            String actorId,
+            PickupResource resource,
+            int amount,
+            int limit,
+            int radius,
+            Optional<String> grantedWeapon,
+            int armorProtectionPercent) {
         /** Validates the provider actor identity and positive effect values. */
         public PickupDefinition {
             requireId(actorId, "pickup actor");
             Objects.requireNonNull(resource, "resource");
+            grantedWeapon = Objects.requireNonNull(grantedWeapon, "grantedWeapon")
+                    .map(value -> requireId(value, "grantedWeapon"));
             if (amount <= 0 || limit <= 0 || radius <= 0) {
                 throw new IllegalArgumentException("pickup numeric values must be positive");
+            }
+            if (armorProtectionPercent < 0 || armorProtectionPercent > 100) {
+                throw new IllegalArgumentException("armorProtectionPercent must be in [0, 100]");
+            }
+            if ((resource == PickupResource.ARMOR) != (armorProtectionPercent > 0)) {
+                throw new IllegalArgumentException("only armour pickups require armorProtectionPercent");
             }
         }
     }
@@ -338,7 +412,15 @@ public final class DoomCombatRules {
     /** Player resource modified by one collectable actor. */
     public enum PickupResource {
         HEALTH,
-        BULLETS
+        ARMOR,
+        BULLETS,
+        SHELLS
+    }
+
+    /** Ammunition pools consumed by currently supported weapons. */
+    public enum Ammunition {
+        BULLETS,
+        SHELLS
     }
 
     /** Provider-authored cylindrical collision dimensions for one solid combatant. */

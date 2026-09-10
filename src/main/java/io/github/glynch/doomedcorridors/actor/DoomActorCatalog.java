@@ -14,23 +14,25 @@ import java.util.Optional;
 public final class DoomActorCatalog {
     private final List<DoomActorDefinition> definitions;
     private final Map<Integer, DoomActorDefinition> byThingType;
+    private final Map<String, DoomActorDefinition> byId;
 
     /** Copies definitions while rejecting duplicate IDs and thing types. */
     public DoomActorCatalog(List<DoomActorDefinition> definitions) {
         this.definitions = List.copyOf(Objects.requireNonNull(definitions, "definitions"));
         Map<Integer, DoomActorDefinition> indexed = new LinkedHashMap<>();
-        Map<String, DoomActorDefinition> byId = new LinkedHashMap<>();
+        Map<String, DoomActorDefinition> indexedById = new LinkedHashMap<>();
         for (DoomActorDefinition definition : this.definitions) {
             DoomActorDefinition previousType = indexed.putIfAbsent(definition.thingType(), definition);
             if (previousType != null) {
                 throw new IllegalArgumentException("Duplicate actor thingType: " + definition.thingType());
             }
-            DoomActorDefinition previousId = byId.putIfAbsent(definition.id(), definition);
+            DoomActorDefinition previousId = indexedById.putIfAbsent(definition.id(), definition);
             if (previousId != null) {
                 throw new IllegalArgumentException("Duplicate actor id: " + definition.id());
             }
         }
         byThingType = Map.copyOf(indexed);
+        byId = Map.copyOf(indexedById);
     }
 
     /** Returns definitions in source order. */
@@ -41,5 +43,10 @@ public final class DoomActorCatalog {
     /** Looks up the provider definition for one classic thing type. */
     public Optional<DoomActorDefinition> definition(int thingType) {
         return Optional.ofNullable(byThingType.get(thingType));
+    }
+
+    /** Looks up the provider definition for one stable actor identifier. */
+    public Optional<DoomActorDefinition> definition(String actorId) {
+        return Optional.ofNullable(byId.get(Objects.requireNonNull(actorId, "actorId")));
     }
 }
