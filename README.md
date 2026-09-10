@@ -6,8 +6,9 @@ complete 32-map campaign with classic Doom II gameplay semantics.
 
 ## Game data
 
-Doomed Corridors reads its maps, artwork, audio, and other game data from a
-pinned Freedoom Phase 2 WAD. The WAD is not stored in this repository.
+Doomed Corridors reads its maps, actor artwork, audio, and other gameplay data
+from a pinned Freedoom Phase 2 WAD. Its launch and menu branding is original,
+project-owned artwork. The WAD is not stored in this repository.
 
 Follow [`assets/README.md`](assets/README.md) to install the required source WAD
 and verify its release and checksum. The project manifest declares the source
@@ -37,11 +38,17 @@ player resource capacities and effects for stimpacks, medikits, health bonuses,
 soulspheres, ammunition clips, and bullet boxes.
 [`game/combat-presentation.json`](game/combat-presentation.json) binds those
 identities to WAD-backed weapon, movement, attack, pain, death, pickup sound, and
-HUD assets without embedding their lump names in the application. The startup
+HUD assets without embedding their lump names in the application. The entry
 world authors its HUD as ordinary entities composed from generic screen-canvas,
 screen-region, and bitmap-number components. A small Doom-specific component
 binds the player state explicitly to the health and ammunition numbers; it does
 not own screen layout or drawing.
+
+The manifest also declares a one-time launch splash and a distinct startup
+scene. The splash uses original Doomed Corridors artwork, an optional studio-logo
+slot which is currently unset, and a project-owned Powered by JScene3D badge.
+The startup scene is an ordinary descriptor-authored menu rather than launcher
+code or a hidden game-specific bootstrap path.
 
 ## Building and running
 
@@ -71,6 +78,26 @@ phase. Run the project through JScene3D's generic desktop launcher with:
 ./mvnw process-classes -Prun-desktop
 ```
 
+Assemble and structurally verify a relocatable application directory for the
+current host platform with:
+
+```shell
+./mvnw clean verify -Pexport-directory,verify-export-directory
+```
+
+Launch that output directly from the repository root with:
+
+```shell
+./target/export/doomed-corridors/bin/doomed-corridors
+```
+
+The application directory contains the compiled game and engine modules,
+current-platform native libraries, authored project files, original branding,
+and published imported content. It deliberately excludes Java source, tests,
+the import-only source WAD, editable branding masters, and export tooling. This
+format currently uses a locally installed JDK 21; native application wrapping
+is a separate packaging layer.
+
 ## Current playable slice
 
 The descriptor-authored MAP01 world currently provides:
@@ -87,8 +114,10 @@ The descriptor-authored MAP01 world currently provides:
   positional audio, and non-blocking corpses;
 - useful-only health and bullet pickup collection through authored sensors;
 - a descriptor-authored HUD showing live health and bullet ammunition;
-- a descriptor-authored startup and pause menu using imported WAD artwork, with
-  Resume, New Game, and Quit application transitions;
+- a descriptor-authored startup and pause menu using project-owned background
+  and title artwork, with Resume, New Game, and Quit application transitions;
+- a project-authored launch splash with a two-second minimum presentation,
+  Powered by JScene3D branding, and determinate project-load feedback;
 - player pain and death presentation, including local audio, damage flashes, a
   lowered death view, hidden weapon, disabled controls, and retained world and
   HUD presentation;
@@ -104,14 +133,24 @@ Only MAP01 is currently selected. Lifts, navigation beyond last-visible-position
 pursuit, other sector specials, and restarting after player death remain later
 vertical slices.
 
-The game opens on its main menu. Use Up/Down or W/S to select an item and Enter
-or the left mouse button to activate it. New Game starts a fresh MAP01 session
-and Quit Game closes the application. During play, Escape pauses the current
-session and opens the menu; Resume or Escape returns to that retained session.
+On process launch, the splash appears before world composition and reports the
+real loading phase. It remains until both the authored two-second minimum and
+successful menu readiness are satisfied; it is not replayed by New Game. A
+startup failure remains visible instead of silently closing the window.
 
-Click the game window to capture the pointer. W/A/S/D move, the mouse looks
-while captured, and the left/right arrow keys turn. The left mouse button fires
-while the pointer is captured. Held keyboard turning accelerates from the
+The game then opens on its main menu. Use Up/Down or W/S, the gamepad D-pad, or
+pointer hover to select an item. Enter, the gamepad south button, or clicking an
+actual menu row activates it; clicking outside the rows does nothing. New Game
+starts a fresh MAP01 session and Quit Game closes the application. During play,
+Escape or gamepad Start pauses the current session and opens the menu; Resume or
+the same menu action returns to that retained session. Starting another New
+Game keeps the menu visible under a compact real-progress indicator while a
+replacement world is built; a load failure preserves the existing session.
+
+Click the game window to capture the pointer; that acquisition click does not
+fire. W/A/S/D move, the mouse looks while captured, and the left/right arrow
+keys turn. Subsequent left mouse clicks fire while the pointer is captured.
+Held keyboard turning accelerates from the
 authored initial rate to its authored maximum; releasing or reversing the key
 resets that rate. E activates the nearest unobstructed supported door within the
 authored interaction range.

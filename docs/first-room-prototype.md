@@ -15,7 +15,8 @@ content pipeline and create work that a full game cannot reuse.
 
 The root `project.json` is the engine-native project definition. It contains stable
 identity, author and catalog metadata, engine compatibility, Game Provider identity,
-startup target, legal-document references, and authoritative asset sources. It is
+entry and startup targets, authored launch presentation, legal-document references,
+and authoritative asset sources. It is
 loaded through the headless `jscene3d-project` API that a future GUI will also use.
 
 `assets/freedoom2.wad` is the first source asset and `MAP01` is the first
@@ -60,8 +61,8 @@ The MAP01 project-runtime geometry and player slices are complete. The
 engine Doom importer publishes textured mesh resources and independently
 authored static collision behind the generic importer interface. The entry
 world places that generated definition alongside a composed Player entity with
-a transform, capsule, character body, generic first-person controller, and child camera
-view. The generic project host constructs this graph and owns its resources.
+a transform, capsule, character body, generic first-person controller, and child
+camera view. The generic project host constructs this graph and owns its resources.
 
 The player controller is engine-owned safe descriptor metadata paired with reusable
 Java behavior. Stable component targets bind it explicitly to the character body
@@ -171,6 +172,26 @@ that click does not fire. It presents moving and attacking enemies, spatial aler
 and attack sounds, player-local pain and death sounds, a red damage response, live
 health and ammunition, and terminal player and enemy death.
 
+The application lifecycle slice is complete. The manifest selects a distinct
+descriptor-authored startup scene and original project-owned launch artwork. The
+desktop host creates its native window before composing the world, presents one
+process-launch splash for at least the authored duration, and reports ordered
+manifest, extension, asset, input, content, module, world, application, and ready
+milestones without moving OpenGL or audio realization off their required thread.
+The main menu supports semantic keyboard and gamepad navigation plus absolute
+pointer hover and exact-row activation. New Game transactionally replaces prior
+gameplay with a fresh entry world, Resume retains paused state, Quit closes the
+host, and a later New Game uses a compact progress treatment instead of replaying
+the launch splash. Startup failures remain visible, and replacement-load failures
+leave the retained session intact.
+
+The application-directory slice is also complete for the current host platform.
+It packages compiled application and engine modules, native libraries, authored
+worlds and resources, original branding, and published import output behind the
+generic desktop launcher. Recursive project references inside runtime resource
+definitions are included, while source Java, tests, import-only WAD data, editable
+branding masters, and exporter implementation classes remain absent.
+
 The health-and-ammunition pickup slice is complete. Versioned provider rules
 declare the player's absolute health and bullet capacities plus per-actor amounts,
 ordinary or bonus limits, and contact radii. Descriptor-authored pickup sensors
@@ -180,9 +201,9 @@ billboard, updates the descriptor-authored HUD numbers, and plays the imported
 `DSITEMUP` effect. The HUD is an ordinary entity hierarchy built from
 generic screen-canvas, screen-region, and bitmap-number components; its
 Doom-specific binding component only copies player health and ammunition into
-explicitly targeted number components. Stimpacks, medikits, health bonuses, soulspheres, ammunition
-clips, and bullet boxes are active; shell, rocket, and cell inventory follows with
-the weapons that consume those resources.
+explicitly targeted number components. Stimpacks, medikits, health bonuses,
+soulspheres, ammunition clips, and bullet boxes are active; shell, rocket, and
+cell inventory follows with the weapons that consume those resources.
 
 Supported manual doors are also descriptor-driven. The engine Doom importer
 recognizes classic open-stay and blaze raise specials, removes their surfaces from
