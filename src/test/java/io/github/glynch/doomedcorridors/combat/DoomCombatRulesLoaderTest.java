@@ -42,6 +42,8 @@ final class DoomCombatRulesLoaderTest {
             assertThat(rules.hasWeapon("shotgun")).isTrue();
             assertThat(rules.weaponAmmunition("shotgun")).isEqualTo(DoomCombatRules.Ammunition.SHELLS);
             assertThat(rules.weaponPelletCount("shotgun")).isEqualTo(7);
+            assertThat(rules.weaponRefireMilliseconds("pistol")).isEqualTo(280);
+            assertThat(rules.weaponRefireMilliseconds("shotgun")).isEqualTo(450);
             assertThat(rules.weaponAmmoPerShot("pistol")).isEqualTo(1);
             assertThat(rules.weaponRange("pistol")).isEqualTo(2048);
             assertThat(rules.weaponAutoAimAngleDegrees("pistol")).isEqualTo(5.625F);
@@ -74,7 +76,7 @@ final class DoomCombatRulesLoaderTest {
         Path source = temporaryDirectory.resolve("combat.json");
         Files.writeString(source, """
                 {
-                  "schemaVersion": 5,
+                  "schemaVersion": 6,
                   "player": {
                     "startingHealth": 100,
                     "maximumHealth": 200,
@@ -91,6 +93,7 @@ final class DoomCombatRulesLoaderTest {
                     "ammunition": "bullets",
                     "ammoPerShot": 1,
                     "pelletCount": 1,
+                    "refireMilliseconds": 280,
                     "range": 2048,
                     "autoAimAngleDegrees": 5.625,
                     "autoAimMaximumSlope": 0.625,

@@ -122,6 +122,11 @@ public final class DoomCombatRules {
         return requireWeapon(weaponId).pelletCount();
     }
 
+    /** Returns the minimum elapsed simulation time between accepted shots. */
+    public int weaponRefireMilliseconds(String weaponId) {
+        return requireWeapon(weaponId).refireMilliseconds();
+    }
+
     /** Returns configured weapon IDs in declaration order. */
     public Set<String> weaponIds() {
         return weapons.keySet();
@@ -340,6 +345,7 @@ public final class DoomCombatRules {
             Ammunition ammunition,
             int ammoPerShot,
             int pelletCount,
+            int refireMilliseconds,
             int range,
             float autoAimAngleDegrees,
             float autoAimMaximumSlope,
@@ -350,7 +356,12 @@ public final class DoomCombatRules {
         WeaponDefinition {
             requireId(id, "weapon id");
             Objects.requireNonNull(ammunition, "ammunition");
-            if (ammoPerShot <= 0 || pelletCount <= 0 || range <= 0 || damageMinimum <= 0 || damageStep <= 0) {
+            if (ammoPerShot <= 0
+                    || pelletCount <= 0
+                    || refireMilliseconds <= 0
+                    || range <= 0
+                    || damageMinimum <= 0
+                    || damageStep <= 0) {
                 throw new IllegalArgumentException("weapon numeric values must be positive");
             }
             if (!Float.isFinite(autoAimAngleDegrees) || autoAimAngleDegrees <= 0.0F || autoAimAngleDegrees > 45.0F) {

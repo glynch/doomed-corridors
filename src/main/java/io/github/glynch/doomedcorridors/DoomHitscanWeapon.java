@@ -23,6 +23,7 @@ import io.github.glynch.jscene3d.project.runtime.extension.ComponentUpdateCallba
 import io.github.glynch.jscene3d.project.spatial3d.PerspectiveCamera3d;
 import io.github.glynch.jscene3d.project.spatial3d.Transform3d;
 import io.github.glynch.jscene3d.project.value.ResourceReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -50,6 +51,8 @@ final class DoomHitscanWeapon
     private RuntimeSignal hitSignal;
     private int ammunitionPerShot;
     private int pelletCount;
+    private long refireIntervalNanos;
+    private long remainingRecoveryNanos;
     private DoomCombatRules.Ammunition ammunition;
     private String firingWeaponId;
     private float range;
@@ -113,8 +116,8 @@ final class DoomHitscanWeapon
 
     @Override
     public void onAfterPhysics(FixedUpdateContext update) {
-        Objects.requireNonNull(update, "update");
-        if (!input.snapshot().wasPressed(fireAction)) {
+        advanceRecovery(Objects.requireNonNull(update, "update").step());
+        if (remainingRecoveryNanos > 0L || !input.snapshot().wasPressed(fireAction)) {
             return;
         }
         DoomPlayerState player = owner.capability(
@@ -127,6 +130,7 @@ final class DoomHitscanWeapon
         if (!player.spendAmmunition(ammunition, ammunitionPerShot)) {
             return;
         }
+        remainingRecoveryNanos = refireIntervalNanos;
         Optional<DoomWeaponHitLocation> resolvedHit = fire();
         requiredFiredSignal().emit();
         resolvedHit.ifPresent(weaponHit -> requiredHitSignal()
@@ -143,9 +147,16 @@ final class DoomHitscanWeapon
         ammunitionPerShot = configuredRules.weaponAmmoPerShot(selectedWeaponId);
         ammunition = configuredRules.weaponAmmunition(selectedWeaponId);
         pelletCount = configuredRules.weaponPelletCount(selectedWeaponId);
+        refireIntervalNanos = Duration.ofMillis(configuredRules.weaponRefireMilliseconds(selectedWeaponId))
+                .toNanos();
         range = DoomUnits.toWorld(configuredRules.weaponRange(selectedWeaponId));
         autoAimAngle = (float) Math.toRadians(configuredRules.weaponAutoAimAngleDegrees(selectedWeaponId));
         autoAimMaximumSlope = configuredRules.weaponAutoAimMaximumSlope(selectedWeaponId);
+    }
+
+    /** Advances the active weapon's recovery without coupling gameplay cadence to presentation frames. */
+    private void advanceRecovery(Duration step) {
+        remainingRecoveryNanos = Math.max(0L, remainingRecoveryNanos - step.toNanos());
     }
 
     /** Traces the exact authored view ray before applying the configured Doom-style auto-aim cone. */
@@ -156,17 +167,11 @@ final class DoomHitscanWeapon
                 .transformDirection(new Vector3f(0.0F, 0.0F, -1.0F))
                 .normalize();
         Vector3f origin = requiredViewTransform().worldMatrix().getTranslation(new Vector3f());
-        Optional<DoomWeaponHitLocation> firstHit = Optional.empty();
-        for (int pellet = 0; pellet < pelletCount; pellet++) {
-            Optional<DoomWeaponHitLocation> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
-            if (exactHit.isEmpty()) {
-                exactHit = autoAim(origin, direction, configuredRules);
-            }
-            if (firstHit.isEmpty()) {
-                firstHit = exactHit;
-            }
+        Optional<DoomWeaponHitLocation> resolvedHit = damageFirstTarget(origin, direction, range, configuredRules);
+        if (resolvedHit.isEmpty()) {
+            resolvedHit = autoAim(origin, direction, configuredRules);
         }
-        return firstHit;
+        return resolvedHit;
     }
 
     /** Selects the nearest visible damageable entity whose horizontal bounds intersect the authored aim cone. */
@@ -230,7 +235,7 @@ final class DoomHitscanWeapon
         if (raycastHit
                 .map(result -> result.object().owner() == candidate.target().owner())
                 .orElse(false)) {
-            int appliedDamage = candidate.target().damage(configuredRules.rollWeaponDamage(firingWeaponId, random));
+            int appliedDamage = candidate.target().damage(rollShotDamage(configuredRules));
             return appliedDamage > 0 ? Optional.of(weaponHit(candidate.direction())) : Optional.empty();
         }
         return Optional.empty();
@@ -243,8 +248,17 @@ final class DoomHitscanWeapon
                 .flatMap(result -> result.object()
                         .owner()
                         .capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class))
-                .filter(target -> target.damage(configuredRules.rollWeaponDamage(firingWeaponId, random)) > 0)
+                .filter(target -> target.damage(rollShotDamage(configuredRules)) > 0)
                 .map(target -> weaponHit(direction));
+    }
+
+    /** Rolls every configured pellet after their shared unspread trajectory resolves one target. */
+    private int rollShotDamage(DoomCombatRules configuredRules) {
+        int damage = 0;
+        for (int pellet = 0; pellet < pelletCount; pellet++) {
+            damage += configuredRules.rollWeaponDamage(firingWeaponId, random);
+        }
+        return damage;
     }
 
     /** Captures one successful ray in the perspective coordinates used by the firing view. */

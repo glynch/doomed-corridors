@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /** Loads provider-authored combat rules and validates actor-catalog references. */
 public final class DoomCombatRulesLoader {
-    private static final int SCHEMA_VERSION = 5;
+    private static final int SCHEMA_VERSION = 6;
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -66,6 +66,7 @@ public final class DoomCombatRulesLoader {
                     ammunition(value.ammunition()),
                     value.ammoPerShot(),
                     value.pelletCount(),
+                    value.refireMilliseconds(),
                     value.range(),
                     value.autoAimAngleDegrees(),
                     value.autoAimMaximumSlope(),
@@ -230,6 +231,7 @@ public final class DoomCombatRulesLoader {
             String ammunition,
             int ammoPerShot,
             int pelletCount,
+            int refireMilliseconds,
             int range,
             float autoAimAngleDegrees,
             float autoAimMaximumSlope,

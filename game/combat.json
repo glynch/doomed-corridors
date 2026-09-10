@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/combat-5.schema.json",
-  "schemaVersion": 5,
+  "$schema": "../schema/combat-6.schema.json",
+  "schemaVersion": 6,
   "player": {
     "startingHealth": 100,
     "maximumHealth": 200,
@@ -18,6 +18,7 @@
       "ammunition": "bullets",
       "ammoPerShot": 1,
       "pelletCount": 1,
+      "refireMilliseconds": 280,
       "range": 2048,
       "autoAimAngleDegrees": 5.625,
       "autoAimMaximumSlope": 0.625,
@@ -30,6 +31,7 @@
       "ammunition": "shells",
       "ammoPerShot": 1,
       "pelletCount": 7,
+      "refireMilliseconds": 450,
       "range": 2048,
       "autoAimAngleDegrees": 5.625,
       "autoAimMaximumSlope": 0.625,

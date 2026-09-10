@@ -468,6 +468,7 @@ final class ProjectHostIntegrationTest {
             assertThat(weaponPresentation.isFiring()).isTrue();
             assertThat(weaponPresentation.isHitIndicatorVisible()).isFalse();
 
+            advanceFixed(loaded, 12);
             ShotLine assistedLine = unobstructedAutoAimShot(actors, physics);
             DoomHitscanTarget assistedTarget = assistedLine
                     .target()
@@ -498,6 +499,7 @@ final class ProjectHostIntegrationTest {
             loaded.world().advanceFrame(Duration.ofMillis(120), 0.0F);
             assertThat(weaponPresentation.isHitIndicatorVisible()).isFalse();
 
+            advanceFixed(loaded, 12);
             ShotLine firingLine = unobstructedShot(actors, physics);
             Entity target = firingLine.target();
             var orientation = new Quaternionf().rotationTo(new Vector3f(0.0F, 0.0F, -1.0F), firingLine.direction());
@@ -507,6 +509,7 @@ final class ProjectHostIntegrationTest {
                 input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
                 loaded.world().advanceFixed(Duration.ofMillis(25));
                 input.publish(ActionSnapshot.empty());
+                advanceFixed(loaded, 12);
             }
 
             assertThat(playerState.bullets()).isEqualTo(44);
@@ -763,13 +766,20 @@ final class ProjectHostIntegrationTest {
             DoomWeaponPresentation shotgunPresentation = child(player, SHOTGUN_PRESENTATION_ENTITY)
                     .component(SHOTGUN_PRESENTATION, DoomWeaponPresentation.class)
                     .orElseThrow();
+            Transform3d playerTransform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
             ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
 
             assertThat(state.activeWeapon()).isEqualTo("pistol");
             assertThat(state.ownsWeapon("shotgun")).isFalse();
             assertThat(state.shells()).isZero();
+            assertThat(playerTransform.position().x()).isEqualTo(50.0F);
+            assertThat(playerTransform.position().y()).isEqualTo(1.375F);
+            assertThat(playerTransform.position().z()).isEqualTo(5.0F);
 
             loaded.world().activate();
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            assertThat(pickup.isCollected()).isFalse();
             input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
             advanceFixed(loaded, 12);
 
@@ -788,10 +798,40 @@ final class ProjectHostIntegrationTest {
             assertThat(state.activeWeapon()).isEqualTo("shotgun");
 
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            long firingStarted = System.nanoTime();
             loaded.world().advanceFixed(Duration.ofMillis(25));
+            long firingElapsedMilliseconds =
+                    Duration.ofNanos(System.nanoTime() - firingStarted).toMillis();
             assertThat(state.shells()).isEqualTo(7);
             assertThat(shotgunPresentation.isFiring()).isTrue();
             assertThat(pistol.isFiring()).isFalse();
+            assertThat(firingElapsedMilliseconds)
+                    .as("shotgun input-to-feedback latency")
+                    .isLessThan(500L);
+
+            loaded.world().advanceFrame(Duration.ofMillis(180), 0.0F);
+            var interruptedFrame = shotgunPresentation.currentFrame();
+            int acceptedSoundRestarts = presentation.restarts();
+            input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+
+            assertThat(state.shells()).as("ammunition during shotgun recovery").isEqualTo(7);
+            assertThat(presentation.restarts())
+                    .as("sound restarts during shotgun recovery")
+                    .isEqualTo(acceptedSoundRestarts);
+            assertThat(shotgunPresentation.currentFrame())
+                    .as("shotgun frame during recovery")
+                    .isSameAs(interruptedFrame);
+
+            input.publish(ActionSnapshot.empty());
+            advanceFixed(loaded, 16);
+            loaded.world().advanceFrame(Duration.ofMillis(270), 0.0F);
+            assertThat(shotgunPresentation.isFiring()).isFalse();
+
+            input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
+            loaded.world().advanceFixed(Duration.ofMillis(25));
+            assertThat(state.shells()).as("ammunition after shotgun recovery").isEqualTo(6);
+            assertThat(shotgunPresentation.isFiring()).isTrue();
         }
     }
 

@@ -30,8 +30,8 @@
       "scene": "worlds/map01.world.json",
       "parameters": {
         "doomed-corridors.invulnerable": true,
-        "doomed-corridors.spawn": [46.5, 1.375, 5.0],
-        "doomed-corridors.yaw-degrees": -90.0
+        "doomed-corridors.spawn": [50.0, 1.375, 5.0],
+        "doomed-corridors.yaw-degrees": 90.0
       }
     },
     "green-armor-pickup": {
