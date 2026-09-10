@@ -22,6 +22,7 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
     private int maximumBullets;
     private RuntimeSignal hurtSignal;
     private RuntimeSignal diedSignal;
+    private boolean invulnerable;
     private boolean configured;
 
     /** Retains explicit source-asset references until application preparation loads their rules. */
@@ -63,6 +64,14 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         configured = true;
     }
 
+    /** Selects whether incoming damage is ignored for a local playtest launch. */
+    void setInvulnerable(boolean invulnerable) {
+        if (configured) {
+            throw new IllegalStateException("player invulnerability must be selected before configuration");
+        }
+        this.invulnerable = invulnerable;
+    }
+
     /** Returns current player health after application preparation. */
     @Override
     public int health() {
@@ -95,6 +104,9 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
         requireConfigured();
         if (amount <= 0) {
             throw new IllegalArgumentException("damage must be positive");
+        }
+        if (invulnerable) {
+            return 0;
         }
         int applied = (int) Math.min((long) health, amount);
         health -= applied;

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://jscene3d.org/schemas/playtest-profiles-1.json",
+  "schemaVersion": 1,
+  "profiles": {
+    "map01-start-invulnerable": {
+      "scene": "worlds/map01.world.json",
+      "parameters": {
+        "doomed-corridors.invulnerable": true,
+        "doomed-corridors.spawn": [-6.0, 0.875, 6.0],
+        "doomed-corridors.yaw-degrees": -90.0
+      }
+    },
+    "moving-floor-34": {
+      "scene": "worlds/map01.world.json",
+      "parameters": {
+        "doomed-corridors.invulnerable": true,
+        "doomed-corridors.spawn": [41.5, 0.875, 20.0],
+        "doomed-corridors.yaw-degrees": 0.0
+      }
+    }
+  }
+}

@@ -37,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Manifest-selected Doomed Corridors application extension. */
 public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntimeExtension {
@@ -158,13 +159,21 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         HostedProject validProject = Objects.requireNonNull(project, "project");
         List<DoomRuleConsumer> consumers = new ArrayList<>();
         validProject.world().roots().forEach(root -> collectRuleConsumers(root, consumers));
-        boolean hasPlayer = consumers.stream().anyMatch(DoomPlayerState.class::isInstance);
+        Optional<Entity> player = validProject.world().roots().stream()
+                .map(DoomedCorridorsRuntimeExtension::findPlayer)
+                .flatMap(Optional::stream)
+                .findFirst();
         if (consumers.isEmpty()) {
             return;
         }
-        if (!hasPlayer) {
+        if (player.isEmpty()) {
             throw new IllegalStateException("the startup world has no Doom player-state component");
         }
+        Entity playerEntity = player.orElseThrow();
+        DoomPlayerState playerState = playerEntity
+                .capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .orElseThrow();
+        DoomPlaytestParameters.apply(validProject, playerEntity, playerState);
         Map<RuleSources, DoomCombatRules> loadedRules = new LinkedHashMap<>();
         for (DoomRuleConsumer consumer : consumers) {
             RuleSources sources = new RuleSources(consumer.actorCatalog(), consumer.combatRules());
@@ -172,6 +181,18 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     sources, key -> loadRules(validProject.project(), key.actorCatalog(), key.combatRules()));
             consumer.configure(rules);
         }
+    }
+
+    /** Finds the entity providing player resources in one owned subtree. */
+    private static Optional<Entity> findPlayer(Entity entity) {
+        if (entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .isPresent()) {
+            return Optional.of(entity);
+        }
+        return entity.children().stream()
+                .map(DoomedCorridorsRuntimeExtension::findPlayer)
+                .flatMap(Optional::stream)
+                .findFirst();
     }
 
     /** Resolves authored menu images before constructing interactive overlay behavior. */

@@ -44,6 +44,22 @@ final class DoomPlayerStateTest {
         assertThat(endpoints.died.emissions).isEqualTo(1);
     }
 
+    /** Keeps combat active while a selected local playtest profile suppresses accepted player damage. */
+    @Test
+    void ignoresDamageWhilePlaytestInvulnerabilityIsEnabled() {
+        RecordingEndpoints endpoints = new RecordingEndpoints();
+        DoomPlayerState state =
+                new DoomPlayerState(ResourceReference.asset("actors"), ResourceReference.asset("combat"));
+        state.bindEndpoints(endpoints);
+        state.setInvulnerable(true);
+        state.configure(rules());
+
+        assertThat(state.damage(30)).isZero();
+        assertThat(state.health()).isEqualTo(100);
+        assertThat(endpoints.hurt.emissions).isZero();
+        assertThat(endpoints.died.emissions).isZero();
+    }
+
     private static DoomCombatRules rules() {
         DoomActorCatalog actors = new DoomActorCatalogLoader()
                 .load(Path.of("game/actors.json"))

@@ -32,6 +32,7 @@
         <spotless.maven.version>3.8.0</spotless.maven.version>
 
         <doomed.corridors.firstThreadArgument>-Ddoomed.corridors.launch=true</doomed.corridors.firstThreadArgument>
+        <doomed.corridors.playtest />
         <doomed.corridors.application.directory>${project.build.directory}/export/doomed-corridors</doomed.corridors.application.directory>
     </properties>
 
@@ -403,6 +404,7 @@
                                     <executable>${java.home}/bin/java</executable>
                                     <arguments>
                                         <argument>${doomed.corridors.firstThreadArgument}</argument>
+                                        <argument>-Djscene3d.playtest.profile=${doomed.corridors.playtest}</argument>
                                         <argument>-classpath</argument>
                                         <classpath />
                                         <argument>io.github.glynch.jscene3d.project.desktop.DesktopProjectLauncher</argument>

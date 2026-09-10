@@ -30,9 +30,12 @@ import io.github.glynch.jscene3d.project.physics3d.CollisionRaycastHit3d;
 import io.github.glynch.jscene3d.project.physics3d.CollisionShape3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.physics3d.TriangleMeshCollisionShape3dResource;
+import io.github.glynch.jscene3d.project.playtest.PlaytestProfile;
+import io.github.glynch.jscene3d.project.playtest.PlaytestProfileLoader;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
+import io.github.glynch.jscene3d.project.runtime.ProjectLaunchRequest;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeHost;
 import io.github.glynch.jscene3d.project.spatial3d.BillboardRenderer3d;
 import io.github.glynch.jscene3d.project.spatial3d.Material3dResource;
@@ -782,6 +785,51 @@ final class ProjectHostIntegrationTest {
         }
     }
 
+    /** Stages the moving-floor playtest so one backward movement crosses its trigger while the floor stays in view. */
+    @Test
+    void stagesMovingFloorPlaytestForDirectVerification() {
+        Path cache = temporaryDirectory.resolve("playtest-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        PlaytestProfile profile = new PlaytestProfileLoader().load(PROJECT_ROOT, "moving-floor-34");
+        ProjectLaunchRequest request =
+                ProjectLaunchRequest.playtest(profile.name(), profile.scene(), profile.parameters());
+
+        try (HostedProject loaded = load(cache, request)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            DoomPlayerState state = player.capability(
+                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                    .orElseThrow();
+            DoomFloor floor = movingFloor(root(loaded, MAP_PLACEMENT))
+                    .capability(DoomFloorDescriptors.FLOOR_CAPABILITY, DoomFloor.class)
+                    .orElseThrow();
+            Transform3d playerTransform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+            Transform3d viewTransform = player.children()
+                    .getFirst()
+                    .component(VIEW_TRANSFORM, Transform3d.class)
+                    .orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            assertThat(playerTransform.position().x()).isEqualTo(41.5F);
+            assertThat(playerTransform.position().y()).isEqualTo(0.875F);
+            assertThat(playerTransform.position().z()).isEqualTo(20.0F);
+            assertThat(viewTransform.orientation().y()).isCloseTo(0.0F, within(0.0001F));
+            assertThat(viewTransform.orientation().w()).isCloseTo(1.0F, within(0.0001F));
+            assertThat(state.damage(30)).isZero();
+            assertThat(state.health()).isEqualTo(100);
+            assertThat(floor.phase()).isEqualTo(DoomFloor.Phase.RAISED);
+            float raisedHeight = floor.currentHeight();
+
+            loaded.world().activate();
+            input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, -1.0F).build());
+            advanceFixed(loaded, 15);
+
+            assertThat(playerTransform.position().z()).isGreaterThan(21.4F);
+            assertThat(floor.phase()).isNotEqualTo(DoomFloor.Phase.RAISED);
+            assertThat(floor.currentHeight()).isLessThan(raisedHeight);
+        }
+    }
+
     /** Stops at MAP01 collision while preserving the tangential component of diagonal movement. */
     @Test
     void blocksAndSlidesHostedPlayerAtMapWall() {
@@ -1039,6 +1087,15 @@ final class ProjectHostIntegrationTest {
                 ProjectHostIntegrationTest.class.getClassLoader(),
                 new TestProjectEnvironment(cache, presentation));
         return host.loadEntry(PROJECT_ROOT);
+    }
+
+    /** Loads one explicit playtest request through the same desktop-equivalent environment. */
+    private static HostedProject load(Path cache, ProjectLaunchRequest request) {
+        ProjectRuntimeHost host = new ProjectRuntimeHost(
+                ENGINE_VERSION,
+                ProjectHostIntegrationTest.class.getClassLoader(),
+                new TestProjectEnvironment(cache, new TestPresentationWorldModule()));
+        return host.loadEntry(PROJECT_ROOT, request);
     }
 
     /** Loads entry gameplay with observable host-owned application transitions. */
