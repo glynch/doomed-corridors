@@ -27,6 +27,14 @@
     "startupScene": "worlds/main-menu.world.json",
     "inputMap": "application/input-map.json"
   },
+  "launch": {
+    "splash": {
+      "background": "application/branding/images/corridor-background.png",
+      "title": "application/branding/images/doomed-corridors-title.png",
+      "poweredByBadges": ["application/branding/images/powered-by-jscene3d.png"],
+      "minimumDurationSeconds": 2.0
+    }
+  },
   "extensions": [
     {
       "id": "io.github.glynch.jscene3d.wad",

@@ -27,6 +27,7 @@ import io.github.glynch.jscene3d.project.manifest.ProjectLoader;
 import io.github.glynch.jscene3d.project.value.ProjectValue;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /** Verifies the repository remains a loadable project for the generic JScene3D host. */
@@ -46,6 +47,16 @@ final class ProjectManifestTest {
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("worlds/map01.world.json"));
         assertThat(project.runtime().startupScene()).contains(project.root().resolve("worlds/main-menu.world.json"));
         assertThat(project.runtime().inputMap()).contains(project.root().resolve("application/input-map.json"));
+        assertThat(project.launch().splash()).get().satisfies(splash -> {
+            assertThat(splash.background())
+                    .isEqualTo(project.root().resolve("application/branding/images/corridor-background.png"));
+            assertThat(splash.title())
+                    .isEqualTo(project.root().resolve("application/branding/images/doomed-corridors-title.png"));
+            assertThat(splash.studioLogo()).isEmpty();
+            assertThat(splash.poweredByBadges())
+                    .containsExactly(project.root().resolve("application/branding/images/powered-by-jscene3d.png"));
+            assertThat(splash.minimumDuration()).isEqualTo(Duration.ofSeconds(2));
+        });
         assertThat(project.imports())
                 .containsExactly(
                         project.root().resolve("imports/freedoom-map01.import.json"),
