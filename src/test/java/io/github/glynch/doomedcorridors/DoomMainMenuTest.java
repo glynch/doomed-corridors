@@ -78,6 +78,15 @@ final class DoomMainMenuTest {
         }
     }
 
+    @Test
+    void centersAProjectOwnedTitleInsideAWideViewport() {
+        DoomMainMenu.ImageBounds bounds = DoomMainMenu.titleBounds(2044, 1248, 900, 280);
+
+        assertThat(bounds.x()).isGreaterThanOrEqualTo(0.0F);
+        assertThat(bounds.x() + bounds.width()).isLessThanOrEqualTo(2044.0F);
+        assertThat(bounds.x() + bounds.width() * 0.5F).isEqualTo(1022.0F);
+    }
+
     /** Creates one menu with renderer-independent one-pixel images. */
     private static DoomMainMenu menu(ProjectInput input, ApplicationControl application) {
         TestPresentationWorldModule presentation = new TestPresentationWorldModule();

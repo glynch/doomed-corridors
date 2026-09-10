@@ -141,13 +141,15 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
         MenuLayout layout = MenuLayout.forViewport(width, height);
         canvas.image(background.fullRegion(), 0.0F, 0.0F, width, height, Color.WHITE, 1.0F);
         canvas.rectangle(0.0F, 0.0F, width, height, Color.BLACK, 0.42F);
-        drawCentered(
-                canvas,
-                title,
-                layout.originX(),
-                layout.originY() + TITLE_CENTER_Y * layout.scale(),
-                titleScale(layout, title),
-                Color.WHITE);
+        ImageBounds titleBounds = titleBounds(width, height, title.width(), title.height());
+        canvas.image(
+                title.fullRegion(),
+                titleBounds.x(),
+                titleBounds.y(),
+                titleBounds.width(),
+                titleBounds.height(),
+                Color.WHITE,
+                1.0F);
         List<ApplicationCommand> items = items();
         for (int index = 0; index < items.size(); index++) {
             float centerY = layout.itemCenterY(index);
@@ -225,10 +227,24 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
     }
 
     /** Fits the authored title within its reference-space menu region. */
-    private static float titleScale(MenuLayout layout, OverlayImage image) {
-        float referenceScale = Math.min(TITLE_MAX_WIDTH / image.width(), TITLE_MAX_HEIGHT / image.height());
+    private static float titleScale(MenuLayout layout, int imageWidth, int imageHeight) {
+        float referenceScale = Math.min(TITLE_MAX_WIDTH / imageWidth, TITLE_MAX_HEIGHT / imageHeight);
         return referenceScale * layout.scale();
     }
+
+    /** Returns the title bounds used by rendering for one viewport and source-image size. */
+    static ImageBounds titleBounds(int width, int height, int imageWidth, int imageHeight) {
+        MenuLayout layout = MenuLayout.forViewport(width, height);
+        float scale = titleScale(layout, imageWidth, imageHeight);
+        float drawnWidth = imageWidth * scale;
+        float drawnHeight = imageHeight * scale;
+        float centerX = layout.originX() + ITEM_CENTER_X * layout.scale();
+        float centerY = layout.originY() + TITLE_CENTER_Y * layout.scale();
+        return new ImageBounds(centerX - drawnWidth * 0.5F, centerY - drawnHeight * 0.5F, drawnWidth, drawnHeight);
+    }
+
+    /** Immutable logical-coordinate bounds for one menu image. */
+    record ImageBounds(float x, float y, float width, float height) {}
 
     /** Aspect-fitted reference-space menu layout shared by rendering and pointer hit-testing. */
     private record MenuLayout(float scale, float originX, float originY) {
