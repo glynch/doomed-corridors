@@ -48,6 +48,36 @@
         {"device": "mouse", "control": "LEFT"},
         {"device": "gamepad", "control": "button-south"}
       ]
+    },
+    "menu-previous": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "UP"},
+        {"device": "keyboard", "control": "W"},
+        {"device": "gamepad", "control": "dpad-up"}
+      ]
+    },
+    "menu-next": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "DOWN"},
+        {"device": "keyboard", "control": "S"},
+        {"device": "gamepad", "control": "dpad-down"}
+      ]
+    },
+    "menu-confirm": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "ENTER"},
+        {"device": "gamepad", "control": "button-south"}
+      ]
+    },
+    "menu": {
+      "valueType": "button",
+      "bindings": [
+        {"device": "keyboard", "control": "ESCAPE"},
+        {"device": "gamepad", "control": "start"}
+      ]
     }
   }
 }

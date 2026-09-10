@@ -220,6 +220,15 @@
               }
             }
           }
+        },
+        {
+          "componentId": "f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9",
+          "type": "io.github.glynch.jscene3d.application/command-binding",
+          "typeVersion": 1,
+          "properties": {
+            "action": "menu",
+            "command": "show-menu"
+          }
         }
       ],
       "children": [

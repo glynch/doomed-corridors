@@ -19,6 +19,7 @@ import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoadResult;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoader;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationRules;
+import io.github.glynch.doomedcorridors.presentation.DoomMenuImageComposer;
 import io.github.glynch.doomedcorridors.wad.DoomDmxSoundDecoder;
 import io.github.glynch.doomedcorridors.world.DoomActorResolver;
 import io.github.glynch.jscene3d.audio.PcmAudio;
@@ -108,6 +109,13 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final float DOOM_SOUND_ROLLOFF_FACTOR = 1.0F;
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
     private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
+    private static final String MENU_BACKGROUND = "background";
+    private static final String MENU_TITLE = "title";
+    private static final String MENU_RESUME = "resume";
+    private static final String MENU_NEW_GAME = "new-game";
+    private static final String MENU_QUIT = "quit";
+    private static final String MENU_CURSOR_FIRST = "cursor-first";
+    private static final String MENU_CURSOR_SECOND = "cursor-second";
     private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
     private static final PropertyId PLAYER_ARGUMENT = new PropertyId("player");
     private static final PropertyId TARGET_PROVIDER_ARGUMENT = new PropertyId("target-provider");
@@ -266,6 +274,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name());
                 images.put(image, patch.image());
             }
+            importMenuImages(archive, palette, images);
             Map<String, PcmAudio> sounds = new LinkedHashMap<>();
             for (String sound : presentation.soundLumps()) {
                 WadLump soundLump = requiredLump(archive, sound);
@@ -282,6 +291,37 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                     Map.of("message", String.valueOf(exception.getMessage())));
             return Optional.empty();
         }
+    }
+
+    /** Decodes the title screen and composes project-owned labels from the WAD's bitmap font. */
+    private static void importMenuImages(WadArchive archive, byte[] palette, Map<String, RgbaImage> images)
+            throws IOException, DoomPatchDataException {
+        images.put(MENU_BACKGROUND, decodePatch(archive, palette, "TITLEPIC"));
+        images.put(MENU_CURSOR_FIRST, decodePatch(archive, palette, "M_SKULL1"));
+        images.put(MENU_CURSOR_SECOND, decodePatch(archive, palette, "M_SKULL2"));
+        Set<Character> requiredGlyphs = new TreeSet<>();
+        for (String label : List.of("DOOMED CORRIDORS", "RESUME", "NEW GAME", "QUIT GAME")) {
+            label.chars()
+                    .filter(character -> character != ' ')
+                    .forEach(character -> requiredGlyphs.add((char) character));
+        }
+        Map<Character, RgbaImage> glyphs = new LinkedHashMap<>();
+        for (Character character : requiredGlyphs) {
+            glyphs.put(
+                    character, decodePatch(archive, palette, String.format(Locale.ROOT, "STCFN%03d", (int) character)));
+        }
+        images.put(MENU_TITLE, DoomMenuImageComposer.compose("DOOMED CORRIDORS", glyphs));
+        images.put(MENU_RESUME, DoomMenuImageComposer.compose("RESUME", glyphs));
+        images.put(MENU_NEW_GAME, DoomMenuImageComposer.compose("NEW GAME", glyphs));
+        images.put(MENU_QUIT, DoomMenuImageComposer.compose("QUIT GAME", glyphs));
+    }
+
+    /** Decodes one exact WAD patch with the selected palette. */
+    private static RgbaImage decodePatch(WadArchive archive, byte[] palette, String name)
+            throws IOException, DoomPatchDataException {
+        WadLump lump = requiredLump(archive, name);
+        return DoomPatchDecoder.decode(archive.readAllBytes(lump, lump.size()), palette, lump.name())
+                .image();
     }
 
     /** Resolves one exact required lump using normal WAD override semantics. */
@@ -487,6 +527,22 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 playerSoundIdentity(prefix, player.deathSound()),
                 assets.sounds().get(player.deathSound()));
         publishDoorSounds(context, prefix, assets.presentation().doors(), assets.sounds());
+        publishMenuPresentationResources(context, prefix, assets.images());
+    }
+
+    /** Publishes project-owned background, label, and cursor images used by the startup menu world. */
+    private static void publishMenuPresentationResources(
+            ImportPreparationContext context, String prefix, Map<String, RgbaImage> images) throws IOException {
+        for (String name : List.of(
+                MENU_BACKGROUND,
+                MENU_TITLE,
+                MENU_RESUME,
+                MENU_NEW_GAME,
+                MENU_QUIT,
+                MENU_CURSOR_FIRST,
+                MENU_CURSOR_SECOND)) {
+            publishOverlayImage(context, menuImageIdentity(prefix, name), images.get(name));
+        }
     }
 
     /** Publishes the normal and blaze movement sounds referenced by authored door presentation. */
@@ -1227,6 +1283,11 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Returns one selected HUD overlay-image identity. */
     private static String hudImageIdentity(String prefix, String lump) {
         return prefix + "/presentation/hud/images/" + lump.toLowerCase(Locale.ROOT);
+    }
+
+    /** Returns one project-owned menu overlay-image identity. */
+    private static String menuImageIdentity(String prefix, String name) {
+        return prefix + "/presentation/menu/images/" + name;
     }
 
     /** Returns one selected weapon local-sound identity. */

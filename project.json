@@ -24,6 +24,7 @@
   "runtime": {
     "applicationExtension": "io.github.glynch.doomed-corridors",
     "entryScene": "worlds/map01.world.json",
+    "startupScene": "worlds/main-menu.world.json",
     "inputMap": "application/input-map.json"
   },
   "extensions": [

@@ -12,6 +12,7 @@ import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.doomedcorridors.internal.RuntimeProperties;
+import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
 import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
@@ -114,6 +115,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                                 context.properties(),
                                 DoomedCorridorsRuntimeTypes.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
         validRegistry.register(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE, new DoorPresentationFactory());
+        validRegistry.register(DoomedCorridorsRuntimeTypes.MAIN_MENU_TYPE, new MainMenuFactory());
     }
 
     /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */
@@ -123,6 +125,9 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         List<DoomRuleConsumer> consumers = new ArrayList<>();
         validProject.world().roots().forEach(root -> collectRuleConsumers(root, consumers));
         boolean hasPlayer = consumers.stream().anyMatch(DoomPlayerState.class::isInstance);
+        if (consumers.isEmpty()) {
+            return;
+        }
         if (!hasPlayer) {
             throw new IllegalStateException("the startup world has no Doom player-state component");
         }
@@ -132,6 +137,52 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
             DoomCombatRules rules = loadedRules.computeIfAbsent(
                     sources, key -> loadRules(validProject.project(), key.actorCatalog(), key.combatRules()));
             consumer.configure(rules);
+        }
+    }
+
+    /** Resolves authored menu images before constructing interactive overlay behavior. */
+    private static final class MainMenuFactory implements ComponentFactory<DoomMainMenu> {
+        private static final List<PropertyId> IMAGE_PROPERTIES = List.of(
+                DoomedCorridorsRuntimeTypes.MENU_BACKGROUND_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_TITLE_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_RESUME_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_NEW_GAME_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_QUIT_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_CURSOR_FIRST_PROPERTY,
+                DoomedCorridorsRuntimeTypes.MENU_CURSOR_SECOND_PROPERTY);
+
+        @Override
+        public void prepare(ComponentPreparationContext context) {
+            IMAGE_PROPERTIES.forEach(property -> context.resolveResource(
+                    context.properties().resourceReference(property), OverlayImageResource.class));
+        }
+
+        @Override
+        public DoomMainMenu create(ComponentFactoryContext context) {
+            ComponentProperties properties = context.properties();
+            return new DoomMainMenu(
+                    context.world().requireModule(InputWorldModule.class),
+                    context.world().requireModule(ApplicationControl.class),
+                    context.world().requireModule(PresentationWorldModule.class),
+                    new DoomMainMenu.Images(
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_BACKGROUND_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_TITLE_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_RESUME_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_NEW_GAME_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_QUIT_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_CURSOR_FIRST_PROPERTY),
+                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_CURSOR_SECOND_PROPERTY)),
+                    new DoomMainMenu.Actions(
+                            properties.text(DoomedCorridorsRuntimeTypes.MENU_PREVIOUS_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsRuntimeTypes.MENU_NEXT_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsRuntimeTypes.MENU_CONFIRM_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsRuntimeTypes.MENU_BACK_ACTION_PROPERTY)));
+        }
+
+        /** Resolves one prepared authored menu image. */
+        private static OverlayImageResource image(
+                ComponentFactoryContext context, ComponentProperties properties, PropertyId property) {
+            return context.resolveResource(properties.resourceReference(property), OverlayImageResource.class);
         }
     }
 

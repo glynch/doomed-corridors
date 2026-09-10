@@ -66,6 +66,9 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Runtime type mapping imported door phase transitions to project-authored positional audio. */
     public static final ComponentType DOOR_PRESENTATION_TYPE = ComponentType.of(EXTENSION_ID + "/door-presentation", 1);
 
+    /** Runtime type for the project-authored startup and pause menu. */
+    public static final ComponentType MAIN_MENU_TYPE = ComponentType.of(EXTENSION_ID + "/main-menu", 1);
+
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
 
@@ -255,6 +258,39 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Rate at which door sounds attenuate beyond their reference distance. */
     public static final PropertyId DOOR_SOUND_ROLLOFF_FACTOR_PROPERTY = new PropertyId("rolloff-factor");
+
+    /** Main-menu background image. */
+    public static final PropertyId MENU_BACKGROUND_PROPERTY = new PropertyId("background");
+
+    /** Main-menu title image. */
+    public static final PropertyId MENU_TITLE_PROPERTY = new PropertyId("title");
+
+    /** Main-menu Resume label image. */
+    public static final PropertyId MENU_RESUME_PROPERTY = new PropertyId("resume");
+
+    /** Main-menu New Game label image. */
+    public static final PropertyId MENU_NEW_GAME_PROPERTY = new PropertyId("new-game");
+
+    /** Main-menu Quit Game label image. */
+    public static final PropertyId MENU_QUIT_PROPERTY = new PropertyId("quit");
+
+    /** First main-menu cursor animation image. */
+    public static final PropertyId MENU_CURSOR_FIRST_PROPERTY = new PropertyId("cursor-first");
+
+    /** Second main-menu cursor animation image. */
+    public static final PropertyId MENU_CURSOR_SECOND_PROPERTY = new PropertyId("cursor-second");
+
+    /** Semantic action selecting the previous main-menu item. */
+    public static final PropertyId MENU_PREVIOUS_ACTION_PROPERTY = new PropertyId("previous-action");
+
+    /** Semantic action selecting the next main-menu item. */
+    public static final PropertyId MENU_NEXT_ACTION_PROPERTY = new PropertyId("next-action");
+
+    /** Semantic action executing the selected main-menu item. */
+    public static final PropertyId MENU_CONFIRM_ACTION_PROPERTY = new PropertyId("confirm-action");
+
+    /** Semantic action returning from the pause menu to retained gameplay. */
+    public static final PropertyId MENU_BACK_ACTION_PROPERTY = new PropertyId("back-action");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://jscene3d.org/schemas/world-definition-1.json",
+  "assetId": "69b671f5-8b8b-4b57-b3bc-e8cb0ddf7879",
+  "assetType": "world-definition",
+  "formatVersion": 1,
+  "name": "Main Menu",
+  "connections": [],
+  "roots": [
+    {
+      "entryType": "local",
+      "entityId": "eb1af3a2-fe1b-4688-ac54-e930e354e23c",
+      "name": "Main Menu",
+      "enabled": true,
+      "components": [
+        {
+          "componentId": "f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9",
+          "type": "io.github.glynch.doomed-corridors/main-menu",
+          "typeVersion": 1,
+          "properties": {
+            "background": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/background"
+            },
+            "title": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/title"
+            },
+            "resume": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/resume"
+            },
+            "new-game": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/new-game"
+            },
+            "quit": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/quit"
+            },
+            "cursor-first": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/cursor-first"
+            },
+            "cursor-second": {
+              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/cursor-second"
+            },
+            "previous-action": "menu-previous",
+            "next-action": "menu-next",
+            "confirm-action": "menu-confirm",
+            "back-action": "menu"
+          }
+        }
+      ],
+      "children": []
+    }
+  ]
+}

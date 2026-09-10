@@ -27,7 +27,6 @@ import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.EntityInstantiationKind;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
-import io.github.glynch.jscene3d.project.runtime.ProjectHost;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeHost;
 import io.github.glynch.jscene3d.project.spatial3d.BillboardRenderer3d;
 import io.github.glynch.jscene3d.project.spatial3d.Material3dResource;
@@ -59,6 +58,7 @@ final class ProjectHostIntegrationTest {
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
     private static final EntityId PLAYER_HUD = EntityId.from("c4f5ca56-661a-424d-aec2-b423d299af47");
+    private static final EntityId MAIN_MENU = EntityId.from("eb1af3a2-fe1b-4688-ac54-e930e354e23c");
     private static final ComponentId PLAYER_TRANSFORM = ComponentId.from("3e940be7-e58d-4f3a-8b5e-e61c99c00904");
     private static final ComponentId PLAYER_BODY = ComponentId.from("4d8cae80-322d-4bdf-b8c0-5703699de177");
     private static final ComponentId VIEW_TRANSFORM = ComponentId.from("82b8ae6d-47e9-4df6-9d85-01a6fca09dc6");
@@ -104,6 +104,7 @@ final class ProjectHostIntegrationTest {
     private static final ComponentId WEAPON_PRESENTATION = ComponentId.from("64fbcd73-b051-4348-9fc5-834183678794");
     private static final ComponentId PLAYER_PRESENTATION = ComponentId.from("7be3f3e4-e576-4710-8382-260037317921");
     private static final ComponentId PLAYER_LIFECYCLE = ComponentId.from("10bfeecd-9583-4182-8f0c-1165e98fc714");
+    private static final ComponentId MAIN_MENU_COMPONENT = ComponentId.from("f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9");
     private static final ComponentId HEALTH_NUMBER = ComponentId.from("2313f424-d11e-4c6b-95a2-1c8dbe583b7d");
     private static final ComponentId AMMO_NUMBER = ComponentId.from("00f54e60-dd1c-47e2-a180-83bfcefdc2d9");
     private static final InputAction MOVE = new InputAction("move");
@@ -115,6 +116,24 @@ final class ProjectHostIntegrationTest {
 
     @TempDir
     private Path temporaryDirectory;
+
+    /** Composes the project-authored startup menu independently from the gameplay entry world. */
+    @Test
+    void composesAuthoredStartupMenu() {
+        Path cache = temporaryDirectory.resolve("menu-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = loadStartup(cache)) {
+            Entity menu = root(loaded, MAIN_MENU);
+
+            assertThat(loaded.project().runtime().startupScene())
+                    .contains(PROJECT_ROOT.resolve("worlds/main-menu.world.json"));
+            assertThat(loaded.world().roots())
+                    .extracting(entity -> entity.name().orElseThrow())
+                    .containsExactly("Main Menu");
+            assertThat(menu.component(MAIN_MENU_COMPONENT, DoomMainMenu.class)).isPresent();
+        }
+    }
 
     /** Publishes MAP01, resolves its generated definition, and composes all resources into a world. */
     @Test
@@ -891,10 +910,19 @@ final class ProjectHostIntegrationTest {
 
     /** Loads through a desktop-equivalent environment with native presentation replaced by an observable test seam. */
     private static HostedProject load(Path cache, TestPresentationWorldModule presentation) {
-        ProjectHost host = new ProjectRuntimeHost(
+        ProjectRuntimeHost host = new ProjectRuntimeHost(
                 ENGINE_VERSION,
                 ProjectHostIntegrationTest.class.getClassLoader(),
                 new TestProjectEnvironment(cache, presentation));
+        return host.loadEntry(PROJECT_ROOT);
+    }
+
+    /** Loads the manifest-selected startup world through the desktop-equivalent environment. */
+    private static HostedProject loadStartup(Path cache) {
+        ProjectRuntimeHost host = new ProjectRuntimeHost(
+                ENGINE_VERSION,
+                ProjectHostIntegrationTest.class.getClassLoader(),
+                new TestProjectEnvironment(cache, new TestPresentationWorldModule()));
         return host.load(PROJECT_ROOT);
     }
 

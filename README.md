@@ -87,6 +87,8 @@ The descriptor-authored MAP01 world currently provides:
   positional audio, and non-blocking corpses;
 - useful-only health and bullet pickup collection through authored sensors;
 - a descriptor-authored HUD showing live health and bullet ammunition;
+- a descriptor-authored startup and pause menu using imported WAD artwork, with
+  Resume, New Game, and Quit application transitions;
 - player pain and death presentation, including local audio, damage flashes, a
   lowered death view, hidden weapon, disabled controls, and retained world and
   HUD presentation;
@@ -102,13 +104,17 @@ Only MAP01 is currently selected. Lifts, navigation beyond last-visible-position
 pursuit, other sector specials, and restarting after player death remain later
 vertical slices.
 
-Click the game window to capture the pointer; Escape releases it without
-closing the application. W/A/S/D move, the mouse looks while captured, and the
-left/right arrow keys turn. The left mouse button fires while the pointer is
-captured. Held keyboard turning accelerates from the authored initial rate to its
-authored maximum; releasing or reversing the key resets that rate. Close the
-application with the native window close control. E activates the nearest
-unobstructed supported door within the authored interaction range.
+The game opens on its main menu. Use Up/Down or W/S to select an item and Enter
+or the left mouse button to activate it. New Game starts a fresh MAP01 session
+and Quit Game closes the application. During play, Escape pauses the current
+session and opens the menu; Resume or Escape returns to that retained session.
+
+Click the game window to capture the pointer. W/A/S/D move, the mouse looks
+while captured, and the left/right arrow keys turn. The left mouse button fires
+while the pointer is captured. Held keyboard turning accelerates from the
+authored initial rate to its authored maximum; releasing or reversing the key
+resets that rate. E activates the nearest unobstructed supported door within the
+authored interaction range.
 
 ## Previewing in the editor
 

@@ -22,7 +22,6 @@ import io.github.glynch.jscene3d.project.physics3d.CollisionShape3d;
 import io.github.glynch.jscene3d.project.physics3d.TriangleMeshCollisionShape3dResource;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.HostedProject;
-import io.github.glynch.jscene3d.project.runtime.ProjectHost;
 import io.github.glynch.jscene3d.project.runtime.ProjectRuntimeHost;
 import io.github.glynch.jscene3d.wad.WadArchive;
 import io.github.glynch.jscene3d.wad.WadLoader;
@@ -236,11 +235,11 @@ final class Map01StepTraversalTest {
 
     /** Loads the authored project through the generic project host. */
     private HostedProject load(Path cache) {
-        ProjectHost host = new ProjectRuntimeHost(
+        ProjectRuntimeHost host = new ProjectRuntimeHost(
                 ENGINE_VERSION,
                 Map01StepTraversalTest.class.getClassLoader(),
                 new TestProjectEnvironment(cache, new TestPresentationWorldModule()));
-        return host.load(PROJECT_ROOT);
+        return host.loadEntry(PROJECT_ROOT);
     }
 
     /** Reproduces the importer's stable source-derived component identity contract. */

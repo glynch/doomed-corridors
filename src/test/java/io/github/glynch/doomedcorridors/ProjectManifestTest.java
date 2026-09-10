@@ -44,6 +44,7 @@ final class ProjectManifestTest {
         assertThat(project.identity().name()).isEqualTo("Doomed Corridors");
         assertThat(project.runtime().applicationExtension()).isEqualTo(EXTENSION_ID);
         assertThat(project.runtime().entryScene()).isEqualTo(project.root().resolve("worlds/map01.world.json"));
+        assertThat(project.runtime().startupScene()).contains(project.root().resolve("worlds/main-menu.world.json"));
         assertThat(project.runtime().inputMap()).contains(project.root().resolve("application/input-map.json"));
         assertThat(project.imports())
                 .containsExactly(
@@ -132,7 +133,18 @@ final class ProjectManifestTest {
         assertThat(result.isValid()).isTrue();
         assertThat(result.diagnostics()).isEmpty();
         var actions = result.definition().orElseThrow().actions();
-        assertThat(actions).containsOnlyKeys("move", "look", "turn-left", "turn-right", "interact", "fire-primary");
+        assertThat(actions)
+                .containsOnlyKeys(
+                        "move",
+                        "look",
+                        "turn-left",
+                        "turn-right",
+                        "interact",
+                        "fire-primary",
+                        "menu-previous",
+                        "menu-next",
+                        "menu-confirm",
+                        "menu");
         assertThat(actions.get("move").valueType()).isEqualTo(InputValueType.AXIS_2D);
         assertThat(actions.get("move").bindings())
                 .containsExactly(
@@ -148,6 +160,20 @@ final class ProjectManifestTest {
                 .containsExactly(new InputBinding.KeyboardKey("E"), new InputBinding.GamepadButton("button-west"));
         assertThat(actions.get("fire-primary").bindings())
                 .containsExactly(new InputBinding.MouseButton("LEFT"), new InputBinding.GamepadButton("button-south"));
+        assertThat(actions.get("menu-previous").bindings())
+                .containsExactly(
+                        new InputBinding.KeyboardKey("UP"),
+                        new InputBinding.KeyboardKey("W"),
+                        new InputBinding.GamepadButton("dpad-up"));
+        assertThat(actions.get("menu-next").bindings())
+                .containsExactly(
+                        new InputBinding.KeyboardKey("DOWN"),
+                        new InputBinding.KeyboardKey("S"),
+                        new InputBinding.GamepadButton("dpad-down"));
+        assertThat(actions.get("menu-confirm").bindings())
+                .containsExactly(new InputBinding.KeyboardKey("ENTER"), new InputBinding.GamepadButton("button-south"));
+        assertThat(actions.get("menu").bindings())
+                .containsExactly(new InputBinding.KeyboardKey("ESCAPE"), new InputBinding.GamepadButton("start"));
     }
 
     /** Preserves MAP01's authored 16-unit step rule without embedding collision tolerance in project data. */
@@ -191,7 +217,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/player-lifecycle",
                         EXTENSION_ID + "/player-hud",
                         EXTENSION_ID + "/door-interactor",
-                        EXTENSION_ID + "/door-presentation");
+                        EXTENSION_ID + "/door-presentation",
+                        EXTENSION_ID + "/main-menu");
     }
 
     /** Declares combatant presentation and authoritative hitscan weapon contracts. */

@@ -768,6 +768,88 @@
           "editor": {"minimum-inclusive": 0}
         }
       ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/main-menu",
+      "typeVersion": 1,
+      "displayName": "Doom Main Menu",
+      "description": "Presents project-authored menu images and requests host-owned application transitions.",
+      "updatePhases": ["before-physics"],
+      "properties": [
+        {
+          "id": "background",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Background",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "title",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Title",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "resume",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Resume Label",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "new-game",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "New Game Label",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "quit",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Quit Game Label",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "cursor-first",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Cursor Frame 1",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "cursor-second",
+          "valueKind": "reference",
+          "required": true,
+          "displayName": "Cursor Frame 2",
+          "acceptedReferences": ["import"]
+        },
+        {
+          "id": "previous-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Previous Action"
+        },
+        {
+          "id": "next-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Next Action"
+        },
+        {
+          "id": "confirm-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Confirm Action"
+        },
+        {
+          "id": "back-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Back Action"
+        }
+      ]
     }
   ]
 }
