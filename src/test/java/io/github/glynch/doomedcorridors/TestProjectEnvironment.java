@@ -4,6 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
+import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.presentation.PresentationWorldModule;
 import io.github.glynch.jscene3d.project.asset.AssetCatalog;
 import io.github.glynch.jscene3d.project.desktop.StandardProjectEnvironment;
@@ -24,11 +25,24 @@ import java.util.Optional;
 final class TestProjectEnvironment implements ProjectRuntimeEnvironment {
     private final StandardProjectEnvironment delegate;
     private final PresentationWorldModule presentation;
+    private final Optional<ApplicationControl> application;
 
     /** Retains one standard project-content environment and its test presentation module. */
     TestProjectEnvironment(Path cache, PresentationWorldModule presentation) {
+        this(cache, presentation, Optional.empty());
+    }
+
+    /** Retains content services while replacing native presentation and application control for host tests. */
+    TestProjectEnvironment(Path cache, PresentationWorldModule presentation, ApplicationControl application) {
+        this(cache, presentation, Optional.of(application));
+    }
+
+    /** Retains the standard environment and optional test-owned application control replacement. */
+    private TestProjectEnvironment(
+            Path cache, PresentationWorldModule presentation, Optional<ApplicationControl> application) {
         delegate = new StandardProjectEnvironment(cache);
         this.presentation = presentation;
+        this.application = application;
     }
 
     @Override
@@ -47,11 +61,14 @@ final class TestProjectEnvironment implements ProjectRuntimeEnvironment {
         for (WorldModuleBinding<?> binding : delegate.createWorldModules(inputMap)) {
             if (binding.type().equals(PresentationWorldModule.class)) {
                 binding.module().close();
+            } else if (application.isPresent() && binding.type().equals(ApplicationControl.class)) {
+                binding.module().close();
             } else {
                 bindings.add(binding);
             }
         }
         bindings.add(WorldModuleBinding.of(PresentationWorldModule.class, presentation));
+        application.ifPresent(control -> bindings.add(WorldModuleBinding.of(ApplicationControl.class, control)));
         return List.copyOf(bindings);
     }
 

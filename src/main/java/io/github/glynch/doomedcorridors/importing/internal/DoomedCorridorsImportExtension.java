@@ -12,7 +12,7 @@ import java.util.Objects;
 /** Registers game-owned Doom actor publication without taking ownership of generic WAD or map decoding. */
 public final class DoomedCorridorsImportExtension implements ProjectImportExtension {
     static final String EXTENSION_ID = "io.github.glynch.doomed-corridors";
-    static final RegisteredType ACTOR_IMPORTER = new RegisteredType(EXTENSION_ID + "/actors", 1);
+    static final RegisteredType ACTOR_IMPORTER = new RegisteredType(EXTENSION_ID + "/actors", 2);
 
     /** Creates the stateless service-discovered import extension. */
     public DoomedCorridorsImportExtension() {

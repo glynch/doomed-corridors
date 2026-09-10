@@ -112,6 +112,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final String MENU_RESUME = "resume";
     private static final String MENU_NEW_GAME = "new-game";
     private static final String MENU_QUIT = "quit";
+    private static final String MENU_GAME_OVER = "game-over";
+    private static final String MENU_RESTART = "restart";
+    private static final String MENU_MAIN_MENU = "main-menu";
     private static final String MENU_CURSOR_FIRST = "cursor-first";
     private static final String MENU_CURSOR_SECOND = "cursor-second";
     private static final PropertyId POSITION_ARGUMENT = new PropertyId("position");
@@ -297,7 +300,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         images.put(MENU_CURSOR_FIRST, decodePatch(archive, palette, "M_SKULL1"));
         images.put(MENU_CURSOR_SECOND, decodePatch(archive, palette, "M_SKULL2"));
         Set<Character> requiredGlyphs = new TreeSet<>();
-        for (String label : List.of("RESUME", "NEW GAME", "QUIT GAME")) {
+        for (String label : List.of("RESUME", "NEW GAME", "QUIT GAME", "GAME OVER", "RESTART", "MAIN MENU")) {
             label.chars()
                     .filter(character -> character != ' ')
                     .forEach(character -> requiredGlyphs.add((char) character));
@@ -310,6 +313,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         images.put(MENU_RESUME, DoomMenuImageComposer.compose("RESUME", glyphs));
         images.put(MENU_NEW_GAME, DoomMenuImageComposer.compose("NEW GAME", glyphs));
         images.put(MENU_QUIT, DoomMenuImageComposer.compose("QUIT GAME", glyphs));
+        images.put(MENU_GAME_OVER, DoomMenuImageComposer.compose("GAME OVER", glyphs));
+        images.put(MENU_RESTART, DoomMenuImageComposer.compose("RESTART", glyphs));
+        images.put(MENU_MAIN_MENU, DoomMenuImageComposer.compose("MAIN MENU", glyphs));
     }
 
     /** Decodes one exact WAD patch with the selected palette. */
@@ -529,7 +535,15 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     /** Publishes imported label and cursor images used by the startup menu world. */
     private static void publishMenuPresentationResources(
             ImportPreparationContext context, String prefix, Map<String, RgbaImage> images) throws IOException {
-        for (String name : List.of(MENU_RESUME, MENU_NEW_GAME, MENU_QUIT, MENU_CURSOR_FIRST, MENU_CURSOR_SECOND)) {
+        for (String name : List.of(
+                MENU_RESUME,
+                MENU_NEW_GAME,
+                MENU_QUIT,
+                MENU_GAME_OVER,
+                MENU_RESTART,
+                MENU_MAIN_MENU,
+                MENU_CURSOR_FIRST,
+                MENU_CURSOR_SECOND)) {
             publishOverlayImage(context, menuImageIdentity(prefix, name), images.get(name));
         }
     }

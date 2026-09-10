@@ -212,7 +212,7 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
             case RESUME -> resume;
             case NEW_GAME -> newGame;
             case QUIT -> quit;
-            case SHOW_MENU -> throw new IllegalArgumentException("show-menu is not a menu item");
+            case SHOW_MENU, RETURN_TO_MENU -> throw new IllegalArgumentException(command.id() + " is not a menu item");
         };
     }
 

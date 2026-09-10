@@ -55,7 +55,7 @@ public final class DoomedCorridorsRuntimeTypes {
             ComponentType.of(EXTENSION_ID + "/player-presentation", 1);
 
     /** Runtime type applying terminal player lifecycle changes to explicit entity targets. */
-    public static final ComponentType PLAYER_LIFECYCLE_TYPE = ComponentType.of(EXTENSION_ID + "/player-lifecycle", 1);
+    public static final ComponentType PLAYER_LIFECYCLE_TYPE = ComponentType.of(EXTENSION_ID + "/player-lifecycle", 2);
 
     /** Runtime type binding mutable player resources into generic screen-number components. */
     public static final ComponentType PLAYER_HUD_TYPE = ComponentType.of(EXTENSION_ID + "/player-hud", 1);
@@ -68,6 +68,9 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Runtime type for the project-authored startup and pause menu. */
     public static final ComponentType MAIN_MENU_TYPE = ComponentType.of(EXTENSION_ID + "/main-menu", 1);
+
+    /** Runtime type for terminal game-over selection behavior over generic screen components. */
+    public static final ComponentType GAME_OVER_MENU_TYPE = ComponentType.of(EXTENSION_ID + "/game-over-menu", 1);
 
     /** Semantic capability exposing mutable player resources on the exact player entity. */
     public static final CapabilityId PLAYER_RESOURCES_CAPABILITY = new CapabilityId(EXTENSION_ID + "/player-resources");
@@ -217,6 +220,16 @@ public final class DoomedCorridorsRuntimeTypes {
     /** Explicit entity containing input-driven player controls disabled on death. */
     public static final PropertyId PLAYER_CONTROL_ENTITY_PROPERTY = new PropertyId("control-entity");
 
+    /** Explicit disabled screen hierarchy enabled after terminal player presentation completes. */
+    public static final PropertyId PLAYER_GAME_OVER_ENTITY_PROPERTY = new PropertyId("game-over-entity");
+
+    /** Delay before the game-over screen becomes visible after terminal damage. */
+    public static final PropertyId PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY =
+            new PropertyId("game-over-delay-milliseconds");
+
+    /** Semantic action which abandons terminal gameplay and returns to the startup menu. */
+    public static final PropertyId PLAYER_RETURN_TO_MENU_ACTION_PROPERTY = new PropertyId("return-to-menu-action");
+
     /** Explicit player-state target displayed by the HUD behavior. */
     public static final PropertyId HUD_PLAYER_STATE_PROPERTY = new PropertyId("player-state");
 
@@ -291,6 +304,42 @@ public final class DoomedCorridorsRuntimeTypes {
 
     /** Semantic action returning from the pause menu to retained gameplay. */
     public static final PropertyId MENU_BACK_ACTION_PROPERTY = new PropertyId("back-action");
+
+    /** Explicit generic screen entity holding the selected Restart cursor. */
+    public static final PropertyId GAME_OVER_RESTART_CURSOR_PROPERTY = new PropertyId("restart-cursor");
+
+    /** Explicit generic screen entity holding the selected Main Menu cursor. */
+    public static final PropertyId GAME_OVER_MAIN_MENU_CURSOR_PROPERTY = new PropertyId("main-menu-cursor");
+
+    /** Reference canvas width used to interpret game-over pointer input. */
+    public static final PropertyId GAME_OVER_REFERENCE_WIDTH_PROPERTY = new PropertyId("reference-width");
+
+    /** Reference canvas height used to interpret game-over pointer input. */
+    public static final PropertyId GAME_OVER_REFERENCE_HEIGHT_PROPERTY = new PropertyId("reference-height");
+
+    /** Horizontal center of the game-over option hit regions. */
+    public static final PropertyId GAME_OVER_ITEM_CENTER_X_PROPERTY = new PropertyId("item-center-x");
+
+    /** Vertical center of the first game-over option hit region. */
+    public static final PropertyId GAME_OVER_ITEM_START_Y_PROPERTY = new PropertyId("item-start-y");
+
+    /** Vertical distance between game-over option hit regions. */
+    public static final PropertyId GAME_OVER_ITEM_SPACING_PROPERTY = new PropertyId("item-spacing");
+
+    /** Width of each game-over option hit region. */
+    public static final PropertyId GAME_OVER_ITEM_HIT_WIDTH_PROPERTY = new PropertyId("item-hit-width");
+
+    /** Height of each game-over option hit region. */
+    public static final PropertyId GAME_OVER_ITEM_HIT_HEIGHT_PROPERTY = new PropertyId("item-hit-height");
+
+    /** Semantic action selecting the previous game-over option. */
+    public static final PropertyId GAME_OVER_PREVIOUS_ACTION_PROPERTY = new PropertyId("previous-action");
+
+    /** Semantic action selecting the next game-over option. */
+    public static final PropertyId GAME_OVER_NEXT_ACTION_PROPERTY = new PropertyId("next-action");
+
+    /** Semantic action executing the selected game-over option. */
+    public static final PropertyId GAME_OVER_CONFIRM_ACTION_PROPERTY = new PropertyId("confirm-action");
 
     /** Pickup resource-kind property. */
     public static final PropertyId PICKUP_RESOURCE_PROPERTY = new PropertyId("resource");

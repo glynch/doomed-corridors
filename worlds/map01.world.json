@@ -212,22 +212,20 @@
         {
           "componentId": "10bfeecd-9583-4182-8f0c-1165e98fc714",
           "type": "io.github.glynch.doomed-corridors/player-lifecycle",
-          "typeVersion": 1,
+          "typeVersion": 2,
           "properties": {
             "control-entity": {
               "$target": {
                 "entityId": "5c76aa79-5270-4b2a-83c2-7451c50a7c40"
               }
-            }
-          }
-        },
-        {
-          "componentId": "f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9",
-          "type": "io.github.glynch.jscene3d.application/command-binding",
-          "typeVersion": 1,
-          "properties": {
-            "action": "menu",
-            "command": "show-menu"
+            },
+            "game-over-entity": {
+              "$target": {
+                "entityId": "ae31f849-77f6-4269-be03-bc3d90937324"
+              }
+            },
+            "game-over-delay-milliseconds": 1000,
+            "return-to-menu-action": "menu"
           }
         }
       ],
@@ -314,6 +312,15 @@
                 },
                 "action": "interact",
                 "maximum-distance": 2
+              }
+            },
+            {
+              "componentId": "f4222e5c-4e20-4b75-a7ae-a6ea88b07cc9",
+              "type": "io.github.glynch.jscene3d.application/command-binding",
+              "typeVersion": 1,
+              "properties": {
+                "action": "menu",
+                "command": "show-menu"
               }
             }
           ],
@@ -475,6 +482,222 @@
                 ],
                 "initial-value": 50,
                 "alignment": "right"
+              }
+            }
+          ],
+          "children": []
+        }
+      ]
+    },
+    {
+      "entryType": "local",
+      "entityId": "ae31f849-77f6-4269-be03-bc3d90937324",
+      "name": "Game Over",
+      "enabled": false,
+      "components": [
+        {
+          "componentId": "f6c0b075-7c23-48d6-a2dc-b5964fe267d7",
+          "type": "io.github.glynch.jscene3d.presentation/screen-canvas",
+          "typeVersion": 1,
+          "properties": {
+            "reference-width": 320,
+            "reference-height": 200
+          }
+        },
+        {
+          "componentId": "ed001a69-187c-40b4-b658-ceb2e6788584",
+          "type": "io.github.glynch.doomed-corridors/game-over-menu",
+          "typeVersion": 1,
+          "properties": {
+            "restart-cursor": {
+              "$target": {
+                "entityId": "a02bfece-c08b-4044-9f9f-1c5d27ccfe82"
+              }
+            },
+            "main-menu-cursor": {
+              "$target": {
+                "entityId": "7cea67f4-5e36-4256-a658-a27056d421d0"
+              }
+            },
+            "reference-width": 320,
+            "reference-height": 200,
+            "item-center-x": 160,
+            "item-start-y": 110,
+            "item-spacing": 26,
+            "item-hit-width": 140,
+            "item-hit-height": 22,
+            "previous-action": "menu-previous",
+            "next-action": "menu-next",
+            "confirm-action": "menu-confirm"
+          }
+        }
+      ],
+      "children": [
+        {
+          "entryType": "local",
+          "entityId": "8217134c-b69b-4c8a-a5f4-4d8b361b9509",
+          "name": "Game Over Title",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "d068e308-d8da-406c-9209-b6fc43c608aa",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 0.5,
+                "pivot-x": 0.5,
+                "pivot-y": 0.5,
+                "offset-x": 0,
+                "offset-y": -42,
+                "width": 120,
+                "height": 24
+              }
+            },
+            {
+              "componentId": "fe7a508e-2061-4dda-a992-7aaef0dec7a6",
+              "type": "io.github.glynch.jscene3d.presentation/screen-image",
+              "typeVersion": 1,
+              "properties": {
+                "image": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/game-over"
+                }
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "c8b1c0d9-323c-47da-88fe-bd49bfef54f8",
+          "name": "Restart",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "7ed61435-fc04-40c8-add2-e1b6ae60d62f",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 0.5,
+                "pivot-x": 0.5,
+                "pivot-y": 0.5,
+                "offset-x": 0,
+                "offset-y": 10,
+                "width": 70,
+                "height": 16
+              }
+            },
+            {
+              "componentId": "a953ab0b-ae38-475a-b6b5-0aa515a44a3d",
+              "type": "io.github.glynch.jscene3d.presentation/screen-image",
+              "typeVersion": 1,
+              "properties": {
+                "image": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/restart"
+                }
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "a26dbbf2-bedb-44b2-9d7f-c72ec8b79542",
+          "name": "Main Menu",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "6c058ac4-6ea5-4af4-ae89-fcc0fec19561",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 0.5,
+                "pivot-x": 0.5,
+                "pivot-y": 0.5,
+                "offset-x": 0,
+                "offset-y": 36,
+                "width": 90,
+                "height": 16
+              }
+            },
+            {
+              "componentId": "f3970294-e1cc-43f5-9d8a-790d5056fb63",
+              "type": "io.github.glynch.jscene3d.presentation/screen-image",
+              "typeVersion": 1,
+              "properties": {
+                "image": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/main-menu"
+                }
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "a02bfece-c08b-4044-9f9f-1c5d27ccfe82",
+          "name": "Restart Cursor",
+          "enabled": true,
+          "components": [
+            {
+              "componentId": "8b162c82-4756-42d0-b202-1957a196c9c2",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 0.5,
+                "pivot-x": 0.5,
+                "pivot-y": 0.5,
+                "offset-x": -52,
+                "offset-y": 10,
+                "width": 20,
+                "height": 20
+              }
+            },
+            {
+              "componentId": "714bfee6-35ba-4d85-b3bd-a3bd3d23d3a7",
+              "type": "io.github.glynch.jscene3d.presentation/screen-image",
+              "typeVersion": 1,
+              "properties": {
+                "image": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/cursor-first"
+                }
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "entryType": "local",
+          "entityId": "7cea67f4-5e36-4256-a658-a27056d421d0",
+          "name": "Main Menu Cursor",
+          "enabled": false,
+          "components": [
+            {
+              "componentId": "94f6559e-9f3f-4259-bc79-e149a2195094",
+              "type": "io.github.glynch.jscene3d.presentation/screen-region",
+              "typeVersion": 1,
+              "properties": {
+                "anchor-x": 0.5,
+                "anchor-y": 0.5,
+                "pivot-x": 0.5,
+                "pivot-y": 0.5,
+                "offset-x": -62,
+                "offset-y": 36,
+                "width": 20,
+                "height": 20
+              }
+            },
+            {
+              "componentId": "ff10ca44-c978-4cc6-ab7e-41d57ae03d54",
+              "type": "io.github.glynch.jscene3d.presentation/screen-image",
+              "typeVersion": 1,
+              "properties": {
+                "image": {
+                  "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/cursor-first"
+                }
               }
             }
           ],

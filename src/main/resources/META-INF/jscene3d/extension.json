@@ -9,7 +9,7 @@
   "types": [
     {
       "id": "io.github.glynch.doomed-corridors/actors",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "scope": "importer",
       "displayName": "Doomed Corridors actors"
     }
@@ -625,9 +625,10 @@
     },
     {
       "id": "io.github.glynch.doomed-corridors/player-lifecycle",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "displayName": "Doom Player Lifecycle",
-      "description": "Disables an explicitly targeted player-controls entity after terminal damage.",
+      "description": "Disables player controls, reveals an authored game-over screen, and handles terminal Escape behavior.",
+      "updatePhases": ["before-physics", "frame-update"],
       "properties": [
         {
           "id": "control-entity",
@@ -635,6 +636,28 @@
           "required": true,
           "displayName": "Control Entity",
           "description": "Exact input-driven entity disabled when the player dies."
+        },
+        {
+          "id": "game-over-entity",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Game Over Entity",
+          "description": "Exact disabled screen hierarchy enabled after terminal presentation completes."
+        },
+        {
+          "id": "game-over-delay-milliseconds",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Game Over Delay",
+          "description": "Positive delay before the game-over screen appears after death.",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "return-to-menu-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Return To Menu Action",
+          "description": "Semantic action which abandons terminal gameplay for the startup menu."
         }
       ],
       "actions": [
@@ -848,6 +871,96 @@
           "valueKind": "text",
           "required": true,
           "displayName": "Back Action"
+        }
+      ]
+    },
+    {
+      "id": "io.github.glynch.doomed-corridors/game-over-menu",
+      "typeVersion": 1,
+      "displayName": "Doom Game Over Menu",
+      "description": "Controls terminal Restart and Main Menu selection while generic screen components own presentation.",
+      "updatePhases": ["before-physics"],
+      "properties": [
+        {
+          "id": "restart-cursor",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Restart Cursor",
+          "description": "Generic screen entity enabled while Restart is selected."
+        },
+        {
+          "id": "main-menu-cursor",
+          "valueKind": "entity_target",
+          "required": true,
+          "displayName": "Main Menu Cursor",
+          "description": "Generic screen entity enabled while Main Menu is selected."
+        },
+        {
+          "id": "reference-width",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Reference Width",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "reference-height",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Reference Height",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "item-center-x",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Item Center X",
+          "editor": {"minimum-inclusive": 0}
+        },
+        {
+          "id": "item-start-y",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Item Start Y",
+          "editor": {"minimum-inclusive": 0}
+        },
+        {
+          "id": "item-spacing",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Item Spacing",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "item-hit-width",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Item Hit Width",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "item-hit-height",
+          "valueKind": "number",
+          "required": true,
+          "displayName": "Item Hit Height",
+          "editor": {"minimum-exclusive": 0}
+        },
+        {
+          "id": "previous-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Previous Action"
+        },
+        {
+          "id": "next-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Next Action"
+        },
+        {
+          "id": "confirm-action",
+          "valueKind": "text",
+          "required": true,
+          "displayName": "Confirm Action"
         }
       ]
     }

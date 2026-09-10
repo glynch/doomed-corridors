@@ -237,6 +237,13 @@ final class ProjectManifestTest {
         assertThat(result.catalog().types())
                 .extracting(type -> type.type().id())
                 .contains("io.github.glynch.jscene3d.doom/maps", EXTENSION_ID + "/actors");
+        assertThat(result.catalog().types().stream()
+                        .filter(type -> type.type().id().equals(EXTENSION_ID + "/actors"))
+                        .findFirst()
+                        .orElseThrow()
+                        .type()
+                        .version())
+                .isEqualTo(2);
         assertThat(result.catalog().componentTypes())
                 .extracting(type -> type.type().id().value())
                 .containsExactly(
@@ -254,7 +261,8 @@ final class ProjectManifestTest {
                         EXTENSION_ID + "/player-hud",
                         EXTENSION_ID + "/door-interactor",
                         EXTENSION_ID + "/door-presentation",
-                        EXTENSION_ID + "/main-menu");
+                        EXTENSION_ID + "/main-menu",
+                        EXTENSION_ID + "/game-over-menu");
     }
 
     /** Declares combatant presentation and authoritative hitscan weapon contracts. */
@@ -396,10 +404,40 @@ final class ProjectManifestTest {
                         .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE)
                         .orElseThrow())
                 .satisfies(lifecycle -> {
+                    assertThat(lifecycle.updatePhases())
+                            .containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS, ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(lifecycle.properties())
-                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.PLAYER_CONTROL_ENTITY_PROPERTY);
+                            .containsOnlyKeys(
+                                    DoomedCorridorsRuntimeTypes.PLAYER_CONTROL_ENTITY_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_ENTITY_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY);
                     assertThat(lifecycle.actions())
                             .containsOnlyKeys(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                });
+    }
+
+    /** Declares game-over behavior separately from its generic screen presentation. */
+    @Test
+    void declaresGameOverMenuContract() {
+        GameProject project = loadProject().project().orElseThrow();
+        ExtensionCatalogLoadResult result = new ExtensionCatalogLoader(ENGINE_VERSION)
+                .load(project, getClass().getClassLoader());
+
+        assertThat(result.catalog()
+                        .findComponent(DoomedCorridorsRuntimeTypes.GAME_OVER_MENU_TYPE)
+                        .orElseThrow())
+                .satisfies(menu -> {
+                    assertThat(menu.updatePhases()).containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS);
+                    assertThat(menu.properties())
+                            .containsKeys(
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_RESTART_CURSOR_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_MAIN_MENU_CURSOR_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_WIDTH_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_HEIGHT_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_PREVIOUS_ACTION_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_NEXT_ACTION_PROPERTY,
+                                    DoomedCorridorsRuntimeTypes.GAME_OVER_CONFIRM_ACTION_PROPERTY);
                 });
     }
 

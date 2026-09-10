@@ -103,7 +103,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         validRegistry.register(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
         validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_PRESENTATION_TYPE, new PlayerPresentationFactory());
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE, context -> new DoomPlayerLifecycle(context.world()));
+                DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE,
+                context -> new DoomPlayerLifecycle(
+                        context.world(),
+                        context.world().requireModule(InputWorldModule.class),
+                        context.world().requireModule(ApplicationControl.class),
+                        Duration.ofMillis(RuntimeProperties.positiveInteger(
+                                context.properties(),
+                                DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY)),
+                        context.properties().text(DoomedCorridorsRuntimeTypes.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY)));
         validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE, context -> new DoomPlayerHud());
         validRegistry.register(
                 DoomedCorridorsRuntimeTypes.DOOR_INTERACTOR_TYPE,
@@ -116,6 +124,32 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                                 DoomedCorridorsRuntimeTypes.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
         validRegistry.register(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE, new DoorPresentationFactory());
         validRegistry.register(DoomedCorridorsRuntimeTypes.MAIN_MENU_TYPE, new MainMenuFactory());
+        validRegistry.register(DoomedCorridorsRuntimeTypes.GAME_OVER_MENU_TYPE, context -> {
+            ComponentProperties properties = context.properties();
+            return new DoomGameOverMenu(
+                    context.world(),
+                    context.world().requireModule(InputWorldModule.class),
+                    context.world().requireModule(ApplicationControl.class),
+                    DoomGameOverMenu.Actions.of(
+                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_PREVIOUS_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_NEXT_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_CONFIRM_ACTION_PROPERTY)),
+                    new DoomGameOverMenu.Layout(
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_WIDTH_PROPERTY),
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_HEIGHT_PROPERTY),
+                            RuntimeProperties.nonNegativeFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_CENTER_X_PROPERTY),
+                            RuntimeProperties.nonNegativeFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_START_Y_PROPERTY),
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_SPACING_PROPERTY),
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_HIT_WIDTH_PROPERTY),
+                            RuntimeProperties.positiveFloat(
+                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_HIT_HEIGHT_PROPERTY)));
+        });
     }
 
     /** Loads authoritative provider rules and initializes every descriptor-declared consumer before activation. */

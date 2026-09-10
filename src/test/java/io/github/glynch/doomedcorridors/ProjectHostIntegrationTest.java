@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.within;
 import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoor;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoorDescriptors;
+import io.github.glynch.jscene3d.game.application.ApplicationCommand;
+import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.ActionSnapshot;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
@@ -58,6 +60,9 @@ final class ProjectHostIntegrationTest {
     private static final EntityId MAP_PLACEMENT = EntityId.from("9107e22b-adc5-4449-bd08-0e2066f50563");
     private static final EntityId ACTOR_MAP_PLACEMENT = EntityId.from("cff5c049-16fb-488f-aeb7-caad1843211f");
     private static final EntityId PLAYER_HUD = EntityId.from("c4f5ca56-661a-424d-aec2-b423d299af47");
+    private static final EntityId GAME_OVER = EntityId.from("ae31f849-77f6-4269-be03-bc3d90937324");
+    private static final EntityId RESTART_CURSOR = EntityId.from("a02bfece-c08b-4044-9f9f-1c5d27ccfe82");
+    private static final EntityId MAIN_MENU_CURSOR = EntityId.from("7cea67f4-5e36-4256-a658-a27056d421d0");
     private static final EntityId MAIN_MENU = EntityId.from("eb1af3a2-fe1b-4688-ac54-e930e354e23c");
     private static final ComponentId PLAYER_TRANSFORM = ComponentId.from("3e940be7-e58d-4f3a-8b5e-e61c99c00904");
     private static final ComponentId PLAYER_BODY = ComponentId.from("4d8cae80-322d-4bdf-b8c0-5703699de177");
@@ -112,6 +117,9 @@ final class ProjectHostIntegrationTest {
     private static final InputAction TURN_RIGHT = new InputAction("turn-right");
     private static final InputAction FIRE_PRIMARY = new InputAction("fire-primary");
     private static final InputAction INTERACT = new InputAction("interact");
+    private static final InputAction MENU_NEXT = new InputAction("menu-next");
+    private static final InputAction MENU_CONFIRM = new InputAction("menu-confirm");
+    private static final InputAction MENU = new InputAction("menu");
     private static final Path PROJECT_ROOT = Path.of(".").toAbsolutePath().normalize();
 
     @TempDir
@@ -163,7 +171,13 @@ final class ProjectHostIntegrationTest {
             assertThat(loaded.project().identity().id()).isEqualTo("io.github.glynch.doomed-corridors");
             assertThat(loaded.world().roots())
                     .extracting(entity -> entity.name().orElseThrow())
-                    .containsExactly("Player", "MAP01 Geometry", "MAP01 Actors", "Player HUD", "World Presentation");
+                    .containsExactly(
+                            "Player",
+                            "MAP01 Geometry",
+                            "MAP01 Actors",
+                            "Player HUD",
+                            "Game Over",
+                            "World Presentation");
             assertThat(character.isClosed()).isFalse();
             assertThat(player.componentIds())
                     .contains(PLAYER_WEAPON, WEAPON_PRESENTATION, PLAYER_PRESENTATION, PLAYER_LIFECYCLE)
@@ -420,7 +434,7 @@ final class ProjectHostIntegrationTest {
             loaded.world().advanceFrame(Duration.ZERO, 0.0F);
             assertThat(healthNumber.value()).isEqualTo(100);
             assertThat(ammoNumber.value()).isEqualTo(50);
-            assertThat(presentation.overlayCount()).isEqualTo(3);
+            assertThat(presentation.overlayCount()).isEqualTo(4);
             input.publish(ActionSnapshot.builder().pressed(FIRE_PRIMARY).build());
             loaded.world().advanceFixed(Duration.ofMillis(25));
             input.publish(ActionSnapshot.empty());
@@ -489,66 +503,121 @@ final class ProjectHostIntegrationTest {
         Path cache = temporaryDirectory.resolve("player-presentation-import-cache");
         DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
         TestPresentationWorldModule presentationWorld = new TestPresentationWorldModule();
+        RecordingApplicationControl application = new RecordingApplicationControl();
 
-        try (HostedProject loaded = load(cache, presentationWorld)) {
-            Entity player = root(loaded, PLAYER_ENTITY);
-            Entity controls = child(player, PLAYER_CONTROLS);
-            Entity view = player.children().stream()
-                    .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
-                    .findFirst()
-                    .orElseThrow();
-            Entity hud = root(loaded, PLAYER_HUD);
-            DoomPlayerState state = player.component(
-                            ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
-                    .orElseThrow();
-            DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
-                    .orElseThrow();
-            DoomPlayerLifecycle lifecycle = player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class)
-                    .orElseThrow();
-            Transform3d transform =
-                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
-            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
-
+        try (HostedProject loaded = load(cache, presentationWorld, application)) {
             loaded.world().activate();
-            assertThat(presentationWorld.overlayCount()).isEqualTo(3);
-            assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER, DOOR_INTERACTOR);
-            assertThat(state.damage(10)).isEqualTo(10);
-            assertThat(presentation.isDead()).isFalse();
-            assertThat(presentation.currentRedOpacity()).isEqualTo(0.32F);
-            assertThat(presentation.currentShadeOpacity()).isZero();
-            assertThat(presentationWorld.restarts()).isEqualTo(1);
-            assertThat(controls.isEnabled()).isTrue();
-
-            loaded.world().advanceFrame(Duration.ofMillis(250), 0.0F);
-            assertThat(presentation.currentRedOpacity()).isZero();
-
-            assertThat(state.damage(90)).isEqualTo(90);
-            assertThat(presentation.isDead()).isTrue();
-            assertThat(presentation.currentRedOpacity()).isEqualTo(0.45F);
-            assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
-            assertThat(presentationWorld.restarts()).isEqualTo(2);
-            assertThat(lifecycle.isDead()).isTrue();
-            assertThat(controls.isLocallyEnabled()).isFalse();
-            assertThat(view.isEnabled()).isTrue();
-            assertThat(hud.isEnabled()).isTrue();
-
-            Vector3f position = new Vector3f(transform.position());
-            int bullets = state.bullets();
-            input.publish(ActionSnapshot.builder()
-                    .axis2d(MOVE, 0.0F, 1.0F)
-                    .pressed(FIRE_PRIMARY)
-                    .build());
-            loaded.world().advanceFixed(Duration.ofMillis(100));
-            assertThat(transform.position()).isEqualTo(position);
-            assertThat(state.bullets()).isEqualTo(bullets);
-
-            loaded.world().advanceFrame(Duration.ofMillis(500), 0.0F);
-            assertThat(presentation.currentRedOpacity()).isZero();
-            assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
+            assertHealthyPlayerPresentation(presentationWorld, loaded);
+            assertTerminalPlayerState(presentationWorld, loaded);
+            assertGameOverCommands(application, loaded);
         }
 
         assertThat(presentationWorld.overlayCount()).isZero();
         assertThat(presentationWorld.soundClosed()).isTrue();
+    }
+
+    /** Verifies the active player's initial presentation and non-terminal damage response. */
+    private static void assertHealthyPlayerPresentation(
+            TestPresentationWorldModule presentationWorld, HostedProject loaded) {
+        Entity player = root(loaded, PLAYER_ENTITY);
+        Entity controls = child(player, PLAYER_CONTROLS);
+        Entity gameOver = root(loaded, GAME_OVER);
+        DoomPlayerState state = player.component(
+                        ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
+                .orElseThrow();
+        DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
+                .orElseThrow();
+        assertThat(presentationWorld.overlayCount()).isEqualTo(4);
+        assertThat(gameOver.isLocallyEnabled()).isFalse();
+        assertThat(controls.componentIds()).containsExactly(PLAYER_CONTROLLER, DOOR_INTERACTOR, MAIN_MENU_COMPONENT);
+        assertThat(state.damage(10)).isEqualTo(10);
+        assertThat(presentation.isDead()).isFalse();
+        assertThat(presentation.currentRedOpacity()).isEqualTo(0.32F);
+        assertThat(presentation.currentShadeOpacity()).isZero();
+        assertThat(presentationWorld.restarts()).isEqualTo(1);
+        assertThat(controls.isEnabled()).isTrue();
+
+        loaded.world().advanceFrame(Duration.ofMillis(250), 0.0F);
+        assertThat(presentation.currentRedOpacity()).isZero();
+    }
+
+    /** Verifies terminal presentation and the suppression of player-controlled actions. */
+    private static void assertTerminalPlayerState(TestPresentationWorldModule presentationWorld, HostedProject loaded) {
+        Entity player = root(loaded, PLAYER_ENTITY);
+        Entity controls = child(player, PLAYER_CONTROLS);
+        Entity view = player.children().stream()
+                .filter(entity -> !entity.authoredId().equals(PLAYER_CONTROLS))
+                .findFirst()
+                .orElseThrow();
+        Entity hud = root(loaded, PLAYER_HUD);
+        DoomPlayerState state = player.component(
+                        ComponentId.from("c416639d-dd1d-40d7-a9bd-6042f7206434"), DoomPlayerState.class)
+                .orElseThrow();
+        DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
+                .orElseThrow();
+        DoomPlayerLifecycle lifecycle =
+                player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class).orElseThrow();
+        Transform3d transform =
+                player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+        ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+        assertThat(state.damage(90)).isEqualTo(90);
+        assertThat(presentation.isDead()).isTrue();
+        assertThat(presentation.currentRedOpacity()).isEqualTo(0.45F);
+        assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
+        assertThat(presentationWorld.restarts()).isEqualTo(2);
+        assertThat(lifecycle.isDead()).isTrue();
+        assertThat(controls.isLocallyEnabled()).isFalse();
+        assertThat(view.isEnabled()).isTrue();
+        assertThat(hud.isEnabled()).isTrue();
+
+        Vector3f position = new Vector3f(transform.position());
+        int bullets = state.bullets();
+        input.publish(ActionSnapshot.builder()
+                .axis2d(MOVE, 0.0F, 1.0F)
+                .pressed(FIRE_PRIMARY)
+                .build());
+        loaded.world().advanceFixed(Duration.ofMillis(100));
+        assertThat(transform.position()).isEqualTo(position);
+        assertThat(state.bullets()).isEqualTo(bullets);
+    }
+
+    /** Verifies delayed Game Over visibility and every terminal navigation command. */
+    private static void assertGameOverCommands(RecordingApplicationControl application, HostedProject loaded) {
+        Entity player = root(loaded, PLAYER_ENTITY);
+        Entity gameOver = root(loaded, GAME_OVER);
+        DoomPlayerLifecycle lifecycle =
+                player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class).orElseThrow();
+        DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
+                .orElseThrow();
+        ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+        loaded.world().advanceFrame(Duration.ofMillis(999), 0.0F);
+        assertThat(presentation.currentRedOpacity()).isZero();
+        assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
+        assertThat(gameOver.isLocallyEnabled()).isFalse();
+
+        loaded.world().advanceFrame(Duration.ofMillis(1), 0.0F);
+        assertThat(lifecycle.isGameOverVisible()).isTrue();
+        assertThat(gameOver.isLocallyEnabled()).isTrue();
+        assertThat(child(gameOver, RESTART_CURSOR).isLocallyEnabled()).isTrue();
+        assertThat(child(gameOver, MAIN_MENU_CURSOR).isLocallyEnabled()).isFalse();
+
+        input.publish(ActionSnapshot.builder().pressed(MENU_CONFIRM).build());
+        loaded.world().advanceFixed(Duration.ofMillis(25));
+        assertThat(application.requested()).isEqualTo(ApplicationCommand.NEW_GAME);
+
+        application.clear();
+        input.publish(ActionSnapshot.builder().pressed(MENU_NEXT).build());
+        loaded.world().advanceFixed(Duration.ofMillis(25));
+        assertThat(child(gameOver, RESTART_CURSOR).isLocallyEnabled()).isFalse();
+        assertThat(child(gameOver, MAIN_MENU_CURSOR).isLocallyEnabled()).isTrue();
+        input.publish(ActionSnapshot.builder().pressed(MENU_CONFIRM).build());
+        loaded.world().advanceFixed(Duration.ofMillis(25));
+        assertThat(application.requested()).isEqualTo(ApplicationCommand.RETURN_TO_MENU);
+
+        application.clear();
+        input.publish(ActionSnapshot.builder().pressed(MENU).build());
+        loaded.world().advanceFixed(Duration.ofMillis(25));
+        assertThat(application.requested()).isEqualTo(ApplicationCommand.RETURN_TO_MENU);
     }
 
     /** Lowers the authored view and first-person weapon through their terminal transitions. */
@@ -917,6 +986,16 @@ final class ProjectHostIntegrationTest {
         return host.loadEntry(PROJECT_ROOT);
     }
 
+    /** Loads entry gameplay with observable host-owned application transitions. */
+    private static HostedProject load(
+            Path cache, TestPresentationWorldModule presentation, ApplicationControl application) {
+        ProjectRuntimeHost host = new ProjectRuntimeHost(
+                ENGINE_VERSION,
+                ProjectHostIntegrationTest.class.getClassLoader(),
+                new TestProjectEnvironment(cache, presentation, application));
+        return host.loadEntry(PROJECT_ROOT);
+    }
+
     /** Loads the manifest-selected startup world through the desktop-equivalent environment. */
     private static HostedProject loadStartup(Path cache) {
         ProjectRuntimeHost host = new ProjectRuntimeHost(
@@ -1101,4 +1180,34 @@ final class ProjectHostIntegrationTest {
 
     /** One player-facing test ray with a static obstruction before the selected generated door. */
     private record InteractionLine(Entity door, Vector3f origin, Vector3f direction) {}
+
+    /** Captures world-requested application transitions without owning a desktop session. */
+    private static final class RecordingApplicationControl implements ApplicationControl {
+        private ApplicationCommand requested;
+
+        @Override
+        public boolean canResume() {
+            return false;
+        }
+
+        @Override
+        public void request(ApplicationCommand command) {
+            requested = command;
+        }
+
+        /** Returns the latest requested transition. */
+        private ApplicationCommand requested() {
+            return requested;
+        }
+
+        /** Clears the previous observation before another independent transition. */
+        private void clear() {
+            requested = null;
+        }
+
+        @Override
+        public void close() {
+            // Test adapter owns no resources.
+        }
+    }
 }
