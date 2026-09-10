@@ -781,14 +781,14 @@
           "valueKind": "reference",
           "required": true,
           "displayName": "Background",
-          "acceptedReferences": ["import"]
+          "acceptedReferences": ["asset", "import"]
         },
         {
           "id": "title",
           "valueKind": "reference",
           "required": true,
           "displayName": "Title",
-          "acceptedReferences": ["import"]
+          "acceptedReferences": ["asset", "import"]
         },
         {
           "id": "resume",

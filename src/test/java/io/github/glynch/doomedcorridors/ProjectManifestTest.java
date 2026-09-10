@@ -71,7 +71,14 @@ final class ProjectManifestTest {
 
         assertThat(project.assets())
                 .extracting(GameProject.AssetSource::id)
-                .containsExactly("actors", "combat", "combat-presentation", "player-capsule", "freedoom");
+                .containsExactly(
+                        "actors",
+                        "combat",
+                        "combat-presentation",
+                        "player-capsule",
+                        "main-menu-background",
+                        "main-menu-title",
+                        "freedoom");
         assertThat(project.assets().getFirst()).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo(EXTENSION_ID + "/actor-catalog");
             assertThat(asset.path()).isEqualTo(project.root().resolve("game/actors.json"));
@@ -82,7 +89,7 @@ final class ProjectManifestTest {
             assertThat(asset.path()).isEqualTo(project.root().resolve("resources/player-capsule.resource.json"));
             assertThat(asset.sha256()).isEmpty();
         });
-        assertThat(project.assets().get(4)).satisfies(asset -> {
+        assertThat(project.assets().get(6)).satisfies(asset -> {
             assertThat(asset.type()).isEqualTo("io.github.glynch.jscene3d.wad/source");
             assertThat(asset.path()).isEqualTo(project.root().resolve("assets/freedoom2.wad"));
             assertThat(asset.sha256()).contains("a8772e088847032510d97ba2312406a6998f21cbab44d4ff10696faa9c0ecd4b");
@@ -96,6 +103,24 @@ final class ProjectManifestTest {
                 assertThat(diagnostic.location()).isEqualTo("/assets/4/path");
             });
         }
+    }
+
+    /** Keeps game branding project-owned while imported Doom content supplies only controls and labels. */
+    @Test
+    void usesProjectOwnedMainMenuBranding() throws Exception {
+        JsonNode menu = new ObjectMapper()
+                .readTree(Path.of("worlds/main-menu.world.json").toFile());
+
+        assertThat(menu.at("/roots/0/components/0/properties/background/$ref").textValue())
+                .isEqualTo("asset:main-menu-background");
+        assertThat(menu.at("/roots/0/components/0/properties/title/$ref").textValue())
+                .isEqualTo("asset:main-menu-title");
+        assertThat(Files.readString(Path.of("resources/main-menu-background.resource.json")))
+                .contains("project:application/branding/images/corridor-background.png")
+                .contains("io.github.glynch.jscene3d.presentation/overlay-image");
+        assertThat(Files.readString(Path.of("resources/main-menu-title.resource.json")))
+                .contains("project:application/branding/images/doomed-corridors-title.png")
+                .contains("io.github.glynch.jscene3d.presentation/overlay-image");
     }
 
     /** Loads the single MAP01 publication recipe through the engine Doom importer. */

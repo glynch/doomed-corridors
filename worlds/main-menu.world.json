@@ -18,10 +18,10 @@
           "typeVersion": 1,
           "properties": {
             "background": {
-              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/background"
+              "$ref": "asset:main-menu-background"
             },
             "title": {
-              "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/title"
+              "$ref": "asset:main-menu-title"
             },
             "resume": {
               "$ref": "import:freedoom-map01-actors/maps/MAP01/presentation/menu/images/resume"

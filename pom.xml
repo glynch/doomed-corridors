@@ -25,11 +25,14 @@
         <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
         <maven.compiler.version>3.15.0</maven.compiler.version>
         <maven.enforcer.version>3.6.3</maven.enforcer.version>
+        <maven.dependency.version>3.10.0</maven.dependency.version>
+        <maven.failsafe.version>3.5.6</maven.failsafe.version>
         <maven.surefire.version>3.5.6</maven.surefire.version>
         <exec.maven.version>3.6.3</exec.maven.version>
         <spotless.maven.version>3.8.0</spotless.maven.version>
 
         <doomed.corridors.firstThreadArgument>-Ddoomed.corridors.launch=true</doomed.corridors.firstThreadArgument>
+        <doomed.corridors.application.directory>${project.build.directory}/export/doomed-corridors</doomed.corridors.application.directory>
     </properties>
 
     <dependencyManagement>
@@ -91,6 +94,12 @@
             <groupId>io.github.glynch</groupId>
             <artifactId>jscene3d-project-desktop</artifactId>
             <version>${jscene3d.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.glynch</groupId>
+            <artifactId>jscene3d-project-export</artifactId>
+            <version>${jscene3d.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.github.glynch</groupId>
@@ -401,6 +410,89 @@
                                         <argument>${project.basedir}</argument>
                                         <argument>${project.build.directory}/import-cache</argument>
                                     </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>export-directory</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>${maven.dependency.version}</version>
+                        <executions>
+                            <execution>
+                                <id>resolve-export-runtime</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <outputDirectory>${project.build.directory}/export-runtime</outputDirectory>
+                                    <excludeArtifactIds>jscene3d-project-export,jspecify</excludeArtifactIds>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec.maven.version}</version>
+                        <executions>
+                            <execution>
+                                <id>assemble-exported-application-directory</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>io.github.glynch.jscene3d.project.exporting.internal.ApplicationDirectoryExportCommand</mainClass>
+                                    <classpathScope>compile</classpathScope>
+                                    <arguments>
+                                        <argument>${jscene3d.version}</argument>
+                                        <argument>doomed-corridors</argument>
+                                        <argument>${project.basedir}</argument>
+                                        <argument>${project.build.directory}/import-cache</argument>
+                                        <argument>${project.build.directory}/export-runtime</argument>
+                                        <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                                        <argument>${doomed.corridors.application.directory}</argument>
+                                        <argument>${doomed.corridors.firstThreadArgument}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>verify-export-directory</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${maven.failsafe.version}</version>
+                        <executions>
+                            <execution>
+                                <id>verify-exported-application-directory</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/ExportedApplicationDirectoryIT.java</include>
+                                    </includes>
+                                    <systemPropertyVariables>
+                                        <doomedCorridors.applicationDirectory>${doomed.corridors.application.directory}</doomedCorridors.applicationDirectory>
+                                    </systemPropertyVariables>
                                 </configuration>
                             </execution>
                         </executions>

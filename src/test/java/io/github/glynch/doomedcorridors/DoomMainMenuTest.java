@@ -66,6 +66,18 @@ final class DoomMainMenuTest {
         }
     }
 
+    @Test
+    void ignoresBackAtStartupAndClicksOutsideMenuRows() {
+        ProjectInput input = ProjectInput.empty();
+        RecordingApplicationControl application = new RecordingApplicationControl(false);
+        try (DoomMainMenu menu = menu(input, application)) {
+            update(menu, input, BACK, 0L);
+            click(menu, input, 10.0, 1L);
+
+            assertThat(application.requested).isNull();
+        }
+    }
+
     /** Creates one menu with renderer-independent one-pixel images. */
     private static DoomMainMenu menu(ProjectInput input, ApplicationControl application) {
         TestPresentationWorldModule presentation = new TestPresentationWorldModule();

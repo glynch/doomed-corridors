@@ -27,6 +27,9 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
     private static final float REFERENCE_WIDTH = 320.0F;
     private static final float REFERENCE_HEIGHT = 200.0F;
     private static final float ITEM_CENTER_X = 160.0F;
+    private static final float TITLE_CENTER_Y = 48.0F;
+    private static final float TITLE_MAX_WIDTH = 230.0F;
+    private static final float TITLE_MAX_HEIGHT = 80.0F;
     private static final float ITEM_START_Y = 112.0F;
     private static final float ITEM_SPACING = 24.0F;
     private static final float ITEM_HIT_WIDTH = 180.0F;
@@ -142,8 +145,8 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
                 canvas,
                 title,
                 layout.originX(),
-                layout.originY() + 28.0F * layout.scale(),
-                layout.scale() * 1.5F,
+                layout.originY() + TITLE_CENTER_Y * layout.scale(),
+                titleScale(layout, title),
                 Color.WHITE);
         List<ApplicationCommand> items = items();
         for (int index = 0; index < items.size(); index++) {
@@ -219,6 +222,12 @@ final class DoomMainMenu implements ComponentUpdateCallbacks, Overlay, AutoClose
         float left = originX + ITEM_CENTER_X * scale - width * 0.5F;
         canvas.image(image.fullRegion(), left, centerY - height * 0.5F, width, height, tint, 1.0F);
         return left;
+    }
+
+    /** Fits the authored title within its reference-space menu region. */
+    private static float titleScale(MenuLayout layout, OverlayImage image) {
+        float referenceScale = Math.min(TITLE_MAX_WIDTH / image.width(), TITLE_MAX_HEIGHT / image.height());
+        return referenceScale * layout.scale();
     }
 
     /** Aspect-fitted reference-space menu layout shared by rendering and pointer hit-testing. */

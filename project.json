@@ -71,6 +71,16 @@
       "path": "resources/player-capsule.resource.json"
     },
     {
+      "id": "main-menu-background",
+      "type": "io.github.glynch.jscene3d.presentation/overlay-image",
+      "path": "resources/main-menu-background.resource.json"
+    },
+    {
+      "id": "main-menu-title",
+      "type": "io.github.glynch.jscene3d.presentation/overlay-image",
+      "path": "resources/main-menu-title.resource.json"
+    },
+    {
       "id": "freedoom",
       "type": "io.github.glynch.jscene3d.wad/source",
       "path": "assets/freedoom2.wad",

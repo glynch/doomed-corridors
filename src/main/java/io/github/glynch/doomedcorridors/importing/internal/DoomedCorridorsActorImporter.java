@@ -109,8 +109,6 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
     private static final float DOOM_SOUND_ROLLOFF_FACTOR = 1.0F;
     private static final Set<String> START_MARKERS = Set.of("S_START", "SS_START");
     private static final Set<String> END_MARKERS = Set.of("S_END", "SS_END");
-    private static final String MENU_BACKGROUND = "background";
-    private static final String MENU_TITLE = "title";
     private static final String MENU_RESUME = "resume";
     private static final String MENU_NEW_GAME = "new-game";
     private static final String MENU_QUIT = "quit";
@@ -293,14 +291,13 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         }
     }
 
-    /** Decodes the title screen and composes project-owned labels from the WAD's bitmap font. */
+    /** Decodes the cursor and composes menu labels from the WAD's bitmap font. */
     private static void importMenuImages(WadArchive archive, byte[] palette, Map<String, RgbaImage> images)
             throws IOException, DoomPatchDataException {
-        images.put(MENU_BACKGROUND, decodePatch(archive, palette, "TITLEPIC"));
         images.put(MENU_CURSOR_FIRST, decodePatch(archive, palette, "M_SKULL1"));
         images.put(MENU_CURSOR_SECOND, decodePatch(archive, palette, "M_SKULL2"));
         Set<Character> requiredGlyphs = new TreeSet<>();
-        for (String label : List.of("DOOMED CORRIDORS", "RESUME", "NEW GAME", "QUIT GAME")) {
+        for (String label : List.of("RESUME", "NEW GAME", "QUIT GAME")) {
             label.chars()
                     .filter(character -> character != ' ')
                     .forEach(character -> requiredGlyphs.add((char) character));
@@ -310,7 +307,6 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
             glyphs.put(
                     character, decodePatch(archive, palette, String.format(Locale.ROOT, "STCFN%03d", (int) character)));
         }
-        images.put(MENU_TITLE, DoomMenuImageComposer.compose("DOOMED CORRIDORS", glyphs));
         images.put(MENU_RESUME, DoomMenuImageComposer.compose("RESUME", glyphs));
         images.put(MENU_NEW_GAME, DoomMenuImageComposer.compose("NEW GAME", glyphs));
         images.put(MENU_QUIT, DoomMenuImageComposer.compose("QUIT GAME", glyphs));
@@ -530,17 +526,10 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         publishMenuPresentationResources(context, prefix, assets.images());
     }
 
-    /** Publishes project-owned background, label, and cursor images used by the startup menu world. */
+    /** Publishes imported label and cursor images used by the startup menu world. */
     private static void publishMenuPresentationResources(
             ImportPreparationContext context, String prefix, Map<String, RgbaImage> images) throws IOException {
-        for (String name : List.of(
-                MENU_BACKGROUND,
-                MENU_TITLE,
-                MENU_RESUME,
-                MENU_NEW_GAME,
-                MENU_QUIT,
-                MENU_CURSOR_FIRST,
-                MENU_CURSOR_SECOND)) {
+        for (String name : List.of(MENU_RESUME, MENU_NEW_GAME, MENU_QUIT, MENU_CURSOR_FIRST, MENU_CURSOR_SECOND)) {
             publishOverlayImage(context, menuImageIdentity(prefix, name), images.get(name));
         }
     }
