@@ -7,7 +7,7 @@ package io.github.glynch.doomedcorridors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.doom.runtime.DoomCollisionCategories;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoor;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoorDescriptors;
@@ -258,8 +258,8 @@ final class ProjectHostIntegrationTest {
             DoomEnemyBehavior behavior = zombieman
                     .component(ZOMBIEMAN_BEHAVIOR, DoomEnemyBehavior.class)
                     .orElseThrow();
-            DoomEnemyTarget target =
-                    actors.component(ENEMY_TARGET, DoomEnemyTarget.class).orElseThrow();
+            DoomEnemyTargetProvider target = actors.component(ENEMY_TARGET, DoomEnemyTargetProvider.class)
+                    .orElseThrow();
             List<BillboardRenderer3d> walkFrames = ZOMBIEMAN_WALK_FRAMES.stream()
                     .map(component -> zombieman
                             .component(component, BillboardRenderer3d.class)
@@ -314,11 +314,11 @@ final class ProjectHostIntegrationTest {
             assertThat(behavior.isAlerted()).isFalse();
             assertThat(target.player()).isSameAs(player);
             assertThat(zombieman
-                            .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+                            .capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
                             .orElseThrow())
                     .isSameAs(state);
             assertThat(zombieman
-                            .capability(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
+                            .capability(DoomedCorridorsDescriptors.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
                             .orElseThrow())
                     .isSameAs(behavior);
 
@@ -415,9 +415,9 @@ final class ProjectHostIntegrationTest {
         try (HostedProject loaded = load(cache, presentation)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             DoomPlayerState playerState = player.capability(
-                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
-            assertThat(player.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+            assertThat(player.capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
                             .orElseThrow())
                     .isSameAs(playerState);
             Transform3d view = player.children()
@@ -458,7 +458,7 @@ final class ProjectHostIntegrationTest {
             ShotLine assistedLine = unobstructedAutoAimShot(actors, physics);
             DoomHitscanTarget assistedTarget = assistedLine
                     .target()
-                    .capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
+                    .capability(DoomedCorridorsDescriptors.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
                     .orElseThrow();
             int healthBeforeAssistedShot = assistedTarget.health();
             var assistedOrientation =
@@ -565,8 +565,8 @@ final class ProjectHostIntegrationTest {
                 .orElseThrow();
         DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
                 .orElseThrow();
-        DoomPlayerLifecycle lifecycle =
-                player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class).orElseThrow();
+        DoomPlayerDeathController deathController = player.component(PLAYER_LIFECYCLE, DoomPlayerDeathController.class)
+                .orElseThrow();
         Transform3d transform =
                 player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
         ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
@@ -575,7 +575,7 @@ final class ProjectHostIntegrationTest {
         assertThat(presentation.currentRedOpacity()).isEqualTo(0.45F);
         assertThat(presentation.currentShadeOpacity()).isEqualTo(0.18F);
         assertThat(presentationWorld.restarts()).isEqualTo(2);
-        assertThat(lifecycle.isDead()).isTrue();
+        assertThat(deathController.isDead()).isTrue();
         assertThat(controls.isLocallyEnabled()).isFalse();
         assertThat(view.isEnabled()).isTrue();
         assertThat(hud.isEnabled()).isTrue();
@@ -595,8 +595,8 @@ final class ProjectHostIntegrationTest {
     private static void assertGameOverCommands(RecordingApplicationControl application, HostedProject loaded) {
         Entity player = root(loaded, PLAYER_ENTITY);
         Entity gameOver = root(loaded, GAME_OVER);
-        DoomPlayerLifecycle lifecycle =
-                player.component(PLAYER_LIFECYCLE, DoomPlayerLifecycle.class).orElseThrow();
+        DoomPlayerDeathController deathController = player.component(PLAYER_LIFECYCLE, DoomPlayerDeathController.class)
+                .orElseThrow();
         DoomPlayerPresentation presentation = player.component(PLAYER_PRESENTATION, DoomPlayerPresentation.class)
                 .orElseThrow();
         ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
@@ -606,7 +606,7 @@ final class ProjectHostIntegrationTest {
         assertThat(gameOver.isLocallyEnabled()).isFalse();
 
         loaded.world().advanceFrame(Duration.ofMillis(1), 0.0F);
-        assertThat(lifecycle.isGameOverVisible()).isTrue();
+        assertThat(deathController.isGameOverVisible()).isTrue();
         assertThat(gameOver.isLocallyEnabled()).isTrue();
         assertThat(child(gameOver, RESTART_CURSOR).isLocallyEnabled()).isTrue();
         assertThat(child(gameOver, MAIN_MENU_CURSOR).isLocallyEnabled()).isFalse();
@@ -675,7 +675,7 @@ final class ProjectHostIntegrationTest {
         try (HostedProject loaded = load(cache)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             DoomPlayerState state = player.capability(
-                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
             Transform3d playerTransform =
                     player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
@@ -712,7 +712,7 @@ final class ProjectHostIntegrationTest {
         try (HostedProject loaded = load(cache)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             DoomPlayerState state = player.capability(
-                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
             Entity actors = root(loaded, ACTOR_MAP_PLACEMENT);
             Entity stimpack = actor(actors, "Stimpack 86");
@@ -797,7 +797,7 @@ final class ProjectHostIntegrationTest {
         try (HostedProject loaded = load(cache, request)) {
             Entity player = root(loaded, PLAYER_ENTITY);
             DoomPlayerState state = player.capability(
-                            DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                            DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                     .orElseThrow();
             DoomFloor floor = movingFloor(root(loaded, MAP_PLACEMENT))
                     .capability(DoomFloorDescriptors.FLOOR_CAPABILITY, DoomFloor.class)
@@ -1263,7 +1263,7 @@ final class ProjectHostIntegrationTest {
                 new Vector3f(0.0F, 0.0F, -2.0F),
                 new Vector3f(0.0F, 2.0F, 0.0F));
         for (Entity entity : actors.children()) {
-            if (entity.capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
+            if (entity.capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class)
                     .isEmpty()) {
                 continue;
             }
@@ -1294,7 +1294,7 @@ final class ProjectHostIntegrationTest {
         float missAngle = (float) Math.toRadians(5.25F);
         for (Entity entity : actors.children()) {
             Optional<DoomHitscanTarget> selected =
-                    entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class);
+                    entity.capability(DoomedCorridorsDescriptors.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class);
             if (selected.isEmpty()) {
                 continue;
             }

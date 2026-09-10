@@ -9,11 +9,11 @@ import io.github.glynch.jscene3d.doom.map.DoomMap;
 import java.util.Objects;
 
 /** Resolves the source-map floor beneath imported actor placements without retaining a game runtime. */
-final class DoomFloorResolver {
+final class DoomActorFloorResolver {
     private final DoomMap map;
 
     /** Retains the decoded map needed for BSP point queries during publication. */
-    DoomFloorResolver(DoomMap map) {
+    DoomActorFloorResolver(DoomMap map) {
         this.map = Objects.requireNonNull(map, "map");
     }
 

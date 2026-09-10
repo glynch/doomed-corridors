@@ -15,7 +15,7 @@ import io.github.glynch.doomedcorridors.actor.DoomSkillLevel;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoadResult;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationLoader;
 import io.github.glynch.doomedcorridors.presentation.DoomCombatPresentationRules;
@@ -698,7 +698,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                     ProjectValueKind.ENTITY_TARGET,
                     EntityContract.Requirement.REQUIRED,
                     PropertyTarget.component(
-                            rootId, behaviorId, DoomedCorridorsRuntimeTypes.ENEMY_TARGET_PROVIDER_PROPERTY)));
+                            rootId, behaviorId, DoomedCorridorsDescriptors.ENEMY_TARGET_PROVIDER_PROPERTY)));
         }
         EntityContract contract = new EntityContract(parameters, List.of(), List.of(), List.of(), List.of(), List.of());
         LocalEntity root = new LocalEntity(rootId, actor.name(), true, components, List.of());
@@ -737,18 +737,18 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 Map.of(Physics3dDescriptors.shapesProperty(), componentTargets(publication.rootId(), shapeId))));
         components.add(new ComponentDefinition(
                 behaviorId,
-                DoomedCorridorsRuntimeTypes.PICKUP_TYPE.id(),
-                DoomedCorridorsRuntimeTypes.PICKUP_TYPE.version(),
+                DoomedCorridorsDescriptors.PICKUP_TYPE.id(),
+                DoomedCorridorsDescriptors.PICKUP_TYPE.version(),
                 Map.of(
-                        DoomedCorridorsRuntimeTypes.PICKUP_RESOURCE_PROPERTY,
+                        DoomedCorridorsDescriptors.PICKUP_RESOURCE_PROPERTY,
                                 new ProjectValue.TextValue(
                                         pickup.resource().name().toLowerCase(Locale.ROOT)),
-                        DoomedCorridorsRuntimeTypes.PICKUP_AMOUNT_PROPERTY, number(pickup.amount()),
-                        DoomedCorridorsRuntimeTypes.PICKUP_LIMIT_PROPERTY, number(pickup.limit()))));
+                        DoomedCorridorsDescriptors.PICKUP_AMOUNT_PROPERTY, number(pickup.amount()),
+                        DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY, number(pickup.limit()))));
         connections.add(new SignalConnection(
                 EndpointTarget.component(publication.rootId(), sensorId, Physics3dDescriptors.overlapEnteredSignal()),
                 EndpointTarget.component(
-                        publication.rootId(), behaviorId, DoomedCorridorsRuntimeTypes.RECEIVE_OVERLAP_ACTION)));
+                        publication.rootId(), behaviorId, DoomedCorridorsDescriptors.RECEIVE_OVERLAP_ACTION)));
         references.add(shapeIdentity);
     }
 
@@ -771,13 +771,13 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         components.add(component(
                 importId,
                 rootLocator + "/combatant-state",
-                DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE,
+                DoomedCorridorsDescriptors.COMBATANT_STATE_TYPE,
                 Map.of(
-                        DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
-                        DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
-                        DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY,
+                        DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
+                        DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
+                        DoomedCorridorsDescriptors.ACTOR_ID_PROPERTY,
                                 new ProjectValue.TextValue(publication.actor().id()),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY,
+                        DoomedCorridorsDescriptors.COMBATANT_BODY_PROPERTY,
                                 componentTarget(publication.rootId(), bodyId))));
         components.add(component(
                 importId,
@@ -796,17 +796,16 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         components.add(component(
                 importId,
                 rootLocator + "/enemy-behavior",
-                DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE,
+                DoomedCorridorsDescriptors.ENEMY_BEHAVIOR_TYPE,
                 Map.of(
-                        DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
-                        DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
-                        DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY,
+                        DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY, ruleReferences.actorCatalog(),
+                        DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY, ruleReferences.combatRules(),
+                        DoomedCorridorsDescriptors.ACTOR_ID_PROPERTY,
                                 new ProjectValue.TextValue(publication.actor().id()),
-                        DoomedCorridorsRuntimeTypes.ENEMY_TARGET_PROVIDER_PROPERTY,
+                        DoomedCorridorsDescriptors.ENEMY_TARGET_PROVIDER_PROPERTY,
                                 new ProjectValue.EntityTargetValue(publication.rootId()),
-                        DoomedCorridorsRuntimeTypes.ENEMY_STATE_PROPERTY,
-                                componentTarget(publication.rootId(), stateId),
-                        DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY,
+                        DoomedCorridorsDescriptors.ENEMY_STATE_PROPERTY, componentTarget(publication.rootId(), stateId),
+                        DoomedCorridorsDescriptors.COMBATANT_BODY_PROPERTY,
                                 componentTarget(publication.rootId(), bodyId))));
         presentation.ifPresent(
                 value -> addCombatantPresentation(publication, stateId, value, components, connections, references));
@@ -839,30 +838,30 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
         components.add(component(
                 importId,
                 rootLocator + "/combatant-presentation",
-                DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE,
+                DoomedCorridorsDescriptors.COMBATANT_PRESENTATION_TYPE,
                 Map.ofEntries(
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_TRANSFORM_PROPERTY,
                                 componentTarget(
                                         publication.rootId(), componentId(importId, rootLocator + "/transform"))),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_IDLE_FRAME_PROPERTY,
                                 componentTarget(
                                         publication.rootId(), componentId(importId, rootLocator + "/billboard"))),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_WALK_FRAMES_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_WALK_FRAMES_PROPERTY,
                                 componentTargets(publication.rootId(), walkFrames)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_FRAMES_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_ATTACK_FRAMES_PROPERTY,
                                 componentTargets(publication.rootId(), attackFrames)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_PAIN_FRAMES_PROPERTY,
                                 componentTargets(publication.rootId(), painFrames)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_DEATH_FRAMES_PROPERTY,
                                 componentTargets(publication.rootId(), deathFrames)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_SIGHT_SOUNDS_PROPERTY,
                                 resourceReferences(
                                         importId,
                                         rules.sounds().sightSounds().stream()
@@ -872,7 +871,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                                         sound))
                                                 .toList())),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_ATTACK_SOUND_PROPERTY,
                                 reference(
                                         importId,
                                         combatantSoundIdentity(
@@ -880,7 +879,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                                 publication.actor().id(),
                                                 rules.sounds().attackSound()))),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_PAIN_SOUND_PROPERTY,
                                 reference(
                                         importId,
                                         combatantSoundIdentity(
@@ -888,7 +887,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                                 publication.actor().id(),
                                                 rules.sounds().painSound()))),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_DEATH_SOUNDS_PROPERTY,
                                 resourceReferences(
                                         importId,
                                         rules.sounds().deathSounds().stream()
@@ -898,61 +897,60 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                                                         sound))
                                                 .toList())),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
                                 number(DOOM_SOUND_FULL_VOLUME_DISTANCE)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
                                 number(DOOM_SOUND_MAXIMUM_DISTANCE)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY,
+                                DoomedCorridorsDescriptors.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY,
                                 number(DOOM_SOUND_ROLLOFF_FACTOR)),
                         Map.entry(
-                                DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY,
-                                frameMilliseconds))));
+                                DoomedCorridorsDescriptors.COMBATANT_FRAME_MILLISECONDS_PROPERTY, frameMilliseconds))));
         connections.add(new SignalConnection(
                 EndpointTarget.component(
-                        publication.rootId(), enemyBehaviorId, DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL),
+                        publication.rootId(), enemyBehaviorId, DoomedCorridorsDescriptors.ENEMY_ALERTED_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(),
                         presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION)));
-        connections.add(new SignalConnection(
-                EndpointTarget.component(
-                        publication.rootId(),
-                        enemyBehaviorId,
-                        DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL),
-                EndpointTarget.component(
-                        publication.rootId(),
-                        presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION)));
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ALERTED_ACTION)));
         connections.add(new SignalConnection(
                 EndpointTarget.component(
                         publication.rootId(),
                         enemyBehaviorId,
-                        DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL),
+                        DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STARTED_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(),
                         presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION)));
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION)));
         connections.add(new SignalConnection(
                 EndpointTarget.component(
-                        publication.rootId(), enemyBehaviorId, DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL),
+                        publication.rootId(),
+                        enemyBehaviorId,
+                        DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STOPPED_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(),
                         presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION)));
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION)));
         connections.add(new SignalConnection(
-                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.HURT_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(), enemyBehaviorId, DoomedCorridorsDescriptors.ENEMY_ATTACKED_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(),
                         presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION)));
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ATTACKED_ACTION)));
         connections.add(new SignalConnection(
-                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsRuntimeTypes.DIED_SIGNAL),
+                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsDescriptors.HURT_SIGNAL),
                 EndpointTarget.component(
                         publication.rootId(),
                         presentationId,
-                        DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION)));
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_HURT_ACTION)));
+        connections.add(new SignalConnection(
+                EndpointTarget.component(publication.rootId(), stateId, DoomedCorridorsDescriptors.DIED_SIGNAL),
+                EndpointTarget.component(
+                        publication.rootId(),
+                        presentationId,
+                        DoomedCorridorsDescriptors.RECEIVE_COMBATANT_DIED_ACTION)));
         rules.sounds()
                 .sightSounds()
                 .forEach(sound -> references.add(combatantSoundIdentity(
@@ -1071,9 +1069,9 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                 component(
                         context.definition().id(),
                         rootLocator + "/enemy-target",
-                        DoomedCorridorsRuntimeTypes.ENEMY_TARGET_TYPE,
+                        DoomedCorridorsDescriptors.ENEMY_TARGET_TYPE,
                         Map.of(
-                                DoomedCorridorsRuntimeTypes.PLAYER_TARGET_PROPERTY,
+                                DoomedCorridorsDescriptors.PLAYER_TARGET_PROPERTY,
                                 new ProjectValue.EntityTargetValue(rootId))));
         LocalEntity root = new LocalEntity(rootId, "Actors", true, components, placements);
         EntityContract contract = new EntityContract(
@@ -1081,8 +1079,7 @@ final class DoomedCorridorsActorImporter implements ProjectImporter {
                         PLAYER_ARGUMENT,
                         ProjectValueKind.ENTITY_TARGET,
                         EntityContract.Requirement.REQUIRED,
-                        PropertyTarget.component(
-                                rootId, targetId, DoomedCorridorsRuntimeTypes.PLAYER_TARGET_PROPERTY))),
+                        PropertyTarget.component(rootId, targetId, DoomedCorridorsDescriptors.PLAYER_TARGET_PROPERTY))),
                 List.of(),
                 List.of(),
                 List.of(),

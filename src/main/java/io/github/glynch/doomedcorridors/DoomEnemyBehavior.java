@@ -5,7 +5,7 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.physics3d.Physics3dWorldModule;
@@ -82,18 +82,18 @@ final class DoomEnemyBehavior
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
-        targetProvider = validReferences.entity(DoomedCorridorsRuntimeTypes.ENEMY_TARGET_PROVIDER_PROPERTY);
-        state = validReferences.component(DoomedCorridorsRuntimeTypes.ENEMY_STATE_PROPERTY, DoomCombatantState.class);
-        body = validReferences.component(DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY, CharacterBody3d.class);
+        targetProvider = validReferences.entity(DoomedCorridorsDescriptors.ENEMY_TARGET_PROVIDER_PROPERTY);
+        state = validReferences.component(DoomedCorridorsDescriptors.ENEMY_STATE_PROPERTY, DoomCombatantState.class);
+        body = validReferences.component(DoomedCorridorsDescriptors.COMBATANT_BODY_PROPERTY, CharacterBody3d.class);
     }
 
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        alertedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL);
-        movementStartedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL);
-        movementStoppedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL);
-        attackedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
+        alertedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.ENEMY_ALERTED_SIGNAL);
+        movementStartedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STARTED_SIGNAL);
+        movementStoppedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STOPPED_SIGNAL);
+        attackedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.ENEMY_ATTACKED_SIGNAL);
     }
 
     @Override
@@ -123,7 +123,7 @@ final class DoomEnemyBehavior
             updateMovement(false);
             return;
         }
-        DoomEnemyTarget target = requiredTarget();
+        DoomEnemyTargetProvider target = requiredTarget();
         Entity player = target.player();
         DoomDamageable playerState = target.damageable();
         Vector3f enemyPosition = requiredTransform().worldMatrix().getTranslation(new Vector3f());
@@ -231,12 +231,12 @@ final class DoomEnemyBehavior
         }
     }
 
-    private DoomEnemyTarget requiredTarget() {
+    private DoomEnemyTargetProvider requiredTarget() {
         if (targetProvider == null) {
             throw new IllegalStateException("enemy target provider has not been bound");
         }
         return targetProvider
-                .capability(DoomedCorridorsRuntimeTypes.ENEMY_TARGET_CAPABILITY, DoomEnemyTarget.class)
+                .capability(DoomedCorridorsDescriptors.ENEMY_TARGET_CAPABILITY, DoomEnemyTargetProvider.class)
                 .orElseThrow(() -> new IllegalStateException("target provider has no enemy-target capability"));
     }
 

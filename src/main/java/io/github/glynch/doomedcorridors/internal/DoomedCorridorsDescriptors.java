@@ -10,8 +10,8 @@ import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.component.PropertyId;
 import io.github.glynch.jscene3d.project.extension.RegisteredType;
 
-/** Stable component and property identities shared by project publication and application runtime behavior. */
-public final class DoomedCorridorsRuntimeTypes {
+/** Stable descriptors shared by project publication and application runtime behavior. */
+public final class DoomedCorridorsDescriptors {
     /** Application extension identity declared by the project manifest. */
     public static final String EXTENSION_ID = "io.github.glynch.doomed-corridors";
 
@@ -410,7 +410,7 @@ public final class DoomedCorridorsRuntimeTypes {
     public static final EndpointId RECEIVE_COMBATANT_DIED_ACTION = new EndpointId("receive-died");
 
     /** Prevents construction of this identity container. */
-    private DoomedCorridorsRuntimeTypes() {
-        throw new AssertionError("DoomedCorridorsRuntimeTypes cannot be instantiated");
+    private DoomedCorridorsDescriptors() {
+        throw new AssertionError("DoomedCorridorsDescriptors cannot be instantiated");
     }
 }

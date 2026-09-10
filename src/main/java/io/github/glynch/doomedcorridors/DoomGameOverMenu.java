@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.game.application.ApplicationCommand;
 import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.InputAction;
@@ -118,8 +118,8 @@ final class DoomGameOverMenu implements ComponentReferenceBinder, ComponentUpdat
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
-        restartCursor = validReferences.entity(DoomedCorridorsRuntimeTypes.GAME_OVER_RESTART_CURSOR_PROPERTY);
-        mainMenuCursor = validReferences.entity(DoomedCorridorsRuntimeTypes.GAME_OVER_MAIN_MENU_CURSOR_PROPERTY);
+        restartCursor = validReferences.entity(DoomedCorridorsDescriptors.GAME_OVER_RESTART_CURSOR_PROPERTY);
+        mainMenuCursor = validReferences.entity(DoomedCorridorsDescriptors.GAME_OVER_MAIN_MENU_CURSOR_PROPERTY);
     }
 
     @Override

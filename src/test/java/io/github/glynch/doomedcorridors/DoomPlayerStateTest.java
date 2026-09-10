@@ -10,7 +10,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCatalog;
 import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.project.component.EndpointId;
 import io.github.glynch.jscene3d.project.runtime.RuntimeAction;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
@@ -78,10 +78,10 @@ final class DoomPlayerStateTest {
 
         @Override
         public RuntimeSignal signal(EndpointId endpoint) {
-            if (endpoint.equals(DoomedCorridorsRuntimeTypes.HURT_SIGNAL)) {
+            if (endpoint.equals(DoomedCorridorsDescriptors.HURT_SIGNAL)) {
                 return hurt;
             }
-            if (endpoint.equals(DoomedCorridorsRuntimeTypes.DIED_SIGNAL)) {
+            if (endpoint.equals(DoomedCorridorsDescriptors.DIED_SIGNAL)) {
                 return died;
             }
             throw new AssertionError("unexpected endpoint: " + endpoint);

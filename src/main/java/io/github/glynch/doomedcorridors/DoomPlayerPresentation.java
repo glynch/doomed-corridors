@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
 import io.github.glynch.jscene3d.game.presentation.OverlayRegistration;
@@ -70,15 +70,15 @@ final class DoomPlayerPresentation
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
         viewTransform = Optional.of(Objects.requireNonNull(references, "references")
-                .component(DoomedCorridorsRuntimeTypes.PLAYER_VIEW_TRANSFORM_PROPERTY, Transform3d.class));
+                .component(DoomedCorridorsDescriptors.PLAYER_VIEW_TRANSFORM_PROPERTY, Transform3d.class));
     }
 
     /** Binds the descriptor-declared player-state reactions. */
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_HURT_ACTION, this::receiveHurt);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION, this::receiveDied);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_PLAYER_HURT_ACTION, this::receiveHurt);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION, this::receiveDied);
     }
 
     /** Advances the currently active finite red response. */

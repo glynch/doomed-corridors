@@ -7,7 +7,7 @@ package io.github.glynch.doomedcorridors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.project.component.EndpointId;
@@ -98,7 +98,7 @@ final class DoomPlayerPresentationTest {
 
         @Override
         public <T> T component(PropertyId property, Class<T> valueType) {
-            assertThat(property).isEqualTo(DoomedCorridorsRuntimeTypes.PLAYER_VIEW_TRANSFORM_PROPERTY);
+            assertThat(property).isEqualTo(DoomedCorridorsDescriptors.PLAYER_VIEW_TRANSFORM_PROPERTY);
             return valueType.cast(view);
         }
 
@@ -187,9 +187,9 @@ final class DoomPlayerPresentationTest {
 
         @Override
         public void action(EndpointId endpoint, RuntimeAction implementation) {
-            if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_HURT_ACTION)) {
+            if (endpoint.equals(DoomedCorridorsDescriptors.RECEIVE_PLAYER_HURT_ACTION)) {
                 hurt = implementation;
-            } else if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION)) {
+            } else if (endpoint.equals(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION)) {
                 died = implementation;
             } else {
                 throw new AssertionError("unexpected endpoint: " + endpoint);

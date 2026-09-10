@@ -11,9 +11,9 @@ import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 /** Immutable camera-relative location carried by a successful weapon-hit signal. */
-record DoomWeaponHit(float horizontalSlope, float verticalSlope, float fieldOfViewDegrees) {
+record DoomWeaponHitLocation(float horizontalSlope, float verticalSlope, float fieldOfViewDegrees) {
     /** Validates the finite perspective coordinates captured when the shot resolves. */
-    DoomWeaponHit {
+    DoomWeaponHitLocation {
         if (!Float.isFinite(horizontalSlope) || !Float.isFinite(verticalSlope)) {
             throw new IllegalArgumentException("weapon hit slopes must be finite");
         }
@@ -37,7 +37,7 @@ record DoomWeaponHit(float horizontalSlope, float verticalSlope, float fieldOfVi
     }
 
     /** Captures one world direction in the firing camera's local perspective coordinates. */
-    static DoomWeaponHit fromWorldDirection(
+    static DoomWeaponHitLocation fromWorldDirection(
             Vector3fc worldDirection, Matrix4fc cameraWorldMatrix, float fieldOfViewDegrees) {
         Vector3f localDirection = new Matrix4f(cameraWorldMatrix)
                 .invert()
@@ -47,6 +47,6 @@ record DoomWeaponHit(float horizontalSlope, float verticalSlope, float fieldOfVi
         if (!Float.isFinite(forward) || forward <= 0.0F) {
             throw new IllegalArgumentException("weapon hit direction must be in front of the camera");
         }
-        return new DoomWeaponHit(localDirection.x / forward, localDirection.y / forward, fieldOfViewDegrees);
+        return new DoomWeaponHitLocation(localDirection.x / forward, localDirection.y / forward, fieldOfViewDegrees);
     }
 }

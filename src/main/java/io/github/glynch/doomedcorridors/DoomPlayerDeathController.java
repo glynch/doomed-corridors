@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.game.application.ApplicationCommand;
 import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.InputAction;
@@ -22,8 +22,9 @@ import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
-/** Applies terminal player lifecycle changes to an explicitly authored controls entity. */
-final class DoomPlayerLifecycle implements ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks {
+/** Controls terminal player death behavior for explicitly authored control and game-over entities. */
+final class DoomPlayerDeathController
+        implements ComponentReferenceBinder, ComponentEndpointBinder, ComponentUpdateCallbacks {
     private final World world;
     private final InputWorldModule input;
     private final ApplicationControl application;
@@ -35,7 +36,7 @@ final class DoomPlayerLifecycle implements ComponentReferenceBinder, ComponentEn
     private boolean dead;
     private boolean gameOverVisible;
 
-    DoomPlayerLifecycle(
+    DoomPlayerDeathController(
             World world,
             InputWorldModule input,
             ApplicationControl application,
@@ -51,17 +52,17 @@ final class DoomPlayerLifecycle implements ComponentReferenceBinder, ComponentEn
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
         controls = Objects.requireNonNull(references, "references")
-                .entity(DoomedCorridorsRuntimeTypes.PLAYER_CONTROL_ENTITY_PROPERTY);
-        gameOver = references.entity(DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_ENTITY_PROPERTY);
+                .entity(DoomedCorridorsDescriptors.PLAYER_CONTROL_ENTITY_PROPERTY);
+        gameOver = references.entity(DoomedCorridorsDescriptors.PLAYER_GAME_OVER_ENTITY_PROPERTY);
     }
 
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         Objects.requireNonNull(endpoints, "endpoints")
-                .action(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION, this::receiveDied);
+                .action(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION, this::receiveDied);
     }
 
-    /** Returns whether this lifecycle has applied terminal player death. */
+    /** Returns whether this controller has applied terminal player death. */
     boolean isDead() {
         return dead;
     }

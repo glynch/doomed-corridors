@@ -10,11 +10,11 @@ import static org.assertj.core.api.Assertions.within;
 import org.junit.jupiter.api.Test;
 
 /** Verifies successful-hit positions remain aligned with perspective-rendered targets. */
-final class DoomWeaponHitTest {
+final class DoomWeaponHitLocationTest {
     @Test
     void projectsAnAssistedHitAwayFromTheOriginalViewportCentre() {
         float horizontalSlope = (float) Math.tan(Math.toRadians(5.0));
-        DoomWeaponHit hit = new DoomWeaponHit(horizontalSlope, 0.0F, 74.0F);
+        DoomWeaponHitLocation hit = new DoomWeaponHitLocation(horizontalSlope, 0.0F, 74.0F);
 
         var position = hit.project(1600, 900);
         float expectedX =

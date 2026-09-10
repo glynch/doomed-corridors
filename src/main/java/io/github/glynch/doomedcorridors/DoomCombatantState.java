@@ -5,7 +5,7 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.project.physics3d.CharacterBody3d;
 import io.github.glynch.jscene3d.project.runtime.Entity;
@@ -47,14 +47,14 @@ final class DoomCombatantState
     @Override
     public void bindReferences(ComponentReferenceResolver references) {
         body = Objects.requireNonNull(references, "references")
-                .component(DoomedCorridorsRuntimeTypes.COMBATANT_BODY_PROPERTY, CharacterBody3d.class);
+                .component(DoomedCorridorsDescriptors.COMBATANT_BODY_PROPERTY, CharacterBody3d.class);
     }
 
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.HURT_SIGNAL);
-        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
+        hurtSignal = validEndpoints.signal(DoomedCorridorsDescriptors.HURT_SIGNAL);
+        diedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.DIED_SIGNAL);
     }
 
     @Override

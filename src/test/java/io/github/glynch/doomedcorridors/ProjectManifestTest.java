@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.project.component.ComponentLifecycle;
 import io.github.glynch.jscene3d.project.component.ComponentUpdatePhase;
 import io.github.glynch.jscene3d.project.diagnostic.ProjectDiagnostic;
@@ -274,41 +274,41 @@ final class ProjectManifestTest {
                 .load(project, getClass().getClassLoader());
 
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.COMBATANT_PRESENTATION_TYPE)
                         .orElseThrow())
                 .satisfies(presentation -> {
                     assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(presentation.properties())
                             .containsKeys(
-                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY);
+                                    DoomedCorridorsDescriptors.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY,
+                                    DoomedCorridorsDescriptors.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY,
+                                    DoomedCorridorsDescriptors.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY);
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION);
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ALERTED_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ATTACKED_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_HURT_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_COMBATANT_DIED_ACTION);
                 });
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.HITSCAN_WEAPON_TYPE)
                         .orElseThrow())
                 .satisfies(weapon -> {
                     assertThat(weapon.providedCapabilities())
-                            .containsExactly(DoomedCorridorsRuntimeTypes.WEAPON_CAPABILITY);
+                            .containsExactly(DoomedCorridorsDescriptors.WEAPON_CAPABILITY);
                     assertThat(weapon.requiredCapabilities())
-                            .containsExactly(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY);
+                            .containsExactly(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY);
                     assertThat(weapon.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
                     assertThat(weapon.signals())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL,
-                                    DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL);
+                                    DoomedCorridorsDescriptors.WEAPON_FIRED_SIGNAL,
+                                    DoomedCorridorsDescriptors.WEAPON_HIT_SIGNAL);
                     assertThat(weapon.signals()
-                                    .get(DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL)
+                                    .get(DoomedCorridorsDescriptors.WEAPON_HIT_SIGNAL)
                                     .payload())
-                            .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
+                            .contains(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE);
                 });
     }
 
@@ -320,33 +320,33 @@ final class ProjectManifestTest {
                 .load(project, getClass().getClassLoader());
 
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.WEAPON_PRESENTATION_TYPE)
                         .orElseThrow())
                 .satisfies(presentation -> {
                     assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                                    DoomedCorridorsDescriptors.RECEIVE_WEAPON_FIRED_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_WEAPON_HIT_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION);
                     assertThat(presentation.properties())
-                            .containsKey(DoomedCorridorsRuntimeTypes.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY);
+                            .containsKey(DoomedCorridorsDescriptors.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY);
                     assertThat(presentation
                                     .actions()
-                                    .get(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)
+                                    .get(DoomedCorridorsDescriptors.RECEIVE_WEAPON_HIT_ACTION)
                                     .payload())
-                            .contains(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE);
+                            .contains(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE);
                 });
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.PLAYER_HUD_TYPE)
                         .orElseThrow())
                 .satisfies(hud -> {
                     assertThat(hud.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(hud.properties())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY);
+                                    DoomedCorridorsDescriptors.HUD_PLAYER_STATE_PROPERTY,
+                                    DoomedCorridorsDescriptors.HUD_HEALTH_NUMBER_PROPERTY,
+                                    DoomedCorridorsDescriptors.HUD_AMMO_NUMBER_PROPERTY);
                 });
     }
 
@@ -358,17 +358,17 @@ final class ProjectManifestTest {
                 .load(project, getClass().getClassLoader());
 
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.DOOR_PRESENTATION_TYPE)
                         .orElseThrow())
                 .satisfies(presentation -> {
                     assertThat(presentation.lifecycle()).containsExactly(ComponentLifecycle.CREATED);
                     assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.AFTER_PHYSICS);
                     assertThat(presentation.properties())
                             .containsKeys(
-                                    DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
+                                    DoomedCorridorsDescriptors.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
+                                    DoomedCorridorsDescriptors.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
+                                    DoomedCorridorsDescriptors.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
+                                    DoomedCorridorsDescriptors.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
                 });
     }
 
@@ -380,41 +380,41 @@ final class ProjectManifestTest {
                 .load(project, getClass().getClassLoader());
 
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_PRESENTATION_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.PLAYER_PRESENTATION_TYPE)
                         .orElseThrow())
                 .satisfies(presentation -> {
                     assertThat(presentation.updatePhases()).containsExactly(ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(presentation.properties())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_OPACITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_VIEW_TRANSFORM_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY);
+                                    DoomedCorridorsDescriptors.PLAYER_PAIN_SOUND_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_SOUND_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_PAIN_FLASH_OPACITY_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_FLASH_OPACITY_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_VIEW_TRANSFORM_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY);
                     assertThat(presentation.actions())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_HURT_ACTION,
-                                    DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                                    DoomedCorridorsDescriptors.RECEIVE_PLAYER_HURT_ACTION,
+                                    DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION);
                 });
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.PLAYER_LIFECYCLE_TYPE)
                         .orElseThrow())
                 .satisfies(lifecycle -> {
                     assertThat(lifecycle.updatePhases())
                             .containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS, ComponentUpdatePhase.FRAME_UPDATE);
                     assertThat(lifecycle.properties())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.PLAYER_CONTROL_ENTITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_ENTITY_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY);
+                                    DoomedCorridorsDescriptors.PLAYER_CONTROL_ENTITY_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_GAME_OVER_ENTITY_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY,
+                                    DoomedCorridorsDescriptors.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY);
                     assertThat(lifecycle.actions())
-                            .containsOnlyKeys(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION);
+                            .containsOnlyKeys(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION);
                 });
     }
 
@@ -426,19 +426,19 @@ final class ProjectManifestTest {
                 .load(project, getClass().getClassLoader());
 
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.GAME_OVER_MENU_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.GAME_OVER_MENU_TYPE)
                         .orElseThrow())
                 .satisfies(menu -> {
                     assertThat(menu.updatePhases()).containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS);
                     assertThat(menu.properties())
                             .containsKeys(
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_RESTART_CURSOR_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_MAIN_MENU_CURSOR_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_WIDTH_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_HEIGHT_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_PREVIOUS_ACTION_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_NEXT_ACTION_PROPERTY,
-                                    DoomedCorridorsRuntimeTypes.GAME_OVER_CONFIRM_ACTION_PROPERTY);
+                                    DoomedCorridorsDescriptors.GAME_OVER_RESTART_CURSOR_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_MAIN_MENU_CURSOR_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_REFERENCE_WIDTH_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_REFERENCE_HEIGHT_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_PREVIOUS_ACTION_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_NEXT_ACTION_PROPERTY,
+                                    DoomedCorridorsDescriptors.GAME_OVER_CONFIRM_ACTION_PROPERTY);
                 });
     }
 
@@ -451,35 +451,35 @@ final class ProjectManifestTest {
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.PLAYER_STATE_TYPE)
                         .orElseThrow()
                         .providedCapabilities())
                 .containsExactly(
-                        DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY,
-                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY);
+                        DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY,
+                        DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY);
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.PLAYER_STATE_TYPE)
                         .orElseThrow()
                         .signals())
-                .containsOnlyKeys(DoomedCorridorsRuntimeTypes.HURT_SIGNAL, DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
+                .containsOnlyKeys(DoomedCorridorsDescriptors.HURT_SIGNAL, DoomedCorridorsDescriptors.DIED_SIGNAL);
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.COMBATANT_STATE_TYPE)
                         .orElseThrow()
                         .providedCapabilities())
                 .containsExactly(
-                        DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY,
-                        DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY);
+                        DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY,
+                        DoomedCorridorsDescriptors.HITSCAN_TARGET_CAPABILITY);
         assertThat(result.catalog()
-                        .findComponent(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE)
+                        .findComponent(DoomedCorridorsDescriptors.ENEMY_BEHAVIOR_TYPE)
                         .orElseThrow())
                 .satisfies(behavior -> {
                     assertThat(behavior.updatePhases()).containsExactly(ComponentUpdatePhase.BEFORE_PHYSICS);
                     assertThat(behavior.signals())
                             .containsOnlyKeys(
-                                    DoomedCorridorsRuntimeTypes.ENEMY_ALERTED_SIGNAL,
-                                    DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STARTED_SIGNAL,
-                                    DoomedCorridorsRuntimeTypes.ENEMY_MOVEMENT_STOPPED_SIGNAL,
-                                    DoomedCorridorsRuntimeTypes.ENEMY_ATTACKED_SIGNAL);
+                                    DoomedCorridorsDescriptors.ENEMY_ALERTED_SIGNAL,
+                                    DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STARTED_SIGNAL,
+                                    DoomedCorridorsDescriptors.ENEMY_MOVEMENT_STOPPED_SIGNAL,
+                                    DoomedCorridorsDescriptors.ENEMY_ATTACKED_SIGNAL);
                 });
     }
 

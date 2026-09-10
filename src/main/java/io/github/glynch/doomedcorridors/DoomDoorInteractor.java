@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoor;
 import io.github.glynch.jscene3d.doom.runtime.DoomDoorDescriptors;
 import io.github.glynch.jscene3d.game.input.InputAction;
@@ -48,9 +48,9 @@ final class DoomDoorInteractor implements ComponentReferenceBinder, ComponentUpd
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
         viewTransform = Optional.of(validReferences.component(
-                DoomedCorridorsRuntimeTypes.INTERACTION_VIEW_TRANSFORM_PROPERTY, Transform3d.class));
+                DoomedCorridorsDescriptors.INTERACTION_VIEW_TRANSFORM_PROPERTY, Transform3d.class));
         ignoredEntity =
-                Optional.of(validReferences.entity(DoomedCorridorsRuntimeTypes.INTERACTION_IGNORED_ENTITY_PROPERTY));
+                Optional.of(validReferences.entity(DoomedCorridorsDescriptors.INTERACTION_IGNORED_ENTITY_PROPERTY));
     }
 
     /** Activates only the nearest solid reached by a newly pressed authored interaction action. */

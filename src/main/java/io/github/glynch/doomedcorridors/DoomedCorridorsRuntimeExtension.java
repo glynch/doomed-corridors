@@ -10,7 +10,7 @@ import io.github.glynch.doomedcorridors.actor.DoomActorCatalogLoader;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoadResult;
 import io.github.glynch.doomedcorridors.combat.DoomCombatRulesLoader;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.doomedcorridors.internal.RuntimeProperties;
 import io.github.glynch.jscene3d.game.application.ApplicationControl;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
@@ -41,7 +41,7 @@ import java.util.Optional;
 
 /** Manifest-selected Doomed Corridors application extension. */
 public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntimeExtension {
-    static final String ID = DoomedCorridorsRuntimeTypes.EXTENSION_ID;
+    static final String ID = DoomedCorridorsDescriptors.EXTENSION_ID;
 
     /** Creates the stateless provider used by standard Java service discovery. */
     public DoomedCorridorsRuntimeExtension() {
@@ -59,97 +59,97 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
     public void register(ComponentFactoryRegistry registry) {
         ComponentFactoryRegistry validRegistry = Objects.requireNonNull(registry, "registry");
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.PLAYER_STATE_TYPE,
+                DoomedCorridorsDescriptors.PLAYER_STATE_TYPE,
                 context -> new DoomPlayerState(
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY)));
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY)));
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.PICKUP_TYPE,
+                DoomedCorridorsDescriptors.PICKUP_TYPE,
                 context -> new DoomPickup(
                         context.owner(),
                         context.world(),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.PICKUP_RESOURCE_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.PICKUP_RESOURCE_PROPERTY),
                         RuntimeProperties.positiveInteger(
-                                context.properties(), DoomedCorridorsRuntimeTypes.PICKUP_AMOUNT_PROPERTY),
+                                context.properties(), DoomedCorridorsDescriptors.PICKUP_AMOUNT_PROPERTY),
                         RuntimeProperties.positiveInteger(
-                                context.properties(), DoomedCorridorsRuntimeTypes.PICKUP_LIMIT_PROPERTY)));
+                                context.properties(), DoomedCorridorsDescriptors.PICKUP_LIMIT_PROPERTY)));
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.COMBATANT_STATE_TYPE,
+                DoomedCorridorsDescriptors.COMBATANT_STATE_TYPE,
                 context -> new DoomCombatantState(
                         context.owner(),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
-        validRegistry.register(DoomedCorridorsRuntimeTypes.ENEMY_TARGET_TYPE, context -> new DoomEnemyTarget());
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.ACTOR_ID_PROPERTY)));
+        validRegistry.register(DoomedCorridorsDescriptors.ENEMY_TARGET_TYPE, context -> new DoomEnemyTargetProvider());
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_TYPE,
+                DoomedCorridorsDescriptors.ENEMY_BEHAVIOR_TYPE,
                 context -> new DoomEnemyBehavior(
                         context.owner(),
                         context.world().requireModule(Physics3dWorldModule.class),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.ACTOR_ID_PROPERTY)));
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.ACTOR_ID_PROPERTY)));
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.COMBATANT_PRESENTATION_TYPE, new CombatantPresentationFactory());
+                DoomedCorridorsDescriptors.COMBATANT_PRESENTATION_TYPE, new CombatantPresentationFactory());
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.HITSCAN_WEAPON_TYPE,
+                DoomedCorridorsDescriptors.HITSCAN_WEAPON_TYPE,
                 context -> new DoomHitscanWeapon(
                         context.owner(),
                         context.world().requireModule(InputWorldModule.class),
                         context.world().requireModule(Physics3dWorldModule.class),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_PROPERTY),
-                        context.properties().resourceReference(DoomedCorridorsRuntimeTypes.COMBAT_RULES_PROPERTY),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.WEAPON_ID_PROPERTY),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.FIRE_ACTION_PROPERTY)));
-        validRegistry.register(DoomedCorridorsRuntimeTypes.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
-        validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_PRESENTATION_TYPE, new PlayerPresentationFactory());
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.ACTOR_CATALOG_PROPERTY),
+                        context.properties().resourceReference(DoomedCorridorsDescriptors.COMBAT_RULES_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.WEAPON_ID_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.FIRE_ACTION_PROPERTY)));
+        validRegistry.register(DoomedCorridorsDescriptors.WEAPON_PRESENTATION_TYPE, new WeaponPresentationFactory());
+        validRegistry.register(DoomedCorridorsDescriptors.PLAYER_PRESENTATION_TYPE, new PlayerPresentationFactory());
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.PLAYER_LIFECYCLE_TYPE,
-                context -> new DoomPlayerLifecycle(
+                DoomedCorridorsDescriptors.PLAYER_LIFECYCLE_TYPE,
+                context -> new DoomPlayerDeathController(
                         context.world(),
                         context.world().requireModule(InputWorldModule.class),
                         context.world().requireModule(ApplicationControl.class),
                         Duration.ofMillis(RuntimeProperties.positiveInteger(
                                 context.properties(),
-                                DoomedCorridorsRuntimeTypes.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY)),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY)));
-        validRegistry.register(DoomedCorridorsRuntimeTypes.PLAYER_HUD_TYPE, context -> new DoomPlayerHud());
+                                DoomedCorridorsDescriptors.PLAYER_GAME_OVER_DELAY_MILLISECONDS_PROPERTY)),
+                        context.properties().text(DoomedCorridorsDescriptors.PLAYER_RETURN_TO_MENU_ACTION_PROPERTY)));
+        validRegistry.register(DoomedCorridorsDescriptors.PLAYER_HUD_TYPE, context -> new DoomPlayerHud());
         validRegistry.register(
-                DoomedCorridorsRuntimeTypes.DOOR_INTERACTOR_TYPE,
+                DoomedCorridorsDescriptors.DOOR_INTERACTOR_TYPE,
                 context -> new DoomDoorInteractor(
                         context.world().requireModule(InputWorldModule.class),
                         context.world().requireModule(Physics3dWorldModule.class),
-                        context.properties().text(DoomedCorridorsRuntimeTypes.INTERACTION_ACTION_PROPERTY),
+                        context.properties().text(DoomedCorridorsDescriptors.INTERACTION_ACTION_PROPERTY),
                         RuntimeProperties.positiveFloat(
                                 context.properties(),
-                                DoomedCorridorsRuntimeTypes.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
-        validRegistry.register(DoomedCorridorsRuntimeTypes.DOOR_PRESENTATION_TYPE, new DoorPresentationFactory());
-        validRegistry.register(DoomedCorridorsRuntimeTypes.MAIN_MENU_TYPE, new MainMenuFactory());
-        validRegistry.register(DoomedCorridorsRuntimeTypes.GAME_OVER_MENU_TYPE, context -> {
+                                DoomedCorridorsDescriptors.INTERACTION_MAXIMUM_DISTANCE_PROPERTY)));
+        validRegistry.register(DoomedCorridorsDescriptors.DOOR_PRESENTATION_TYPE, new DoorPresentationFactory());
+        validRegistry.register(DoomedCorridorsDescriptors.MAIN_MENU_TYPE, new MainMenuFactory());
+        validRegistry.register(DoomedCorridorsDescriptors.GAME_OVER_MENU_TYPE, context -> {
             ComponentProperties properties = context.properties();
             return new DoomGameOverMenu(
                     context.world(),
                     context.world().requireModule(InputWorldModule.class),
                     context.world().requireModule(ApplicationControl.class),
                     DoomGameOverMenu.Actions.of(
-                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_PREVIOUS_ACTION_PROPERTY),
-                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_NEXT_ACTION_PROPERTY),
-                            properties.text(DoomedCorridorsRuntimeTypes.GAME_OVER_CONFIRM_ACTION_PROPERTY)),
+                            properties.text(DoomedCorridorsDescriptors.GAME_OVER_PREVIOUS_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsDescriptors.GAME_OVER_NEXT_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsDescriptors.GAME_OVER_CONFIRM_ACTION_PROPERTY)),
                     new DoomGameOverMenu.Layout(
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_WIDTH_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_REFERENCE_WIDTH_PROPERTY),
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_REFERENCE_HEIGHT_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_REFERENCE_HEIGHT_PROPERTY),
                             RuntimeProperties.nonNegativeFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_CENTER_X_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_ITEM_CENTER_X_PROPERTY),
                             RuntimeProperties.nonNegativeFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_START_Y_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_ITEM_START_Y_PROPERTY),
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_SPACING_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_ITEM_SPACING_PROPERTY),
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_HIT_WIDTH_PROPERTY),
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_ITEM_HIT_WIDTH_PROPERTY),
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.GAME_OVER_ITEM_HIT_HEIGHT_PROPERTY)));
+                                    properties, DoomedCorridorsDescriptors.GAME_OVER_ITEM_HIT_HEIGHT_PROPERTY)));
         });
     }
 
@@ -171,7 +171,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         }
         Entity playerEntity = player.orElseThrow();
         DoomPlayerState playerState = playerEntity
-                .capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .capability(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .orElseThrow();
         DoomPlaytestParameters.apply(validProject, playerEntity, playerState);
         Map<RuleSources, DoomCombatRules> loadedRules = new LinkedHashMap<>();
@@ -185,7 +185,7 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
 
     /** Finds the entity providing player resources in one owned subtree. */
     private static Optional<Entity> findPlayer(Entity entity) {
-        if (entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+        if (entity.capability(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .isPresent()) {
             return Optional.of(entity);
         }
@@ -198,13 +198,13 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
     /** Resolves authored menu images before constructing interactive overlay behavior. */
     private static final class MainMenuFactory implements ComponentFactory<DoomMainMenu> {
         private static final List<PropertyId> IMAGE_PROPERTIES = List.of(
-                DoomedCorridorsRuntimeTypes.MENU_BACKGROUND_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_TITLE_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_RESUME_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_NEW_GAME_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_QUIT_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_CURSOR_FIRST_PROPERTY,
-                DoomedCorridorsRuntimeTypes.MENU_CURSOR_SECOND_PROPERTY);
+                DoomedCorridorsDescriptors.MENU_BACKGROUND_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_TITLE_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_RESUME_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_NEW_GAME_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_QUIT_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_CURSOR_FIRST_PROPERTY,
+                DoomedCorridorsDescriptors.MENU_CURSOR_SECOND_PROPERTY);
 
         @Override
         public void prepare(ComponentPreparationContext context) {
@@ -220,18 +220,18 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     context.world().requireModule(ApplicationControl.class),
                     context.world().requireModule(PresentationWorldModule.class),
                     new DoomMainMenu.Images(
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_BACKGROUND_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_TITLE_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_RESUME_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_NEW_GAME_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_QUIT_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_CURSOR_FIRST_PROPERTY),
-                            image(context, properties, DoomedCorridorsRuntimeTypes.MENU_CURSOR_SECOND_PROPERTY)),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_BACKGROUND_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_TITLE_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_RESUME_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_NEW_GAME_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_QUIT_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_CURSOR_FIRST_PROPERTY),
+                            image(context, properties, DoomedCorridorsDescriptors.MENU_CURSOR_SECOND_PROPERTY)),
                     new DoomMainMenu.Actions(
-                            properties.text(DoomedCorridorsRuntimeTypes.MENU_PREVIOUS_ACTION_PROPERTY),
-                            properties.text(DoomedCorridorsRuntimeTypes.MENU_NEXT_ACTION_PROPERTY),
-                            properties.text(DoomedCorridorsRuntimeTypes.MENU_CONFIRM_ACTION_PROPERTY),
-                            properties.text(DoomedCorridorsRuntimeTypes.MENU_BACK_ACTION_PROPERTY)));
+                            properties.text(DoomedCorridorsDescriptors.MENU_PREVIOUS_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsDescriptors.MENU_NEXT_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsDescriptors.MENU_CONFIRM_ACTION_PROPERTY),
+                            properties.text(DoomedCorridorsDescriptors.MENU_BACK_ACTION_PROPERTY)));
         }
 
         /** Resolves one prepared authored menu image. */
@@ -243,13 +243,13 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
 
     /** Collects only descriptor-declared rule consumers throughout one owned entity subtree. */
     private static void collectRuleConsumers(Entity entity, List<DoomRuleConsumer> destination) {
-        entity.capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+        entity.capability(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .ifPresent(destination::add);
-        entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomCombatantState.class)
+        entity.capability(DoomedCorridorsDescriptors.HITSCAN_TARGET_CAPABILITY, DoomCombatantState.class)
                 .ifPresent(destination::add);
-        entity.capability(DoomedCorridorsRuntimeTypes.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
+        entity.capability(DoomedCorridorsDescriptors.ENEMY_BEHAVIOR_CAPABILITY, DoomEnemyBehavior.class)
                 .ifPresent(destination::add);
-        entity.capability(DoomedCorridorsRuntimeTypes.WEAPON_CAPABILITY, DoomHitscanWeapon.class)
+        entity.capability(DoomedCorridorsDescriptors.WEAPON_CAPABILITY, DoomHitscanWeapon.class)
                 .ifPresent(destination::add);
         entity.children().forEach(child -> collectRuleConsumers(child, destination));
     }
@@ -258,14 +258,14 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
     private static DoomCombatRules loadRules(
             GameProject project, ResourceReference actorCatalogReference, ResourceReference combatRulesReference) {
         Path actorCatalog = source(
-                project, actorCatalogReference, DoomedCorridorsRuntimeTypes.ACTOR_CATALOG_ASSET_TYPE, "actor catalog");
+                project, actorCatalogReference, DoomedCorridorsDescriptors.ACTOR_CATALOG_ASSET_TYPE, "actor catalog");
         DoomActorCatalogLoadResult loadedActors = new DoomActorCatalogLoader().load(actorCatalog);
         DoomActorCatalog actors = loadedActors
                 .catalog()
                 .orElseThrow(
                         () -> new IllegalStateException("actor catalog loading failed: " + loadedActors.diagnostics()));
         Path combatRules = source(
-                project, combatRulesReference, DoomedCorridorsRuntimeTypes.COMBAT_RULES_ASSET_TYPE, "combat rules");
+                project, combatRulesReference, DoomedCorridorsDescriptors.COMBAT_RULES_ASSET_TYPE, "combat rules");
         DoomCombatRulesLoadResult loadedRules = new DoomCombatRulesLoader().load(combatRules, actors);
         return loadedRules
                 .rules()
@@ -301,17 +301,17 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public void prepare(ComponentPreparationContext context) {
             ComponentProperties properties = context.properties();
             for (ResourceReference reference : RuntimeProperties.resourceReferences(
-                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY)) {
+                    properties, DoomedCorridorsDescriptors.COMBATANT_SIGHT_SOUNDS_PROPERTY)) {
                 context.resolveResource(reference, PcmAudioResource.class);
             }
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.COMBATANT_ATTACK_SOUND_PROPERTY),
                     PcmAudioResource.class);
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.COMBATANT_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
             for (ResourceReference reference : RuntimeProperties.resourceReferences(
-                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY)) {
+                    properties, DoomedCorridorsDescriptors.COMBATANT_DEATH_SOUNDS_PROPERTY)) {
                 context.resolveResource(reference, PcmAudioResource.class);
             }
         }
@@ -319,31 +319,33 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         @Override
         public DoomCombatantPresentation create(ComponentFactoryContext context) {
             ComponentProperties properties = context.properties();
-            List<PcmAudioResource> sightSounds = RuntimeProperties.resourceReferences(
-                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SIGHT_SOUNDS_PROPERTY)
-                    .stream()
-                    .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
-                    .toList();
+            List<PcmAudioResource> sightSounds =
+                    RuntimeProperties.resourceReferences(
+                                    properties, DoomedCorridorsDescriptors.COMBATANT_SIGHT_SOUNDS_PROPERTY)
+                            .stream()
+                            .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
+                            .toList();
             PcmAudioResource attackSound = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.COMBATANT_ATTACK_SOUND_PROPERTY),
                     PcmAudioResource.class);
             PcmAudioResource painSound = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.COMBATANT_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
-            List<PcmAudioResource> deathSounds = RuntimeProperties.resourceReferences(
-                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_SOUNDS_PROPERTY)
-                    .stream()
-                    .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
-                    .toList();
+            List<PcmAudioResource> deathSounds =
+                    RuntimeProperties.resourceReferences(
+                                    properties, DoomedCorridorsDescriptors.COMBATANT_DEATH_SOUNDS_PROPERTY)
+                            .stream()
+                            .map(reference -> context.resolveResource(reference, PcmAudioResource.class))
+                            .toList();
             Duration frameDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.COMBATANT_FRAME_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.COMBATANT_FRAME_MILLISECONDS_PROPERTY));
             PositionalSoundAttenuation attenuation = new PositionalSoundAttenuation(
                     RuntimeProperties.positiveFloat(
-                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY),
+                            properties, DoomedCorridorsDescriptors.COMBATANT_SOUND_REFERENCE_DISTANCE_PROPERTY),
                     RuntimeProperties.positiveFloat(
-                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY),
+                            properties, DoomedCorridorsDescriptors.COMBATANT_SOUND_MAXIMUM_DISTANCE_PROPERTY),
                     RuntimeProperties.nonNegativeFloat(
-                            properties, DoomedCorridorsRuntimeTypes.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY));
+                            properties, DoomedCorridorsDescriptors.COMBATANT_SOUND_ROLLOFF_FACTOR_PROPERTY));
             return new DoomCombatantPresentation(
                     context.owner().authoredId().value().getMostSignificantBits()
                             ^ context.owner().authoredId().value().getLeastSignificantBits(),
@@ -360,14 +362,14 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public void prepare(ComponentPreparationContext context) {
             ComponentProperties properties = context.properties();
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.READY_FRAME_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.READY_FRAME_PROPERTY),
                     OverlayImageResource.class);
-            for (ResourceReference reference : RuntimeProperties.resourceReferences(
-                    properties, DoomedCorridorsRuntimeTypes.FIRE_FRAMES_PROPERTY)) {
+            for (ResourceReference reference :
+                    RuntimeProperties.resourceReferences(properties, DoomedCorridorsDescriptors.FIRE_FRAMES_PROPERTY)) {
                 context.resolveResource(reference, OverlayImageResource.class);
             }
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.FIRE_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.FIRE_SOUND_PROPERTY),
                     PcmAudioResource.class);
         }
 
@@ -375,22 +377,22 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public DoomWeaponPresentation create(ComponentFactoryContext context) {
             ComponentProperties properties = context.properties();
             OverlayImageResource readyFrame = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.READY_FRAME_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.READY_FRAME_PROPERTY),
                     OverlayImageResource.class);
             List<OverlayImageResource> fireFrames =
-                    RuntimeProperties.resourceReferences(properties, DoomedCorridorsRuntimeTypes.FIRE_FRAMES_PROPERTY)
+                    RuntimeProperties.resourceReferences(properties, DoomedCorridorsDescriptors.FIRE_FRAMES_PROPERTY)
                             .stream()
                             .map(reference -> context.resolveResource(reference, OverlayImageResource.class))
                             .toList();
             PcmAudioResource fireSound = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.FIRE_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.FIRE_SOUND_PROPERTY),
                     PcmAudioResource.class);
             Duration frameDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.FRAME_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.FRAME_MILLISECONDS_PROPERTY));
             Duration hitIndicatorDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.HIT_INDICATOR_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.HIT_INDICATOR_MILLISECONDS_PROPERTY));
             Duration deathLowerDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.WEAPON_DEATH_LOWER_MILLISECONDS_PROPERTY));
             return new DoomWeaponPresentation(
                     context.world().requireModule(PresentationWorldModule.class),
                     readyFrame,
@@ -408,10 +410,10 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public void prepare(ComponentPreparationContext context) {
             ComponentProperties properties = context.properties();
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.PLAYER_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
             context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.PLAYER_DEATH_SOUND_PROPERTY),
                     PcmAudioResource.class);
         }
 
@@ -419,15 +421,15 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public DoomPlayerPresentation create(ComponentFactoryContext context) {
             ComponentProperties properties = context.properties();
             PcmAudioResource painSound = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_PAIN_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.PLAYER_PAIN_SOUND_PROPERTY),
                     PcmAudioResource.class);
             PcmAudioResource deathSound = context.resolveResource(
-                    properties.resourceReference(DoomedCorridorsRuntimeTypes.PLAYER_DEATH_SOUND_PROPERTY),
+                    properties.resourceReference(DoomedCorridorsDescriptors.PLAYER_DEATH_SOUND_PROPERTY),
                     PcmAudioResource.class);
             Duration painFlashDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.PLAYER_PAIN_FLASH_MILLISECONDS_PROPERTY));
             Duration deathFlashDuration = Duration.ofMillis(RuntimeProperties.positiveInteger(
-                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY));
+                    properties, DoomedCorridorsDescriptors.PLAYER_DEATH_FLASH_MILLISECONDS_PROPERTY));
             return new DoomPlayerPresentation(
                     context.world().requireModule(PresentationWorldModule.class),
                     painSound,
@@ -435,29 +437,29 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
                     new DoomPlayerPresentation.Flash(
                             painFlashDuration,
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_PAIN_FLASH_OPACITY_PROPERTY)),
+                                    properties, DoomedCorridorsDescriptors.PLAYER_PAIN_FLASH_OPACITY_PROPERTY)),
                     new DoomPlayerPresentation.Flash(
                             deathFlashDuration,
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_FLASH_OPACITY_PROPERTY)),
+                                    properties, DoomedCorridorsDescriptors.PLAYER_DEATH_FLASH_OPACITY_PROPERTY)),
                     new DoomPlayerPresentation.ViewDrop(
                             Duration.ofMillis(RuntimeProperties.positiveInteger(
                                     properties,
-                                    DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY)),
+                                    DoomedCorridorsDescriptors.PLAYER_DEATH_VIEW_DROP_MILLISECONDS_PROPERTY)),
                             RuntimeProperties.positiveFloat(
-                                    properties, DoomedCorridorsRuntimeTypes.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY)),
+                                    properties, DoomedCorridorsDescriptors.PLAYER_DEATH_VIEW_DROP_DISTANCE_PROPERTY)),
                     RuntimeProperties.unitIntervalFloat(
-                            properties, DoomedCorridorsRuntimeTypes.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY));
+                            properties, DoomedCorridorsDescriptors.PLAYER_TERMINAL_SHADE_OPACITY_PROPERTY));
         }
     }
 
     /** Resolves project-authored door sounds before constructing phase-driven positional presentation. */
     private static final class DoorPresentationFactory implements ComponentFactory<DoomDoorPresentation> {
         private static final List<PropertyId> SOUND_PROPERTIES = List.of(
-                DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
-                DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
-                DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
-                DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
+                DoomedCorridorsDescriptors.NORMAL_DOOR_OPENING_SOUND_PROPERTY,
+                DoomedCorridorsDescriptors.NORMAL_DOOR_CLOSING_SOUND_PROPERTY,
+                DoomedCorridorsDescriptors.BLAZE_DOOR_OPENING_SOUND_PROPERTY,
+                DoomedCorridorsDescriptors.BLAZE_DOOR_CLOSING_SOUND_PROPERTY);
 
         @Override
         public void prepare(ComponentPreparationContext context) {
@@ -470,17 +472,17 @@ public final class DoomedCorridorsRuntimeExtension implements ApplicationRuntime
         public DoomDoorPresentation create(ComponentFactoryContext context) {
             ComponentProperties properties = context.properties();
             DoomDoorPresentation.AudioResources audio = new DoomDoorPresentation.AudioResources(
-                    resolve(context, DoomedCorridorsRuntimeTypes.NORMAL_DOOR_OPENING_SOUND_PROPERTY),
-                    resolve(context, DoomedCorridorsRuntimeTypes.NORMAL_DOOR_CLOSING_SOUND_PROPERTY),
-                    resolve(context, DoomedCorridorsRuntimeTypes.BLAZE_DOOR_OPENING_SOUND_PROPERTY),
-                    resolve(context, DoomedCorridorsRuntimeTypes.BLAZE_DOOR_CLOSING_SOUND_PROPERTY));
+                    resolve(context, DoomedCorridorsDescriptors.NORMAL_DOOR_OPENING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsDescriptors.NORMAL_DOOR_CLOSING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsDescriptors.BLAZE_DOOR_OPENING_SOUND_PROPERTY),
+                    resolve(context, DoomedCorridorsDescriptors.BLAZE_DOOR_CLOSING_SOUND_PROPERTY));
             PositionalSoundAttenuation attenuation = new PositionalSoundAttenuation(
                     RuntimeProperties.positiveFloat(
-                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_REFERENCE_DISTANCE_PROPERTY),
+                            properties, DoomedCorridorsDescriptors.DOOR_SOUND_REFERENCE_DISTANCE_PROPERTY),
                     RuntimeProperties.positiveFloat(
-                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_MAXIMUM_DISTANCE_PROPERTY),
+                            properties, DoomedCorridorsDescriptors.DOOR_SOUND_MAXIMUM_DISTANCE_PROPERTY),
                     RuntimeProperties.nonNegativeFloat(
-                            properties, DoomedCorridorsRuntimeTypes.DOOR_SOUND_ROLLOFF_FACTOR_PROPERTY));
+                            properties, DoomedCorridorsDescriptors.DOOR_SOUND_ROLLOFF_FACTOR_PROPERTY));
             return new DoomDoorPresentation(
                     context.world(), context.world().requireModule(PresentationWorldModule.class), audio, attenuation);
         }

@@ -5,7 +5,7 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.project.runtime.RuntimeSignal;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpointBinder;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentEndpoints;
@@ -46,8 +46,8 @@ final class DoomPlayerState implements DoomDamageable, DoomRuleConsumer, Compone
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        hurtSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.HURT_SIGNAL);
-        diedSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.DIED_SIGNAL);
+        hurtSignal = validEndpoints.signal(DoomedCorridorsDescriptors.HURT_SIGNAL);
+        diedSignal = validEndpoints.signal(DoomedCorridorsDescriptors.DIED_SIGNAL);
     }
 
     /** Initializes resources exactly once from validated provider rules before world activation. */

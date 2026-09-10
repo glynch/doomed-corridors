@@ -27,7 +27,7 @@ public final class DoomActorResolver {
         DoomMap validMap = Objects.requireNonNull(map, "map");
         DoomActorCatalog validCatalog = Objects.requireNonNull(catalog, "catalog");
         DoomSkillLevel validSkillLevel = Objects.requireNonNull(skillLevel, "skillLevel");
-        DoomFloorResolver floors = new DoomFloorResolver(validMap);
+        DoomActorFloorResolver floors = new DoomActorFloorResolver(validMap);
         List<DoomActor> actors = new ArrayList<>();
         List<DoomActorDiagnostic> diagnostics = new ArrayList<>();
         for (int index = 0; index < validMap.things().size(); index++) {
@@ -48,7 +48,7 @@ public final class DoomActorResolver {
 
     /** Converts one selected visible thing into engine world coordinates. */
     private static DoomActor resolve(
-            int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomFloorResolver floors) {
+            int index, DoomMap.Thing thing, DoomActorDefinition definition, DoomActorFloorResolver floors) {
         float x = DoomUnits.toWorld(thing.x());
         float z = DoomUnits.yToWorldZ(thing.y());
         return new DoomActor(index, definition, x, floors.floorHeight(x, z), z, (float) Math.toRadians(thing.angle()));

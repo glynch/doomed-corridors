@@ -6,7 +6,7 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
@@ -68,7 +68,7 @@ final class DoomWeaponPresentationTest {
         assertThat(component.currentFrame()).isSameAs(readyImage);
 
         endpoints.hit.execute(new RuntimePayload(
-                DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE, new DoomWeaponHit(0.0F, 0.0F, 74.0F)));
+                DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE, new DoomWeaponHitLocation(0.0F, 0.0F, 74.0F)));
         assertThat(component.isHitIndicatorVisible()).isTrue();
         component.onFrameUpdate(new FrameUpdateContext(Duration.ofMillis(120), Duration.ZERO, 0.0F));
         assertThat(component.isHitIndicatorVisible()).isFalse();
@@ -109,9 +109,9 @@ final class DoomWeaponPresentationTest {
 
         @Override
         public void action(EndpointId endpoint, RuntimeAction implementation) {
-            if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION)) {
+            if (endpoint.equals(DoomedCorridorsDescriptors.RECEIVE_WEAPON_FIRED_ACTION)) {
                 fired = implementation;
-            } else if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION)) {
+            } else if (endpoint.equals(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION)) {
                 died = implementation;
             } else {
                 throw new AssertionError("unexpected endpoint: " + endpoint);
@@ -120,7 +120,7 @@ final class DoomWeaponPresentationTest {
 
         @Override
         public void action(EndpointId endpoint, RuntimePayloadAction implementation) {
-            if (endpoint.equals(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION)) {
+            if (endpoint.equals(DoomedCorridorsDescriptors.RECEIVE_WEAPON_HIT_ACTION)) {
                 hit = implementation;
             } else {
                 throw new AssertionError("unexpected endpoint: " + endpoint);

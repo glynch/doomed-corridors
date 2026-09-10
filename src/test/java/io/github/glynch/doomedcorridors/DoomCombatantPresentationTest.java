@@ -6,7 +6,7 @@ package io.github.glynch.doomedcorridors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.PcmAudio;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PositionalSoundAttenuation;
@@ -61,32 +61,32 @@ final class DoomCombatantPresentationTest {
         component.bindReferences(new RecordingReferences(idle, walk, attack, pain, death));
         component.bindEndpoints(endpoints);
 
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION);
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ALERTED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION);
 
         assertThat(presentation.positionalRestarts()).isEqualTo(1);
         assertThat(component.currentFrame()).isSameAs(walk.getFirst());
         component.onFrameUpdate(frameUpdate(FRAME_DURATION));
         assertThat(component.currentFrame()).isSameAs(walk.get(1));
 
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ATTACKED_ACTION);
         assertThat(component.currentFrame()).isSameAs(attack.getFirst());
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
         component.onFrameUpdate(frameUpdate(FRAME_DURATION.multipliedBy(3)));
         assertThat(component.currentFrame()).isSameAs(idle);
 
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION);
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION);
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_HURT_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ATTACKED_ACTION);
         assertThat(component.currentFrame()).isSameAs(pain.getFirst());
         assertThat(presentation.positionalRestarts()).isEqualTo(4);
         component.onFrameUpdate(frameUpdate(FRAME_DURATION));
         assertThat(component.currentFrame()).isSameAs(walk.getFirst());
 
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
         assertThat(component.currentFrame()).isSameAs(idle);
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION);
-        endpoints.execute(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_DIED_ACTION);
+        endpoints.execute(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION);
         component.onFrameUpdate(frameUpdate(FRAME_DURATION.multipliedBy(5)));
         assertThat(component.isDead()).isTrue();
         assertThat(component.currentFrame()).isSameAs(death.getLast());
@@ -156,7 +156,7 @@ final class DoomCombatantPresentationTest {
 
         @Override
         public <T> T component(PropertyId property, Class<T> valueType) {
-            Object value = property.equals(DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY)
+            Object value = property.equals(DoomedCorridorsDescriptors.COMBATANT_TRANSFORM_PROPERTY)
                     ? new FixedTransform()
                     : idle;
             return valueType.cast(value);

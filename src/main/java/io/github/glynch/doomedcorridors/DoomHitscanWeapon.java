@@ -5,7 +5,7 @@
 package io.github.glynch.doomedcorridors;
 
 import io.github.glynch.doomedcorridors.combat.DoomCombatRules;
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.doom.geometry.DoomUnits;
 import io.github.glynch.jscene3d.game.input.InputAction;
 import io.github.glynch.jscene3d.game.input.InputWorldModule;
@@ -105,17 +105,17 @@ final class DoomHitscanWeapon
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
         viewTransform = Optional.of(
-                validReferences.component(DoomedCorridorsRuntimeTypes.VIEW_TRANSFORM_PROPERTY, Transform3d.class));
+                validReferences.component(DoomedCorridorsDescriptors.VIEW_TRANSFORM_PROPERTY, Transform3d.class));
         viewCamera = Optional.of(
-                validReferences.component(DoomedCorridorsRuntimeTypes.VIEW_CAMERA_PROPERTY, PerspectiveCamera3d.class));
+                validReferences.component(DoomedCorridorsDescriptors.VIEW_CAMERA_PROPERTY, PerspectiveCamera3d.class));
     }
 
     /** Binds the descriptor-declared successful-shot signal. */
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        fired = validEndpoints.signal(DoomedCorridorsRuntimeTypes.WEAPON_FIRED_SIGNAL);
-        hitSignal = validEndpoints.signal(DoomedCorridorsRuntimeTypes.WEAPON_HIT_SIGNAL);
+        fired = validEndpoints.signal(DoomedCorridorsDescriptors.WEAPON_FIRED_SIGNAL);
+        hitSignal = validEndpoints.signal(DoomedCorridorsDescriptors.WEAPON_HIT_SIGNAL);
     }
 
     @Override
@@ -125,7 +125,7 @@ final class DoomHitscanWeapon
             return;
         }
         DoomPlayerState player = owner.capability(
-                        DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                        DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .orElseThrow(() -> new IllegalStateException("weapon owner has no player resources"));
         if (player.health() == 0) {
             return;
@@ -133,21 +133,21 @@ final class DoomHitscanWeapon
         if (!player.spendBullets(ammunitionPerShot)) {
             return;
         }
-        Optional<DoomWeaponHit> resolvedHit = fire();
+        Optional<DoomWeaponHitLocation> resolvedHit = fire();
         requiredFiredSignal().emit();
         resolvedHit.ifPresent(weaponHit -> requiredHitSignal()
-                .emit(new RuntimePayload(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE, weaponHit)));
+                .emit(new RuntimePayload(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE, weaponHit)));
     }
 
     /** Traces the exact authored view ray before applying the configured Doom-style auto-aim cone. */
-    private Optional<DoomWeaponHit> fire() {
+    private Optional<DoomWeaponHitLocation> fire() {
         DoomCombatRules configuredRules = requireRules();
         Vector3f direction = requiredViewTransform()
                 .worldMatrix()
                 .transformDirection(new Vector3f(0.0F, 0.0F, -1.0F))
                 .normalize();
         Vector3f origin = requiredViewTransform().worldMatrix().getTranslation(new Vector3f());
-        Optional<DoomWeaponHit> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
+        Optional<DoomWeaponHitLocation> exactHit = damageFirstTarget(origin, direction, range, configuredRules);
         if (exactHit.isPresent()) {
             return exactHit;
         }
@@ -155,7 +155,8 @@ final class DoomHitscanWeapon
     }
 
     /** Selects the nearest visible damageable entity whose horizontal bounds intersect the authored aim cone. */
-    private Optional<DoomWeaponHit> autoAim(Vector3f origin, Vector3f viewDirection, DoomCombatRules configuredRules) {
+    private Optional<DoomWeaponHitLocation> autoAim(
+            Vector3f origin, Vector3f viewDirection, DoomCombatRules configuredRules) {
         float forwardLength = (float) Math.hypot(viewDirection.x, viewDirection.z);
         if (forwardLength == 0.0F) {
             return Optional.empty();
@@ -168,7 +169,7 @@ final class DoomHitscanWeapon
         }
         candidates.sort(Comparator.comparingDouble(AimCandidate::distanceSquared));
         for (AimCandidate candidate : candidates) {
-            Optional<DoomWeaponHit> resolvedHit = damageCandidate(origin, candidate, configuredRules);
+            Optional<DoomWeaponHitLocation> resolvedHit = damageCandidate(origin, candidate, configuredRules);
             if (resolvedHit.isPresent()) {
                 return resolvedHit;
             }
@@ -179,7 +180,7 @@ final class DoomHitscanWeapon
     /** Collects descriptor-selected targets recursively without depending on authored hierarchy position. */
     private void collectCandidates(
             Entity entity, Vector3f origin, float forwardX, float forwardZ, List<AimCandidate> destination) {
-        entity.capability(DoomedCorridorsRuntimeTypes.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
+        entity.capability(DoomedCorridorsDescriptors.HITSCAN_TARGET_CAPABILITY, DoomHitscanTarget.class)
                 .filter(target -> target.owner() != owner)
                 .flatMap(target -> candidate(target, origin, forwardX, forwardZ))
                 .ifPresent(destination::add);
@@ -208,7 +209,7 @@ final class DoomHitscanWeapon
     }
 
     /** Confirms that physics reaches the selected target before applying one damage roll. */
-    private Optional<DoomWeaponHit> damageCandidate(
+    private Optional<DoomWeaponHitLocation> damageCandidate(
             Vector3f origin, AimCandidate candidate, DoomCombatRules configuredRules) {
         Optional<CollisionRaycastHit3d> raycastHit = firstExternalHit(origin, candidate.direction(), range);
         if (raycastHit
@@ -221,19 +222,19 @@ final class DoomHitscanWeapon
     }
 
     /** Applies damage to the first non-owner solid reached by one fully specified ray. */
-    private Optional<DoomWeaponHit> damageFirstTarget(
+    private Optional<DoomWeaponHitLocation> damageFirstTarget(
             Vector3f origin, Vector3f direction, float maximumDistance, DoomCombatRules configuredRules) {
         return firstExternalHit(origin, direction, maximumDistance)
                 .flatMap(result -> result.object()
                         .owner()
-                        .capability(DoomedCorridorsRuntimeTypes.DAMAGEABLE_CAPABILITY, DoomDamageable.class))
+                        .capability(DoomedCorridorsDescriptors.DAMAGEABLE_CAPABILITY, DoomDamageable.class))
                 .filter(target -> target.damage(configuredRules.rollWeaponDamage(weaponId, random)) > 0)
                 .map(target -> weaponHit(direction));
     }
 
     /** Captures one successful ray in the perspective coordinates used by the firing view. */
-    private DoomWeaponHit weaponHit(Vector3f worldDirection) {
-        return DoomWeaponHit.fromWorldDirection(
+    private DoomWeaponHitLocation weaponHit(Vector3f worldDirection) {
+        return DoomWeaponHitLocation.fromWorldDirection(
                 worldDirection,
                 requiredViewTransform().worldMatrix(),
                 requiredViewCamera().fieldOfViewDegrees());

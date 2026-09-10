@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.game.presentation.LocalSound;
 import io.github.glynch.jscene3d.game.presentation.OverlayImageResource;
@@ -42,7 +42,7 @@ final class DoomWeaponPresentation
     private Duration frameElapsed = Duration.ZERO;
     private Duration hitIndicatorRemaining = Duration.ZERO;
     private Duration deathLowerElapsed = Duration.ZERO;
-    private Optional<DoomWeaponHit> hitIndicator = Optional.empty();
+    private Optional<DoomWeaponHitLocation> hitIndicator = Optional.empty();
     private int fireFrameIndex = -1;
     private boolean dead;
     private boolean closed;
@@ -90,9 +90,9 @@ final class DoomWeaponPresentation
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_FIRED_ACTION, this::receiveFired);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_WEAPON_HIT_ACTION, this::receiveHit);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_PLAYER_DIED_ACTION, this::receivePlayerDied);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_WEAPON_FIRED_ACTION, this::receiveFired);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_WEAPON_HIT_ACTION, this::receiveHit);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_PLAYER_DIED_ACTION, this::receivePlayerDied);
     }
 
     /** Advances the active firing sequence using real presentation time. */
@@ -208,8 +208,8 @@ final class DoomWeaponPresentation
             throw new IllegalStateException("weapon presentation is closed");
         }
         RuntimePayload validPayload = Objects.requireNonNull(payload, "payload");
-        if (!validPayload.type().equals(DoomedCorridorsRuntimeTypes.WEAPON_HIT_PAYLOAD_TYPE)
-                || !(validPayload.value() instanceof DoomWeaponHit weaponHit)) {
+        if (!validPayload.type().equals(DoomedCorridorsDescriptors.WEAPON_HIT_PAYLOAD_TYPE)
+                || !(validPayload.value() instanceof DoomWeaponHitLocation weaponHit)) {
             throw new IllegalArgumentException("receive-hit requires the declared Doom weapon-hit payload");
         }
         hitIndicator = Optional.of(weaponHit);
@@ -233,7 +233,7 @@ final class DoomWeaponPresentation
     }
 
     /** Draws a compact red X at the perspective-projected successful-hit location. */
-    private static void paintHitIndicator(OverlayCanvas canvas, int width, int height, DoomWeaponHit hit) {
+    private static void paintHitIndicator(OverlayCanvas canvas, int width, int height, DoomWeaponHitLocation hit) {
         Vector2f position = hit.project(width, height);
         float viewportExtent = Math.min(width, height);
         float arm = Math.max(6.0F, viewportExtent * 0.012F);

@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.project.physics3d.CollisionOverlap3d;
 import io.github.glynch.jscene3d.project.runtime.Entity;
 import io.github.glynch.jscene3d.project.runtime.RuntimePayload;
@@ -39,7 +39,7 @@ final class DoomPickup implements ComponentEndpointBinder {
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         Objects.requireNonNull(endpoints, "endpoints")
-                .action(DoomedCorridorsRuntimeTypes.RECEIVE_OVERLAP_ACTION, this::receiveOverlap);
+                .action(DoomedCorridorsDescriptors.RECEIVE_OVERLAP_ACTION, this::receiveOverlap);
     }
 
     /** Returns whether this pickup accepted a player overlap and requested destruction. */
@@ -58,7 +58,7 @@ final class DoomPickup implements ComponentEndpointBinder {
         }
         DoomPlayerState player = overlap.other()
                 .owner()
-                .capability(DoomedCorridorsRuntimeTypes.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
+                .capability(DoomedCorridorsDescriptors.PLAYER_RESOURCES_CAPABILITY, DoomPlayerState.class)
                 .orElse(null);
         if (player != null && player.collect(resource, amount, limit) > 0) {
             collect();

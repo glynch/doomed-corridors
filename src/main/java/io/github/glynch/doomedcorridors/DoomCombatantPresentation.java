@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.audio.AudioCategory;
 import io.github.glynch.jscene3d.game.presentation.PcmAudioResource;
 import io.github.glynch.jscene3d.game.presentation.PositionalSound;
@@ -72,17 +72,17 @@ final class DoomCombatantPresentation
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
         transform =
-                validReferences.component(DoomedCorridorsRuntimeTypes.COMBATANT_TRANSFORM_PROPERTY, Transform3d.class);
+                validReferences.component(DoomedCorridorsDescriptors.COMBATANT_TRANSFORM_PROPERTY, Transform3d.class);
         idleFrame = validReferences.component(
-                DoomedCorridorsRuntimeTypes.COMBATANT_IDLE_FRAME_PROPERTY, BillboardRenderer3d.class);
+                DoomedCorridorsDescriptors.COMBATANT_IDLE_FRAME_PROPERTY, BillboardRenderer3d.class);
         walkFrames = List.copyOf(validReferences.components(
-                DoomedCorridorsRuntimeTypes.COMBATANT_WALK_FRAMES_PROPERTY, BillboardRenderer3d.class));
+                DoomedCorridorsDescriptors.COMBATANT_WALK_FRAMES_PROPERTY, BillboardRenderer3d.class));
         attackFrames = List.copyOf(validReferences.components(
-                DoomedCorridorsRuntimeTypes.COMBATANT_ATTACK_FRAMES_PROPERTY, BillboardRenderer3d.class));
+                DoomedCorridorsDescriptors.COMBATANT_ATTACK_FRAMES_PROPERTY, BillboardRenderer3d.class));
         painFrames = List.copyOf(validReferences.components(
-                DoomedCorridorsRuntimeTypes.COMBATANT_PAIN_FRAMES_PROPERTY, BillboardRenderer3d.class));
+                DoomedCorridorsDescriptors.COMBATANT_PAIN_FRAMES_PROPERTY, BillboardRenderer3d.class));
         deathFrames = List.copyOf(validReferences.components(
-                DoomedCorridorsRuntimeTypes.COMBATANT_DEATH_FRAMES_PROPERTY, BillboardRenderer3d.class));
+                DoomedCorridorsDescriptors.COMBATANT_DEATH_FRAMES_PROPERTY, BillboardRenderer3d.class));
         if (walkFrames.isEmpty() || attackFrames.isEmpty() || painFrames.isEmpty() || deathFrames.isEmpty()) {
             throw new IllegalArgumentException("combatant animation frame sequences must not be empty");
         }
@@ -92,14 +92,14 @@ final class DoomCombatantPresentation
     @Override
     public void bindEndpoints(ComponentEndpoints endpoints) {
         ComponentEndpoints validEndpoints = Objects.requireNonNull(endpoints, "endpoints");
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ALERTED_ACTION, this::receiveAlerted);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ALERTED_ACTION, this::receiveAlerted);
         validEndpoints.action(
-                DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION, this::receiveMovementStarted);
+                DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STARTED_ACTION, this::receiveMovementStarted);
         validEndpoints.action(
-                DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION, this::receiveMovementStopped);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_ATTACKED_ACTION, this::receiveAttacked);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_HURT_ACTION, this::receiveHurt);
-        validEndpoints.action(DoomedCorridorsRuntimeTypes.RECEIVE_COMBATANT_DIED_ACTION, this::receiveDied);
+                DoomedCorridorsDescriptors.RECEIVE_COMBATANT_MOVEMENT_STOPPED_ACTION, this::receiveMovementStopped);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_ATTACKED_ACTION, this::receiveAttacked);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_HURT_ACTION, this::receiveHurt);
+        validEndpoints.action(DoomedCorridorsDescriptors.RECEIVE_COMBATANT_DIED_ACTION, this::receiveDied);
     }
 
     @Override

@@ -4,7 +4,7 @@
  */
 package io.github.glynch.doomedcorridors;
 
-import io.github.glynch.doomedcorridors.internal.DoomedCorridorsRuntimeTypes;
+import io.github.glynch.doomedcorridors.internal.DoomedCorridorsDescriptors;
 import io.github.glynch.jscene3d.game.presentation.ScreenNumber;
 import io.github.glynch.jscene3d.project.runtime.FrameUpdateContext;
 import io.github.glynch.jscene3d.project.runtime.extension.ComponentReferenceBinder;
@@ -23,11 +23,10 @@ final class DoomPlayerHud implements ComponentReferenceBinder, ComponentUpdateCa
     public void bindReferences(ComponentReferenceResolver references) {
         ComponentReferenceResolver validReferences = Objects.requireNonNull(references, "references");
         playerState =
-                validReferences.component(DoomedCorridorsRuntimeTypes.HUD_PLAYER_STATE_PROPERTY, DoomPlayerState.class);
+                validReferences.component(DoomedCorridorsDescriptors.HUD_PLAYER_STATE_PROPERTY, DoomPlayerState.class);
         healthNumber =
-                validReferences.component(DoomedCorridorsRuntimeTypes.HUD_HEALTH_NUMBER_PROPERTY, ScreenNumber.class);
-        ammoNumber =
-                validReferences.component(DoomedCorridorsRuntimeTypes.HUD_AMMO_NUMBER_PROPERTY, ScreenNumber.class);
+                validReferences.component(DoomedCorridorsDescriptors.HUD_HEALTH_NUMBER_PROPERTY, ScreenNumber.class);
+        ammoNumber = validReferences.component(DoomedCorridorsDescriptors.HUD_AMMO_NUMBER_PROPERTY, ScreenNumber.class);
     }
 
     @Override
