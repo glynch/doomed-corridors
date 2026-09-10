@@ -15,3 +15,5 @@ Available profiles:
 - `moving-floor-34` starts immediately in front of moving floor sector 34, facing away from it. Click once to capture
   the pointer, do not turn, then hold `S`. The player backs into the walk-over trigger while the ledge remains visible;
   the ledge should lower to the surrounding floor height.
+- `moving-floor-staircase` starts at the bottom center of the four steps beyond moving floor sector 34. Click once to
+  capture the pointer, do not turn, then hold `W`. The player should climb all four steps and enter the raised room.

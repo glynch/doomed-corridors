@@ -17,6 +17,14 @@
         "doomed-corridors.spawn": [41.5, 0.875, 20.0],
         "doomed-corridors.yaw-degrees": 0.0
       }
+    },
+    "moving-floor-staircase": {
+      "scene": "worlds/map01.world.json",
+      "parameters": {
+        "doomed-corridors.invulnerable": true,
+        "doomed-corridors.spawn": [34.0, -3.125, 2.5],
+        "doomed-corridors.yaw-degrees": 0.0
+      }
     }
   }
 }

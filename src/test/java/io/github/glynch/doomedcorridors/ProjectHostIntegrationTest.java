@@ -830,6 +830,34 @@ final class ProjectHostIntegrationTest {
         }
     }
 
+    /** Climbs the four source-authored 16-unit risers reached after moving floor sector 34. */
+    @Test
+    void climbsMovingFloorStaircaseFromPlaytestProfile() {
+        Path cache = temporaryDirectory.resolve("staircase-playtest-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+        PlaytestProfile profile = new PlaytestProfileLoader().load(PROJECT_ROOT, "moving-floor-staircase");
+        ProjectLaunchRequest request =
+                ProjectLaunchRequest.playtest(profile.name(), profile.scene(), profile.parameters());
+
+        try (HostedProject loaded = load(cache, request)) {
+            Entity player = root(loaded, PLAYER_ENTITY);
+            Transform3d playerTransform =
+                    player.component(PLAYER_TRANSFORM, Transform3d.class).orElseThrow();
+            ProjectInput input = (ProjectInput) loaded.world().requireModule(InputWorldModule.class);
+
+            assertThat(playerTransform.position().x()).isEqualTo(34.0F);
+            assertThat(playerTransform.position().y()).isEqualTo(-3.125F);
+            assertThat(playerTransform.position().z()).isEqualTo(2.5F);
+
+            loaded.world().activate();
+            input.publish(ActionSnapshot.builder().axis2d(MOVE, 0.0F, 1.0F).build());
+            advanceFixed(loaded, 50);
+
+            assertThat(playerTransform.position().z()).isLessThan(-4.0F);
+            assertThat(playerTransform.position().y()).isGreaterThan(-1.2F);
+        }
+    }
+
     /** Stops at MAP01 collision while preserving the tangential component of diagonal movement. */
     @Test
     void blocksAndSlidesHostedPlayerAtMapWall() {

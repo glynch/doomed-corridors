@@ -88,6 +88,68 @@ final class Map01StepTraversalTest {
         }
     }
 
+    /** Traverses every width sample of the four 16-unit risers beyond moving floor sector 34. */
+    @Test
+    void traversesMovingFloorStaircaseAcrossItsUsableWidth() {
+        Path cache = temporaryDirectory.resolve("moving-floor-staircase-import-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            DoomMap map = map01();
+            assertThat(List.of(214, 216, 189, 191).stream()
+                            .map(index -> stepHeight(map, index))
+                            .toList())
+                    .containsExactly(16, 16, 16, 16);
+            PhysicsWorld world = collisionWorld(collisionResource(loaded));
+            StepPortal firstRiser = stepPortal(map, 214);
+            float usableHalfWidth = firstRiser.halfWidth() - CAPSULE_RADIUS * 1.1F;
+            List<Float> blockedOffsets = new ArrayList<>();
+
+            for (float offsetFactor : List.of(-1.0F, -0.5F, 0.0F, 0.5F, 1.0F)) {
+                float offset = usableHalfWidth * offsetFactor;
+                if (!traversesMovingFloorStaircase(
+                        world, firstRiser.withWidthOffset(offset), DoomUnits.toWorld(16.0F))) {
+                    blockedOffsets.add(offsetFactor);
+                }
+            }
+
+            assertThat(blockedOffsets)
+                    .as("width offsets blocked on the four 16-unit risers beyond moving floor sector 34")
+                    .isEmpty();
+        }
+    }
+
+    /** Returns up the right side of the moving-floor staircase using the game's 25 ms fixed step. */
+    @Test
+    void returnsUpMovingFloorStaircaseAtGameplayFixedStep() {
+        Path cache = temporaryDirectory.resolve("moving-floor-staircase-round-trip-cache");
+        DoomedCorridorsContentPublisher.publish(PROJECT_ROOT, cache);
+
+        try (HostedProject loaded = load(cache)) {
+            PhysicsWorld world = collisionWorld(collisionResource(loaded));
+            KinematicBody body = character(world, new Vector3f(36.3F, -1.125F, -4.5F));
+            CharacterController controller = controller(world, body, DoomUnits.toWorld(16.0F));
+            float gameplaySeconds = 0.025F;
+            try {
+                settle(controller, gameplaySeconds);
+                for (int update = 0; update < 40; update++) {
+                    controller.move(new Vector3f(0.0F, 0.0F, 8.0F), gameplaySeconds);
+                }
+                assertThat(body.position(new Vector3f()).z).isGreaterThan(2.0F);
+
+                for (int update = 0; update < 50; update++) {
+                    controller.move(new Vector3f(0.0F, 0.0F, -8.0F), gameplaySeconds);
+                }
+
+                Vector3f returned = body.position(new Vector3f());
+                assertThat(returned.z).isLessThan(-4.0F);
+                assertThat(returned.y).isGreaterThan(-1.2F);
+            } finally {
+                world.remove(body);
+            }
+        }
+    }
+
     /** Moves continuously across the four east-west staircase sectors beginning at the supplied first riser. */
     private static boolean traversesStaircase(PhysicsWorld world, StepPortal firstStep, float maximumStepHeight) {
         KinematicBody body = character(world, firstStep.lowerPosition());
@@ -98,6 +160,29 @@ final class Map01StepTraversalTest {
                 controller.move(new Vector3f(-8.0F, 0.0F, 0.0F), FIXED_SECONDS);
                 if (body.position(new Vector3f()).x < -1.5F) {
                     return body.position(new Vector3f()).y > CAPSULE_HALF_HEIGHT;
+                }
+            }
+            return false;
+        } finally {
+            world.remove(body);
+        }
+    }
+
+    /** Moves from sector 36 through four consecutive risers into sector 29. */
+    private static boolean traversesMovingFloorStaircase(
+            PhysicsWorld world, StepPortal firstRiser, float maximumStepHeight) {
+        KinematicBody body = character(world, firstRiser.lowerPosition());
+        CharacterController controller = controller(world, body, maximumStepHeight);
+        try {
+            settle(controller);
+            Vector3f velocity = new Vector3f(firstRiser.direction()).mul(8.0F);
+            float finalLandingDistance = DoomUnits.toWorld(192.0F) + CAPSULE_RADIUS * 0.5F;
+            float finalCenterHeight = firstRiser.lowerFloor() + DoomUnits.toWorld(64.0F) + CAPSULE_HALF_HEIGHT;
+            for (int update = 0; update < 240; update++) {
+                controller.move(velocity, FIXED_SECONDS);
+                Vector3f position = body.position(new Vector3f());
+                if (firstRiser.signedDistance(position) > finalLandingDistance) {
+                    return position.y > finalCenterHeight - 0.05F;
                 }
             }
             return false;
@@ -148,8 +233,13 @@ final class Map01StepTraversalTest {
 
     /** Grounds a newly placed character before applying horizontal movement. */
     private static void settle(CharacterController controller) {
+        settle(controller, FIXED_SECONDS);
+    }
+
+    /** Grounds a newly placed character using one selected fixed-step duration. */
+    private static void settle(CharacterController controller, float fixedSeconds) {
         for (int update = 0; update < 15; update++) {
-            controller.move(new Vector3f(), FIXED_SECONDS);
+            controller.move(new Vector3f(), fixedSeconds);
         }
     }
 
@@ -188,6 +278,16 @@ final class Map01StepTraversalTest {
                 lowerFloor,
                 new Vector3f(deltaX, 0.0F, deltaZ).div(length),
                 length * 0.5F);
+    }
+
+    /** Returns one two-sided linedef's absolute source-authored floor-height difference. */
+    private static int stepHeight(DoomMap map, int linedefIndex) {
+        DoomMap.Linedef linedef = map.linedefs().get(linedefIndex);
+        DoomMap.Sector right =
+                map.sectors().get(map.sidedefs().get(linedef.rightSidedef()).sector());
+        DoomMap.Sector left =
+                map.sectors().get(map.sidedefs().get(linedef.leftSidedef()).sector());
+        return Math.abs(left.floorHeight() - right.floorHeight());
     }
 
     /** Copies every published collision vertex into the backend's flattened representation. */
