@@ -13,7 +13,7 @@ content pipeline and create work that a full game cannot reuse.
 
 ## Project boundary
 
-The root `project.json` is the engine-native project definition. It contains stable
+The root `jscene3d.json` is the engine-native project definition. It contains stable
 identity, author and catalog metadata, engine compatibility, Game Provider identity,
 entry and startup targets, authored launch presentation, legal-document references,
 and authoritative asset sources. It is
@@ -270,7 +270,7 @@ startup.
 ## Acceptance criteria
 
 - `./mvnw verify` passes using locally installed JScene3D snapshots.
-- `project.json` loads through `jscene3d-project`; before the WAD is installed,
+- `jscene3d.json` loads through `jscene3d-project`; before the WAD is installed,
   the sole expected diagnostic is the missing source-asset warning.
 - With the pinned WAD installed, the importer identifies `MAP01` and rejects corrupt
   or unsupported input with structured diagnostics.

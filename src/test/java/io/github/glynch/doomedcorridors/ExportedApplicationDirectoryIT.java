@@ -29,7 +29,7 @@ final class ExportedApplicationDirectoryIT {
         assertThat(paths)
                 .contains(
                         "bin/doomed-corridors",
-                        "project/project.json",
+                        "project/jscene3d.json",
                         "project/worlds/main-menu.world.json",
                         "project/worlds/map01.world.json",
                         "project/resources/main-menu-background.resource.json",
