@@ -192,6 +192,12 @@ generic desktop launcher. Recursive project references inside runtime resource
 definitions are included, while source Java, tests, import-only WAD data, editable
 branding masters, and exporter implementation classes remain absent.
 
+The macOS distribution layer wraps that directory as a native application with
+an embedded runtime, project icon, stable bundle identifier, and ARM64 launcher.
+The branded DMG presents the application beside an Applications alias and retains
+the project license and credits inside the bundle. Developer ID signing and Apple
+notarization remain release-distribution work; local builds use ad hoc signing.
+
 The resource-pickup slice is complete. Versioned provider rules declare the player's
 absolute health, armor, bullet, and shell capacities plus per-actor amounts,
 ordinary or bonus limits, protection rates, weapon grants, and contact radii. Descriptor-authored pickup sensors

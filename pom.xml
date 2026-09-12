@@ -34,6 +34,10 @@
         <doomed.corridors.firstThreadArgument>-Ddoomed.corridors.launch=true</doomed.corridors.firstThreadArgument>
         <doomed.corridors.playtest />
         <doomed.corridors.application.directory>${project.build.directory}/export/doomed-corridors</doomed.corridors.application.directory>
+        <doomed.corridors.application.version>1.0.0</doomed.corridors.application.version>
+        <doomed.corridors.macos.application.directory>${project.build.directory}/macos-application</doomed.corridors.macos.application.directory>
+        <doomed.corridors.distribution.directory>${project.build.directory}/distribution</doomed.corridors.distribution.directory>
+        <doomed.corridors.dmg.background>${project.basedir}/application/branding/images/doomed-corridors-dmg-background.png</doomed.corridors.dmg.background>
     </properties>
 
     <dependencyManagement>
@@ -495,6 +499,52 @@
                                     <systemPropertyVariables>
                                         <doomedCorridors.applicationDirectory>${doomed.corridors.application.directory}</doomedCorridors.applicationDirectory>
                                     </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>macos-distribution</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec.maven.version}</version>
+                        <executions>
+                            <execution>
+                                <id>assemble-macos-application-image</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>io.github.glynch.jscene3d.project.exporting.internal.ApplicationImageExportCommand</mainClass>
+                                    <classpathScope>compile</classpathScope>
+                                    <arguments>
+                                        <argument>${doomed.corridors.application.directory}</argument>
+                                        <argument>${doomed.corridors.application.version}</argument>
+                                        <argument>${doomed.corridors.macos.application.directory}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>assemble-macos-disk-image</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>io.github.glynch.jscene3d.project.exporting.internal.MacOsDiskImageExportCommand</mainClass>
+                                    <classpathScope>compile</classpathScope>
+                                    <arguments>
+                                        <argument>${doomed.corridors.macos.application.directory}/Doomed Corridors.app</argument>
+                                        <argument>${doomed.corridors.distribution.directory}</argument>
+                                        <argument>${doomed.corridors.dmg.background}</argument>
+                                    </arguments>
                                 </configuration>
                             </execution>
                         </executions>

@@ -91,6 +91,26 @@ Launch that output directly from the repository root with:
 ./target/export/doomed-corridors/bin/doomed-corridors
 ```
 
+On an Apple Silicon Mac, build and verify the relocatable directory, native
+application bundle, and branded disk image together with:
+
+```shell
+./mvnw clean verify -Pexport-directory,verify-export-directory,macos-distribution
+```
+
+The distributable is written to
+`target/distribution/Doomed Corridors-1.0.0.dmg`. The application inside it is
+an ARM64 bundle with its own Java runtime, so the receiving Mac does not need a
+JDK or the source WAD. This development build is ad hoc signed rather than
+Developer ID signed and notarized; macOS therefore requires the recipient to
+approve its first launch explicitly.
+
+For a trusted private test, open the DMG, drag **Doomed Corridors** to
+**Applications**, and try to open it once. If Gatekeeper blocks the ad hoc
+signed build, open **System Settings → Privacy & Security**, scroll to
+**Security**, choose **Open Anyway**, and confirm **Open**. Do not disable
+Gatekeeper globally or strip the download quarantine attribute.
+
 The application directory contains the compiled game and engine modules,
 current-platform native libraries, authored project files, original branding,
 and published imported content. It deliberately excludes Java source, tests,

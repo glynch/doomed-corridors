@@ -6,7 +6,8 @@
     "name": "Doomed Corridors",
     "version": "0.1.0-SNAPSHOT",
     "created": "2026-09-03",
-    "description": "An unofficial Doom-compatible first-person game built with JScene3D."
+    "description": "An unofficial Doom-compatible first-person game built with JScene3D.",
+    "icon": "application/branding/images/doomed-corridors.icns"
   },
   "authors": [
     {
@@ -15,7 +16,8 @@
     }
   ],
   "legal": {
-    "thirdPartyNotices": "src/main/resources/assets/ATTRIBUTION.md"
+    "thirdPartyNotices": "assets/COPYING.txt",
+    "credits": "assets/CREDITS.txt"
   },
   "engine": {
     "requires": ">=0.1.0-SNAPSHOT <0.2.0",
