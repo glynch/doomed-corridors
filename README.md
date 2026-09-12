@@ -209,7 +209,11 @@ yet save project changes.
 ## Development
 
 Implementation plans and architectural decisions are documented under
-[`docs/`](docs/). Current controls and actor behavior are listed in the
+[`docs/`](docs/). The distinction between editable project workspaces, editor
+distributions, and playable application distributions—and the planned scope of
+Java authoring—is recorded in
+[`ADR 0001`](docs/adr/0001-project-workspaces-and-java-authoring.md). Current
+controls and actor behavior are listed in the
 [`gameplay guide`](docs/gameplay-guide.md), and the first playable milestone is
 described in [`docs/first-room-prototype.md`](docs/first-room-prototype.md).
 
