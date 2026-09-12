@@ -91,6 +91,18 @@ Launch that output directly from the repository root with:
 ./target/export/doomed-corridors/bin/doomed-corridors
 ```
 
+Build a self-contained authoring-project archive for another JScene3D Editor
+user with:
+
+```shell
+./mvnw clean package -Pproject-archive
+```
+
+The resulting
+`target/Doomed Corridors Project-0.1.0-SNAPSHOT.zip` contains the editable
+project, original source WAD, extension metadata, and published import cache.
+After extraction, open the enclosed `doomed-corridors` directory in the editor.
+
 On an Apple Silicon Mac, build and verify the relocatable directory, native
 application bundle, and branded disk image together with:
 
