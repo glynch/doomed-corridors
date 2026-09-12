@@ -2,6 +2,7 @@ target/
 **/target/
 **/target_test-classes/
 node_modules/
+.jscene3d/cache/
 
 /assets/*.wad
 
