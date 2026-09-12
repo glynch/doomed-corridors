@@ -99,9 +99,13 @@ user with:
 ```
 
 The resulting
-`target/Doomed Corridors Project-0.1.0-SNAPSHOT.zip` contains the editable
-project, original source WAD, extension metadata, and published import cache.
-After extraction, open the enclosed `doomed-corridors` directory in the editor.
+`target/doomed-corridors-project-workspace-0.1.0-SNAPSHOT.zip` contains the
+editable project, original source WAD, Java source and tests, Maven build and
+wrapper, project quality policy, documentation, and a compatibility snapshot of
+the completed imports at `.jscene3d/published/imports`. It excludes every
+`target` directory, import staging data, IDE metadata, and version-control
+internals. After extraction, open the enclosed `doomed-corridors` directory in
+the editor.
 
 On an Apple Silicon Mac, build and verify the relocatable directory, native
 application bundle, and branded disk image together with:
@@ -111,7 +115,7 @@ application bundle, and branded disk image together with:
 ```
 
 The distributable is written to
-`target/distribution/Doomed Corridors-1.0.0.dmg`. The application inside it is
+`target/distribution/doomed-corridors-1.0.0-macos-arm64.dmg`. The application inside it is
 an ARM64 bundle with its own Java runtime, so the receiving Mac does not need a
 JDK or the source WAD. This development build is ad hoc signed rather than
 Developer ID signed and notarized; macOS therefore requires the recipient to

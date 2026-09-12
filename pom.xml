@@ -38,6 +38,8 @@
         <doomed.corridors.application.version>1.0.0</doomed.corridors.application.version>
         <doomed.corridors.macos.application.directory>${project.build.directory}/macos-application</doomed.corridors.macos.application.directory>
         <doomed.corridors.distribution.directory>${project.build.directory}/distribution</doomed.corridors.distribution.directory>
+        <doomed.corridors.disk.image>${doomed.corridors.distribution.directory}/doomed-corridors-${doomed.corridors.application.version}-macos-arm64.dmg</doomed.corridors.disk.image>
+        <doomed.corridors.generated.disk.image>${doomed.corridors.distribution.directory}/Doomed Corridors-${doomed.corridors.application.version}.dmg</doomed.corridors.generated.disk.image>
         <doomed.corridors.dmg.background>${project.basedir}/application/branding/images/doomed-corridors-dmg-background.png</doomed.corridors.dmg.background>
     </properties>
 
@@ -336,7 +338,7 @@
                                     <descriptors>
                                         <descriptor>application/distribution/project-archive.xml</descriptor>
                                     </descriptors>
-                                    <finalName>Doomed Corridors Project-${project.version}</finalName>
+                                    <finalName>doomed-corridors-project-workspace-${project.version}</finalName>
                                 </configuration>
                             </execution>
                         </executions>
@@ -573,6 +575,34 @@
                                         <argument>${doomed.corridors.macos.application.directory}/Doomed Corridors.app</argument>
                                         <argument>${doomed.corridors.distribution.directory}</argument>
                                         <argument>${doomed.corridors.dmg.background}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>rename-macos-disk-image</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>/bin/mv</executable>
+                                    <arguments>
+                                        <argument>${doomed.corridors.generated.disk.image}</argument>
+                                        <argument>${doomed.corridors.disk.image}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>verify-macos-disk-image</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>/usr/bin/hdiutil</executable>
+                                    <arguments>
+                                        <argument>verify</argument>
+                                        <argument>${doomed.corridors.disk.image}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

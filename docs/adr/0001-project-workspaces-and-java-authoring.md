@@ -26,9 +26,9 @@ The Project Workspace Archive is an editable source distribution. It includes Au
 - `jscene3d.json` and all referenced worlds, game definitions, assets, resources, imports, branding, and extension declarations;
 - `src/main/java` and `src/main/resources`, including project-specific game behaviour and extension metadata;
 - `src/test` and other project-owned verification material;
-- build descriptors and their checked-in wrappers, including `pom.xml`, `mvnw`, and `.mvn`;
-- project-owned formatting, Checkstyle, and other quality configuration;
-- project documentation, attribution, licences, and repository metadata useful to continued development; and
+- build descriptors and checked-in wrappers when the Project Workspace uses that build system;
+- project-owned formatting, Checkstyle, and other customized quality configuration;
+- project documentation, attribution, licences, and portable repository metadata useful to continued development, including `.gitignore` and `.gitattributes` when present; and
 - portable project settings that are deliberately shared by the team.
 
 It excludes Generated State and machine-local material such as:
@@ -37,9 +37,9 @@ It excludes Generated State and machine-local material such as:
 - version-control internals such as `.git`;
 - IDE metadata, operating-system files, logs, and temporary files;
 - developer-specific settings, absolute local paths, credentials, and secrets; and
-- caches that the editor can reliably reproduce from included Authored Project Files.
+- Project Caches, including caches the current editor cannot yet reproduce itself.
 
-A generated import cache may be added explicitly as a temporary compatibility measure when the receiving editor cannot yet reproduce it reliably. This is a narrow exception, not permission to include `target` wholesale. Import caches should eventually be reproducible and optional, with their lifecycle owned by the editor rather than exposed as authored project structure.
+Until the editor can safely reproduce imports, the archive may contain an explicitly created Published Import Snapshot at `.jscene3d/published/imports`. The snapshot is a portable compatibility payload, not the receiving developer's Project Cache and not permission to include its source `target` directory. Once trusted import execution is available, new archives should normally omit the snapshot and regenerate imports from included Authored Project Files.
 
 The Project Workspace Archive should be named and presented as a development artifact. It is not the standalone game.
 
@@ -48,6 +48,33 @@ The Project Workspace Archive should be named and presented as a development art
 The Editor Distribution contains JScene3D Editor and the runtime required to launch it. It does not contain the source of a particular game.
 
 The Application Distribution contains the compiled game, required engine modules, runtime libraries, published assets, and application branding. It excludes Java source, tests, build tools, quality configuration, documentation intended only for developers, and import-only source assets that are unnecessary at runtime.
+
+## Project creation and build ownership
+
+`jscene3d.json` is the only build-system-independent identity of a JScene3D Project. A valid content-only project does not require Maven, Gradle, Java source, or a particular directory layout for those tools.
+
+The new-project workflow may offer build-enabled templates. A Java project using Maven receives an initial Java source tree, tests, `pom.xml`, and Maven Wrapper; a Gradle template may be added later. The editor supplies the corresponding build adapter and may supply or manage a Maven installation, but a checked-in wrapper remains part of the project that pins it for command-line and continuous-integration use.
+
+Generated build files become Authored Project Files as soon as the project is created. Developers may edit them directly, and the editor must never silently regenerate or overwrite their changes. A future build upgrade must be an explicit command that shows the proposed changes before applying them. Unsupported or invalid build edits produce diagnostics.
+
+The default Maven POM should remain small by referring to versioned JScene3D dependency and build-tool artifacts. The editor discovers the selected build system through an adapter instead of encoding Maven assumptions in the project loader or `jscene3d.json`.
+
+`.gitignore` is not part of the JScene3D project format. Project creation may generate one when source-control support is selected, and a Project Workspace Archive preserves it when it already exists.
+
+## Project cache and published imports
+
+The editor's default Project Cache root is `.jscene3d/cache`, with imported content beneath `.jscene3d/cache/imports`. It is Generated State, is excluded from source control and ordinary Project Workspace Archives, and must not be addressed as Maven `target` content.
+
+The cache location is resolved in the following order:
+
+1. a temporary command-line or session override;
+2. a user-scoped override for the Project Workspace;
+3. a portable relative setting in `.jscene3d/settings.json`; and
+4. the default `.jscene3d/cache` directory.
+
+Shared project settings must use portable relative paths resolved from the Project Workspace root. Absolute paths and machine-specific locations belong in user settings and are not placed in the archive.
+
+Each host owns its generated output location. Maven may continue to use `target/import-cache` as disposable Maven build output, while the editor uses its configured Project Cache and application export uses its own staging area. The project loader receives published content through an interface and must not hardcode any host's cache directory.
 
 ## Project browsing and source browsing
 
@@ -99,7 +126,7 @@ The first milestone does not promise complete Visual Studio Code parity. Advance
 
 ## Checkstyle and quality policy
 
-JScene3D Java tooling will supply a versioned default Checkstyle policy so a new project receives useful diagnostics without copying a configuration file into every workspace. Projects remain free to replace or customize that policy.
+JScene3D Java tooling will supply a versioned default Checkstyle policy so a new project receives useful diagnostics without copying a configuration file into every workspace. A generated build descriptor refers to the same versioned policy so editor and command-line results agree. Projects remain free to replace or customize that policy.
 
 Checkstyle configuration is resolved in this order, from highest to lowest precedence:
 
@@ -114,8 +141,10 @@ When a project owns a custom Checkstyle configuration, that file is an Authored 
 
 ## Consequences
 
-- The current Doomed Corridors project archive should keep its Java source, tests, Maven wrapper, Checkstyle configuration, and documentation.
-- Packaging cleanup should remove only generated, local, or unsafe material; it should not create a content-only archive under the name Project Workspace Archive.
+- The current Doomed Corridors project archive keeps its Java source, tests, Maven descriptor and wrapper, customized Checkstyle configuration, documentation, and portable repository metadata because Doomed Corridors is already a Maven-backed Java Project Workspace.
+- Packaging cleanup removes generated, local, or unsafe material, including all `target` paths; it must not create a content-only archive under the name Project Workspace Archive.
+- The current compatibility archive supplies its required imported content as `.jscene3d/published/imports`, independently of the editor's configurable Project Cache.
+- New build-enabled projects receive generated build files once, after which developers own and may edit them directly.
 - A separately named content/template export may be introduced later if a real content-only sharing use case appears.
 - The editor can grow into a Java-capable development environment without changing the meaning of existing Project Workspaces.
 - Java, Checkstyle, and build-system integrations remain replaceable adapters at explicit workbench seams rather than accumulating inside the core editor application.

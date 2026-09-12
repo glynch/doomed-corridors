@@ -27,9 +27,19 @@
             </excludes>
         </fileSet>
         <fileSet>
-            <directory>${project.build.directory}/import-cache</directory>
-            <outputDirectory>doomed-corridors/target/import-cache</outputDirectory>
+            <directory>${project.build.directory}/import-cache/imports</directory>
+            <outputDirectory>doomed-corridors/.jscene3d/published/imports</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
+            <excludes>
+                <exclude>**/.commit.lock</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
+    <files>
+        <file>
+            <source>${project.basedir}/.gitignore</source>
+            <outputDirectory>doomed-corridors</outputDirectory>
+            <destName>.gitignore</destName>
+        </file>
+    </files>
 </assembly>

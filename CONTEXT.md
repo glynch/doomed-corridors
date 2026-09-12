@@ -16,6 +16,14 @@ _Avoid_: Runtime bundle
 A portable snapshot of a Project Workspace intended for another developer to extract, open in JScene3D Editor, modify, build, and test.
 _Avoid_: Game distribution, project content ZIP
 
+**Project Cache**:
+Disposable, locally generated data that accelerates work on one Project Workspace and can be reproduced from Authored Project Files.
+_Avoid_: Published content, project source
+
+**Published Import Snapshot**:
+A portable, read-only snapshot of generated imports supplied when another editor cannot yet reproduce them from the Project Workspace.
+_Avoid_: Project Cache, authored import
+
 **Editor Distribution**:
 A self-contained installation of JScene3D Editor, such as the macOS editor DMG. It opens Project Workspaces but does not contain a particular game's source.
 _Avoid_: Project distribution
